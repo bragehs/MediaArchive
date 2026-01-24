@@ -3,13 +3,12 @@ FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /app
 
 # Copy the project file and restore dependencies
-COPY ["MediaArchive.API/MediaArchive.API.csproj", "MediaArchive.API/"]
-RUN dotnet restore "MediaArchive.API/MediaArchive.API.csproj"
+COPY ["MediaArchive.API.csproj", "./"]
+RUN dotnet restore "MediaArchive.API.csproj"
 
 # Copy everything else and build
 COPY . .
-WORKDIR "/app/MediaArchive.API"
-RUN dotnet publish -c Release -o /out
+RUN dotnet publish "MediaArchive.API.csproj" -c Release -o /out
 
 # Build the final runtime image
 FROM mcr.microsoft.com/dotnet/aspnet:8.0
