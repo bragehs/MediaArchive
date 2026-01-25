@@ -8,5 +8,12 @@
       <jdbc-url>jdbc:mysql://localhost:3306/MediaArchiveDb</jdbc-url>
       <working-dir>$ProjectFileDir$</working-dir>
     </data-source>
+    <data-source source="LOCAL" name="MediaArchiveDb@prod" uuid="fcfbda8c-37f2-41ef-a723-543e488dc0f0">
+      <driver-ref>mysql.8</driver-ref>
+      <synchronize>true</synchronize>
+      <jdbc-driver>com.mysql.cj.jdbc.Driver</jdbc-driver>
+      <jdbc-url>jdbc:mysql://gondola.proxy.rlwy.net:14468/railway</jdbc-url>
+      <working-dir>$ProjectFileDir$</working-dir>
+    </data-source>
   </component>
 </project>
