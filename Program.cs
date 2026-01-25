@@ -27,7 +27,7 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
     ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
+    options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 21))));
 
 var app = builder.Build();
 
@@ -47,6 +47,22 @@ app.MapControllers();
 
 using var scope = app.Services.CreateScope();
 var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-context.Database.Migrate();
+
+var retryCount = 5;
+while (retryCount > 0)
+{
+    try
+    {
+        context.Database.Migrate();
+        break;
+    }
+    catch (MySqlConnector.MySqlException ex) when (ex.Message.Contains("Unable to connect"))
+    {
+        retryCount--;
+        if (retryCount == 0) throw;
+        Console.WriteLine($"Database not ready, retrying in 5 seconds... ({retryCount} retries left)");
+        Thread.Sleep(5000);
+    }
+}
 
 app.Run();
