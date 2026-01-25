@@ -23,12 +23,11 @@ builder.Services.AddCors(options =>
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-if (!string.IsNullOrEmpty(connectionString))
-{
-    builder.Services.AddDbContext<AppDbContext>(options =>
-        options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
-}
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
 
 var app = builder.Build();
 
@@ -46,11 +45,8 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-if (!string.IsNullOrEmpty(connectionString))
-{
-    using var scope = app.Services.CreateScope();
-    var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    context.Database.Migrate();
-}
+using var scope = app.Services.CreateScope();
+var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+context.Database.Migrate();
 
 app.Run();
