@@ -47,22 +47,6 @@ app.MapControllers();
 
 using var scope = app.Services.CreateScope();
 var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-
-var retryCount = 5;
-while (retryCount > 0)
-{
-    try
-    {
-        context.Database.Migrate();
-        break;
-    }
-    catch (MySqlConnector.MySqlException ex) when (ex.Message.Contains("Unable to connect"))
-    {
-        retryCount--;
-        if (retryCount == 0) throw;
-        Console.WriteLine($"Database not ready, retrying in 5 seconds... ({retryCount} retries left)");
-        Thread.Sleep(5000);
-    }
-}
+context.Database.Migrate();
 
 app.Run();
