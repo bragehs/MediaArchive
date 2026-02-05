@@ -1,19 +1,19 @@
 namespace MediaArchive.API.Models;
 
-public abstract class MediaItem
+public abstract class MediaItem<TId>
 {
-    public int Id { get; set; }
+    public required TId Id { get; set;  }
     public required string Title { get; set; }
-    public string? AuthorOrStudio { get; set; }
-    public string? Genre { get; set; }
+    public required string ImageUrl { get; set; }
+    public string? ReleaseYear { get; set; }
 }
 
-public class Book : MediaItem 
+public class Book : MediaItem<string> 
 { 
-    public int PageCount { get; set; } 
+    public required string Author { get; set; } 
 }
 
-public class VideoGame : MediaItem 
+public class VideoGame : MediaItem<int>
 { 
-    public string? Platform { get; set; } 
+    public required string Developer { get; set; } 
 }
