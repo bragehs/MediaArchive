@@ -3,6 +3,7 @@ using MediaArchive.API.Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -52,6 +53,17 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 )
         };
     });
+
+builder.Services.PostConfigure<ApiBehaviorOptions>(options =>
+{
+    options.InvalidModelStateResponseFactory = context =>
+    {
+        var errors = context.ModelState.Values.SelectMany(x => x.Errors).Select(x => x.ErrorMessage);
+        // This will print the EXACT error to your Rider Console/Terminal
+        Console.WriteLine("Validation Error: " + string.Join(", ", errors));
+        return new BadRequestObjectResult(context.ModelState);
+    };
+});
 
 var app = builder.Build();
 

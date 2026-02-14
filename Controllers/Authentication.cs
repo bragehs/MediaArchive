@@ -13,19 +13,19 @@ public class Authentication(UserManager<IdentityUser> userManager, IConfiguratio
     : ControllerBase
 {
     [HttpPost("register")]
-    public async Task<IActionResult> Register(string email, string password)
+    public async Task<IActionResult> Register([FromBody] RegisterRequest request)
     {
-        var user = new IdentityUser { UserName = email, Email = email };
-        var result = await userManager.CreateAsync(user, password);
+        var user = new IdentityUser { UserName = request.UserName, Email = request.Email };
+        var result = await userManager.CreateAsync(user, request.Password);
 
         return result.Succeeded ? Ok() : BadRequest(result.Errors);
     }
 
     [HttpPost("login")]
-    public async Task<IActionResult> Login(string email, string password)
+    public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
-        var user = await userManager.FindByEmailAsync(email);
-        if (user == null || !await userManager.CheckPasswordAsync(user, password))
+        var user = await userManager.FindByNameAsync(request.UserName);
+        if (user == null || !await userManager.CheckPasswordAsync(user, request.Password))
             return Unauthorized();
 
         var token = GenerateJwt(user);
@@ -35,7 +35,7 @@ public class Authentication(UserManager<IdentityUser> userManager, IConfiguratio
     private string GenerateJwt(IdentityUser user)
     {
         var key = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(config["JwtKey"] ?? string.Empty)
+            Encoding.UTF8.GetBytes(config["Jwt:Key"] ?? string.Empty)
         );
 
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
@@ -49,3 +49,11 @@ public class Authentication(UserManager<IdentityUser> userManager, IConfiguratio
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
 }
+
+public record RegisterRequest(
+    string UserName, 
+    string Email, 
+    string Password
+);
+
+public record LoginRequest(string UserName, string Password);
