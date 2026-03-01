@@ -11,7 +11,7 @@ public record VideoGameSearchRequest(string Chars);
 
 [ApiController]
 [Route("api/[controller]")]
-public class MediaSearch(AppDbContext context) : ControllerBase
+public class MediaSearchController(AppDbContext context) : ControllerBase
 {
     private const int PageSize = 10;
 
