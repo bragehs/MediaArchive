@@ -1,9 +1,9 @@
 using System.Text;
 using MediaArchive.API.Data;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -17,10 +17,10 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowSpecificOrigins",
         policy =>
         {
-            policy.WithOrigins("https://media-archive-alpha.vercel.app", 
-                               "http://localhost:3000")
-                  .AllowAnyHeader()
-                  .AllowAnyMethod();
+            policy.WithOrigins("https://media-archive-alpha.vercel.app",
+                    "http://localhost:3000")
+                .AllowAnyHeader()
+                .AllowAnyMethod();
         });
 });
 
@@ -29,7 +29,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+                       ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 21))));
@@ -49,7 +49,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateIssuerSigningKey = true,
             IssuerSigningKey =
                 new SymmetricSecurityKey(
-                    Encoding.UTF8.GetBytes(builder.Configuration["JwtKey"] ?? string.Empty)
+                    Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? string.Empty)
                 )
         };
     });
@@ -88,9 +88,6 @@ var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 context.Database.Migrate();
 
 // Seed database in Development mode only
-if (app.Environment.IsDevelopment())
-{
-    DbSeeder.Seed(context);
-}
+if (app.Environment.IsDevelopment()) DbSeeder.Seed(context);
 
 app.Run();

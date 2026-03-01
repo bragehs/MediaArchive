@@ -1,6 +1,7 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
@@ -8,8 +9,8 @@ using Microsoft.IdentityModel.Tokens;
 namespace MediaArchive.API.Controllers;
 
 public record RegisterRequest(
-    string UserName, 
-    string Email, 
+    string UserName,
+    string Email,
     string Password
 );
 
@@ -38,6 +39,13 @@ public class Authentication(UserManager<IdentityUser> userManager, IConfiguratio
 
         var token = GenerateJwt(user);
         return Ok(new { token });
+    }
+
+    [Authorize]
+    [HttpGet("validate")]
+    public IActionResult Validate()
+    {
+        return Ok();
     }
 
     private string GenerateJwt(IdentityUser user)
