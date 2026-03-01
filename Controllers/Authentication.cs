@@ -7,6 +7,14 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace MediaArchive.API.Controllers;
 
+public record RegisterRequest(
+    string UserName, 
+    string Email, 
+    string Password
+);
+
+public record LoginRequest(string UserName, string Password);
+
 [ApiController]
 [Route("auth")]
 public class Authentication(UserManager<IdentityUser> userManager, IConfiguration config)
@@ -49,11 +57,3 @@ public class Authentication(UserManager<IdentityUser> userManager, IConfiguratio
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
 }
-
-public record RegisterRequest(
-    string UserName, 
-    string Email, 
-    string Password
-);
-
-public record LoginRequest(string UserName, string Password);
