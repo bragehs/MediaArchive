@@ -87,4 +87,10 @@ using var scope = app.Services.CreateScope();
 var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 context.Database.Migrate();
 
+// Seed database in Development mode only
+if (app.Environment.IsDevelopment())
+{
+    DbSeeder.Seed(context);
+}
+
 app.Run();
