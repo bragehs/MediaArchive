@@ -50,13 +50,18 @@ public class Authentication(UserManager<IdentityUser> userManager, IConfiguratio
 
     private string GenerateJwt(IdentityUser user)
     {
-        var key = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(config["Jwt:Key"] ?? string.Empty)
-        );
+        var jwtKey = config["Jwt:Key"];
+        if (string.IsNullOrEmpty(jwtKey))
+        {
+            throw new InvalidOperationException("JWT Key is not configured.");
+        }
 
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
         var token = new JwtSecurityToken(
+            issuer: config["Jwt:Issuer"],
+            audience: config["Jwt:Audience"],
             claims: [new Claim(ClaimTypes.NameIdentifier, user.Id)],
             expires: DateTime.UtcNow.AddDays(7),
             signingCredentials: creds
