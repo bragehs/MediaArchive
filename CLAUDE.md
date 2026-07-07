@@ -26,6 +26,7 @@ Treat these two zones of the codebase differently:
 `Services/`, `Models/`, `Data/` (EF Core config, `DbContext`, migrations), business
 logic, LINQ queries, DI wiring in `Program.cs`, and any external-API import clients.
 For this code:
+
 - **Do NOT write it for me unless I explicitly ask.** Default to explaining the
   *approach*, the trade-offs, and the relevant C#/.NET idiom — then let me write it.
 - Prefer Socratic hints and small examples over finished solutions.
@@ -53,6 +54,8 @@ UI and services.
   guide me through writing it instead, unless I clearly want it done for me.
 - **Surface design choices, don't bury them.** Call out architectural forks
   explicitly and give me a recommendation *with* the reasoning.
+- **Design choices**. Look at desktop/vault/Personal Projects/Mediaarchive and look for relevant design choices before
+  implementing a task.
 
 ## Roadmap context
 
