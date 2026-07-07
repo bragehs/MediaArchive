@@ -1,4 +1,4 @@
-# MediaArchive — Project Structure
+# MediaArchive
 
 A personal, locally-run **media OS**: one place that tracks everything I've consumed
 across every media type (books, games, films, shows, anime) and surfaces taste
@@ -30,11 +30,16 @@ dotnet run        # builds, migrates + seeds the DB, starts the server
 Open the URL it prints (e.g. `http://localhost:5064`). To wipe and reseed the data,
 delete `mediaarchive.db*` and run again.
 
+```bash
+dotnet ef migrations add <Name>   # after changing Models/ or DbContext
+dotnet build                      # compile check
+```
+
 ---
 
 ## How a page gets its data
 
-The whole point of the Blazor pivot: no HTTP hop between UI and data.
+The whole point of the Blazor design: no HTTP hop between UI and data.
 
 ```
 Razor component (Components/Pages/*.razor)
@@ -82,7 +87,7 @@ automatically at startup (`db.Database.Migrate()` in `Program.cs`). Regenerate w
 ### `Services/` — the read layer
 | File | Role |
 |---|---|
-| `LibraryService.cs` | All the queries the UI needs: the filtered Library, a single item's detail, currently-consuming, the diary feed, and aggregate profile stats. Uses `IDbContextFactory` (each call gets its own short-lived context — the recommended Blazor Server pattern). Currently **read-only**; write flows come in later phases. |
+| `LibraryService.cs` | All the queries the UI needs: the filtered Library, a single item's detail, currently-consuming, the diary feed, and aggregate profile stats. Uses `IDbContextFactory` (each call gets its own short-lived context — the recommended Blazor Server pattern). |
 
 ### `Components/` — the UI (Blazor)
 ```
@@ -96,7 +101,7 @@ Components/
 │   └── ReconnectModal    Blazor Server reconnect UI (framework default)
 ├── Pages/               one routable component per surface
 │   ├── Home.razor        "/"         currently-consuming, recent activity, lore widget
-│   ├── Log.razor         "/log"      universal add flow — DESIGN SKELETON (Phase 3)
+│   ├── Log.razor         "/log"      universal add flow
 │   ├── Library.razor     "/library"  unified collection; status/type are FILTERS
 │   ├── Diary.razor       "/diary"    chronological consumption feed
 │   ├── Profile.razor     "/profile"  taste dashboard (aggregate stats)
@@ -143,16 +148,38 @@ Shared glyphs: `✓` completed · `▐▐` in progress · `○` interested · `�
 
 ---
 
-## Status & what's next
+## Git workflow (issues live in Obsidian)
 
-**Built (Phases 1–2):** the unified schema, the Blazor app, and all five surfaces
-rendering live seeded data (Library, Home, Diary, Profile, item detail are DB-backed;
-Log is a non-functional design skeleton).
+There are no GitHub issues. Planning and design happen in the Obsidian vault, under
+`Personal Projects/MediaArchive/Issues/*.md` (each note has `fileClass: issue`
+frontmatter). A branch is named after the slug of the issue note it implements —
+e.g. the note `Log and capture.md` → branch `log-and-capture`.
 
-**Not built yet — where new code plugs in:**
-- **Phase 3 — Log & capture:** real search + import from external sources (IGDB,
-  Google Books, …). Add an import service under `Services/` and wire `Log.razor` to it.
-- **Phase 4 — Library CRUD:** write flows (add / edit / log a pass). Extend
-  `LibraryService` (or a new service) with the write methods; the app is read-only today.
-- Later: Diary year-in-review, richer Profile insights, the lore widget, and the ML
-  recommendation layer (a separate embeddings store).
+Start work on an issue:
+
+```bash
+scripts/new-branch.sh "Log and capture"   # finds the vault note, branches off latest main
+```
+
+The script slugifies the note's title, pulls the latest `main`, and creates (or
+switches to) the matching branch. It's just a convenience wrapper around:
+
+```bash
+git switch main && git pull        # start from latest main
+git switch -c log-and-capture      # branch named after the vault note's slug
+```
+
+Then commit in small steps and push:
+
+```bash
+git push -u origin log-and-capture   # -u sets tracking the first time
+```
+
+Merge into `main` when the slice is done — either a PR on GitHub, or locally:
+
+```bash
+git switch main && git merge log-and-capture && git push
+git branch -d log-and-capture        # delete the merged branch
+```
+
+Finally, mark the issue note's `status:` frontmatter `completed` in Obsidian.

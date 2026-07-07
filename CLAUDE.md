@@ -5,7 +5,7 @@
 A personal, locally-run **media OS** — one place tracking everything I've consumed
 (books, games, films, shows, anime) with taste insights. One **Blazor Web App**
 (Interactive Server, .NET 10) that owns the DB and business logic directly: no
-separate API over HTTP, no auth, single local user. See `STRUCTURE.md` for the full
+separate API over HTTP, no auth, single local user. See `README.md` for the full
 layout and `Migrations/` for schema history.
 
 **Stack:** ASP.NET Core Blazor Web App · .NET 10 · EF Core 10 + SQLite
