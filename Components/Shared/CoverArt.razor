@@ -1,0 +1,20 @@
+@if (!string.IsNullOrWhiteSpace(Item.ImageUrl))
+{
+    <img src="@Item.ImageUrl" alt="@Item.Title"
+         onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
+    <div class="fallback tile-@UiHelpers.TypeKey(Item.MediaType)" style="display:none">
+        <div class="ftype">@UiHelpers.TypeLabel(Item.MediaType)</div>
+        <div class="ftitle">@Item.Title</div>
+    </div>
+}
+else
+{
+    <div class="fallback tile-@UiHelpers.TypeKey(Item.MediaType)">
+        <div class="ftype">@UiHelpers.TypeLabel(Item.MediaType)</div>
+        <div class="ftitle">@Item.Title</div>
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public MediaItem Item { get; set; } = default!;
+}

@@ -6,3 +6,8 @@ riderModule.iml
 appsettings.Development.json
 appsettings.json
 *.DotSettings.user
+
+# SQLite database (created + seeded on first run)
+*.db
+*.db-shm
+*.db-wal

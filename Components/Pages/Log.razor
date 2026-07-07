@@ -1,0 +1,49 @@
+@page "/log"
+
+<PageTitle>Log · MediaArchive</PageTitle>
+
+<div class="page-head">
+    <h1>Log anything</h1>
+    <p>Search external sources, import, set status &amp; rating. Logging is the app.</p>
+</div>
+
+<div class="note-banner">
+    ⚙️ Design skeleton. The live search + import from IGDB / Google Books (and writing the
+    <code>MediaItem</code>) is <strong>Phase 3 — Log and capture</strong>, intentionally left to build next.
+</div>
+
+<div class="quick-log">
+    <input placeholder="Search a title…  e.g. “Elden Ring”, “Project Hail Mary”" disabled />
+    <button class="btn" disabled>Search</button>
+</div>
+
+<div class="filter-row" style="margin-top:16px">
+    <span class="chip active">All sources</span>
+    <span class="chip">Books · Google Books</span>
+    <span class="chip">Games · IGDB</span>
+    <span class="chip">Film / TV · TMDb</span>
+    <span class="chip">Anime · AniList</span>
+</div>
+
+<div class="section-title">Results preview</div>
+<div class="wall small">
+    @for (var i = 0; i < 6; i++)
+    {
+        <div class="card">
+            <div class="poster">
+                <div class="fallback tile-@(_tiles[i])">
+                    <div class="ftype">Search result</div>
+                    <div class="ftitle">Imported cover art →</div>
+                </div>
+            </div>
+            <div class="card-meta">
+                <div class="card-title" style="opacity:.4">Title from API</div>
+                <div class="card-sub">Creator · Year</div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private readonly string[] _tiles = ["book", "game", "movie", "show", "anime", "book"];
+}

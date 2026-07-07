@@ -1,0 +1,26 @@
+<a class="card" href="item/@Umi.MediaItem!.Id">
+    <div class="poster">
+        <span class="tl badge-glyph @UiHelpers.StatusClass(Umi.Status)" title="@UiHelpers.StatusLabel(Umi.Status)">
+            @UiHelpers.StatusGlyph(Umi.Status)
+        </span>
+        @if (Umi.Rating is { } r)
+        {
+            <span class="tr badge-glyph rating">★ @r</span>
+        }
+        @if (Umi.IsFavorite)
+        {
+            <span class="bl badge-glyph fav">♥</span>
+        }
+        <CoverArt Item="Umi.MediaItem" />
+    </div>
+    <div class="card-meta">
+        <div class="card-title">@Umi.MediaItem.Title</div>
+        <div class="card-sub">
+            @UiHelpers.TypeLabel(Umi.MediaItem.MediaType)@(Umi.MediaItem.ReleaseYear is { } y ? $" · {y}" : "")
+        </div>
+    </div>
+</a>
+
+@code {
+    [Parameter, EditorRequired] public UserMediaItem Umi { get; set; } = default!;
+}

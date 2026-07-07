@@ -1,0 +1,100 @@
+@page "/item/{Id:int}"
+@inject LibraryService Library
+
+<PageTitle>@(_umi?.MediaItem?.Title ?? "Item") · MediaArchive</PageTitle>
+
+@if (_loaded && _umi is null)
+{
+    <div class="empty">Item not found. <a href="library">Back to Library</a></div>
+}
+else if (_umi is null)
+{
+    <div class="empty">Loading…</div>
+}
+else
+{
+    var item = _umi.MediaItem!;
+    <div style="margin-bottom:18px"><a href="library" class="card-sub">← Library</a></div>
+    <div class="detail">
+        <div>
+            <div class="poster"><CoverArt Item="item" /></div>
+        </div>
+        <div class="detail-meta">
+            <span class="type-dot">
+                <span class="dot" style="background:@UiHelpers.TypeColorVar(item.MediaType)"></span>
+                @UiHelpers.TypeLabel(item.MediaType)
+            </span>
+            <h1>@item.Title</h1>
+            @if (!string.IsNullOrWhiteSpace(item.Creator))
+            {
+                <div class="creator">@item.Creator@(item.ReleaseYear is { } y ? $" · {y}" : "")</div>
+            }
+
+            <div class="filter-row" style="margin-top:16px">
+                <span class="pill @UiHelpers.StatusClass(_umi.Status)">
+                    @UiHelpers.StatusGlyph(_umi.Status) @UiHelpers.StatusLabel(_umi.Status)
+                </span>
+                @if (_umi.Rating is { } r) { <span class="pill" style="color:var(--gold)">★ @r / 10</span> }
+                @if (_umi.IsFavorite) { <span class="pill" style="color:var(--show)">♥ Favourite</span> }
+                @if (item.Universe is { } u) { <span class="pill">◆ @u.Name</span> }
+            </div>
+
+            @if (item.Genres.Count > 0)
+            {
+                <div class="genre-tags">
+                    @foreach (var g in item.Genres)
+                    {
+                        <span class="genre-tag">@g.Genre!.Name</span>
+                    }
+                </div>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(item.Description))
+            {
+                <p class="desc">@item.Description</p>
+            }
+
+            <div class="section-title">Consumption history</div>
+            @if (_umi.Entries.Count == 0)
+            {
+                <div class="empty" style="text-align:left;padding:8px 0">No passes logged yet.</div>
+            }
+            else
+            {
+                @foreach (var e in _umi.Entries.OrderByDescending(e => e.EndDate ?? e.StartDate))
+                {
+                    <div class="entry-card">
+                        <div class="when">
+                            @Dates(e)
+                            @if (!string.IsNullOrWhiteSpace(e.Notes)) { <div class="notes">“@e.Notes”</div> }
+                        </div>
+                        <div>
+                            @if (e.RatingAtTime is { } rt) { <span class="badge-glyph rating">★ @rt</span> }
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private UserMediaItem? _umi;
+    private bool _loaded;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _umi = await Library.GetDetailAsync(Id);
+        _loaded = true;
+    }
+
+    private static string Dates(ConsumptionEntry e)
+    {
+        var s = e.StartDate?.ToString("MMM d, yyyy");
+        var en = e.EndDate?.ToString("MMM d, yyyy");
+        if (s is not null && en is not null) return s == en ? s : $"{s} → {en}";
+        return s ?? en ?? "Undated pass";
+    }
+}
