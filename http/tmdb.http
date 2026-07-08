@@ -1,0 +1,34 @@
+# TMDB (films + shows, incl. anime) — REST.
+#
+# Auth: use the v4 "API Read Access Token" as a Bearer header (recommended over
+# the older v3 api_key query param). Get it at:
+#   themoviedb.org -> Settings -> API -> "API Read Access Token".
+# Put it in http-client.private.env.json as `tmdbAccessToken`.
+#
+# Images are served separately: build a URL as
+#   https://image.tmdb.org/t/p/w500<poster_path>
+# where <poster_path> comes from the JSON (e.g. "/abc123.jpg").
+
+### Search movies by title
+GET https://api.themoviedb.org/3/search/movie?query=blade%20runner&include_adult=false
+Authorization: Bearer {{tmdbAccessToken}}
+
+### Search TV shows by title (covers anime series too)
+GET https://api.themoviedb.org/3/search/tv?query=frieren&include_adult=false
+Authorization: Bearer {{tmdbAccessToken}}
+
+### Multi-search (movies + TV + people in one call)
+GET https://api.themoviedb.org/3/search/multi?query=akira&include_adult=false
+Authorization: Bearer {{tmdbAccessToken}}
+
+### Movie details by id (append_to_response pulls extras in one request)
+GET https://api.themoviedb.org/3/movie/78?append_to_response=credits
+Authorization: Bearer {{tmdbAccessToken}}
+
+### TV show details by id
+GET https://api.themoviedb.org/3/tv/1429?append_to_response=credits
+Authorization: Bearer {{tmdbAccessToken}}
+
+### Configuration (image base_url + available sizes — fetch once, cache it)
+GET https://api.themoviedb.org/3/configuration
+Authorization: Bearer {{tmdbAccessToken}}

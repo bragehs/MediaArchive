@@ -3,11 +3,15 @@ obj/
 /packages/
 riderModule.iml
 /_ReSharper.Caches/
-appsettings.Development.json
-appsettings.json
 *.DotSettings.user
+
+# Note: appsettings*.json are tracked (non-secret config). Real secrets go in
+# .NET User Secrets, never in appsettings — so they can't be committed here.
 
 # SQLite database (created + seeded on first run)
 *.db
 *.db-shm
 *.db-wal
+
+# Rider HTTP client secrets
+**/http-client.private.env.json

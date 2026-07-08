@@ -1,0 +1,43 @@
+# IGDB (games) — authenticated via Twitch OAuth (Client Credentials grant)
+#
+# Flow:
+#   1. Run "Get app access token" -> copy access_token from the response.
+#   2. Paste it into `accessToken` in http-client.private.env.json.
+#   3. Run any request below.
+#
+# Secrets (clientId / clientSecret / accessToken) come from
+# http-client.private.env.json. Pick the "local" env in Rider's run dropdown.
+
+### Get app access token (no user login; returns an app token valid ~60 days)
+POST https://id.twitch.tv/oauth2/token?client_id={{twitchClientId}}&client_secret={{twitchClientSecret}}&
+    grant_type=client_credentials
+
+### Search games by name
+# IGDB query body is APICL plain text (not JSON). Note the trailing semicolons.
+POST https://api.igdb.com/v4/games
+Client-ID: {{twitchClientId}}
+Authorization: Bearer {{twitchAccessToken}}
+Content-Type: text/plain
+
+fields name, summary, rating, first_release_date, genres.name, platforms.name;
+where name ~ "Hollow Knight";
+limit 5;
+
+### Get a single game by id
+POST https://api.igdb.com/v4/games
+Client-ID: {{twitchClientId}}
+Authorization: Bearer {{twitchAccessToken}}
+Content-Type: text/plain
+
+fields name, summary, rating, first_release_date, cover.image_id;
+where id = 1020;
+
+### Get cover art for a game (image_id builds the CDN url)
+# https://images.igdb.com/igdb/image/upload/t_cover_big/<image_id>.jpg
+POST https://api.igdb.com/v4/covers
+Client-ID: {{twitchClientId}}
+Authorization: Bearer {{twitchAccessToken}}
+Content-Type: text/plain
+
+fields image_id, url, game;
+where game = 1020;
