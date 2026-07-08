@@ -1,6 +1,5 @@
 using MediaArchive.Components;
 using MediaArchive.Data;
-using MediaArchive.Services;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -13,7 +12,6 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddDbContextFactory<AppDbContext>(options =>
     options.UseSqlite(connectionString));
 
-builder.Services.AddScoped<LibraryService>();
 
 var app = builder.Build();
 
