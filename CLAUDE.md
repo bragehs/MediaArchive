@@ -56,6 +56,7 @@ UI and services.
   explicitly and give me a recommendation *with* the reasoning.
 - **Design choices**. Look at desktop/vault/Personal Projects/Mediaarchive and look for relevant design choices before
   implementing a task.
+- Dont write to much comments in the code, only when necessary.
 
 ## Roadmap context
 

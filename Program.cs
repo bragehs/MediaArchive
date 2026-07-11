@@ -1,5 +1,6 @@
 using MediaArchive.Components;
 using MediaArchive.Data;
+using MediaArchive.Services.Providers;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -11,6 +12,13 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
                        ?? "Data Source=mediaarchive.db";
 builder.Services.AddDbContextFactory<AppDbContext>(options =>
     options.UseSqlite(connectionString));
+
+// Media providers: bind config, give each provider its own typed HttpClient,
+// then expose it via IMediaProvider so consumers can inject them as a set.
+builder.Services.Configure<GoogleBooksOptions>(
+    builder.Configuration.GetSection(GoogleBooksOptions.SectionName));
+builder.Services.AddHttpClient<GoogleBooksProvider>();
+builder.Services.AddTransient<IMediaProvider>(sp => sp.GetRequiredService<GoogleBooksProvider>());
 
 
 var app = builder.Build();
