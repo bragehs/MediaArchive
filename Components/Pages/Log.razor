@@ -9,77 +9,129 @@
 
 <PageTitle>Log · MediaArchive</PageTitle>
 
-<div class="eyebrow label">Log</div>
-<h1 class="h-lg">Add anything.</h1>
-<p class="sub">
-    Search by title or author. Pick it, choose what you're recording — the real cover is
-    fetched the moment it's logged.
-</p>
+<div class="logcols">
+    <div>
+        <div class="searchbar">
+            <input class="bigsearch" placeholder="Search a title or author…"
+                   @bind="_query" @bind:event="oninput" @onkeydown="OnSearchKey" />
+            <button class="btn" @onclick="RunSearch" disabled="@(_searching || _query.Trim().Length == 0)">
+                @(_searching ? "…" : "Search")
+            </button>
+        </div>
 
-<div class="searchbar">
-    <input class="bigsearch" placeholder="Search a title or author…"
-           @bind="_query" @bind:event="oninput" @onkeydown="OnSearchKey" />
-    <button class="btn" @onclick="RunSearch" disabled="@(_searching || _query.Trim().Length == 0)">
-        @(_searching ? "…" : "Search")
-    </button>
-</div>
+        <div class="segs" style="margin-top:14px">
+            @foreach (var type in Enum.GetValues<MediaType>())
+            {
+                <button class="seg @(type == _mediaType ? "on" : "")" @onclick="() => SetType(type)">
+                    @UiHelpers.TypeLabel(type)
+                </button>
+            }
+        </div>
 
-<div class="segs" style="margin-top:14px">
-    @foreach (var type in Enum.GetValues<MediaType>())
-    {
-        <button class="seg @(type == _mediaType ? "on" : "")" @onclick="() => SetType(type)">
-            @UiHelpers.TypeLabel(type)
-        </button>
-    }
-</div>
+        <p class="hint">Pick a result to see its cover and details.</p>
 
-<p class="hint">Text-only search — covers appear once an item is on display in the Library.</p>
+        @if (_error is not null)
+        {
+            <div class="notice bad">@_error</div>
+        }
 
-@if (_error is not null)
-{
-    <div class="notice bad">@_error</div>
-}
+        @if (_savedMessage is not null)
+        {
+            <div class="notice good">@_savedMessage</div>
+        }
 
-@if (_savedMessage is not null)
-{
-    <div class="notice good">@_savedMessage</div>
-}
-
-@if (_results.Count > 0)
-{
-    @foreach (var result in _results)
-    {
-        <button class="result @(IsSelected(result) ? "on" : "")" @onclick="() => Select(result)">
-            <div>
-                <div class="rt2">@result.Title</div>
-                <div class="ra">
-                    @UiHelpers.TypeLabel(result.MediaType)
-                    @if (result.Creator.Count > 0)
+        @if (_results.Count > 0)
+        {
+            <div class="label colhead">@_results.Count result@(_results.Count == 1 ? "" : "s")</div>
+            @foreach (var result in _results)
+            {
+                <button class="result @(IsSelected(result) ? "on" : "")" @onclick="() => Select(result)">
+                    <div>
+                        <div class="rt2">@result.Title</div>
+                        <div class="ra">
+                            @UiHelpers.TypeLabel(result.MediaType)
+                            @if (result.Creator.Count > 0)
+                            {
+                                @(" · " + string.Join(", ", result.Creator))
+                            }
+                        </div>
+                    </div>
+                    @if (result.ReleaseYear is { } year)
                     {
-                        @(" · " + string.Join(", ", result.Creator))
+                        <div class="yr">@year</div>
+                    }
+                </button>
+            }
+        }
+        else if (_searched && !_searching)
+        {
+            <p class="muted">Nothing found for “@_query”.</p>
+        }
+    </div>
+
+    <div>
+        @if (_loadingDetail)
+        {
+            <div class="detail">
+                <div class="dcover"></div>
+                <div class="dm">Fetching details…</div>
+            </div>
+        }
+        else if (_detail is not null)
+        {
+            <div class="detail">
+                <div class="dcover">
+                    @if (!string.IsNullOrWhiteSpace(_detail.ImageUrl))
+                    {
+                        <img src="@_detail.ImageUrl" alt="Cover of @_detail.Title" />
+                    }
+                    else
+                    {
+                        <div class="fb" style="--tint:@UiHelpers.TypeColorVar(_detail.MediaType)">
+                            <span>@_detail.Title</span>
+                        </div>
+                        <div class="none">No cover</div>
                     }
                 </div>
+
+                <div>
+                <div class="dt">@_detail.Title</div>
+                <div class="dm">
+                    @UiHelpers.TypeLabel(_detail.MediaType)@(_detail.Creator is null ? "" : " · " + _detail.Creator)@(_detail.ReleaseYear is null ? "" : " · " + _detail.ReleaseYear)
+                </div>
+
+                @if (!string.IsNullOrWhiteSpace(_detail.Description))
+                {
+                    <div class="dd">@_detail.Description</div>
+                }
+
+                <div class="dfacts">
+                    @if (_detail.Length is { } length)
+                    {
+                        <div class="dfact">
+                            <div class="n">@length</div>
+                            <div class="l">@UiHelpers.LengthUnit(_detail.MediaType)</div>
+                        </div>
+                    }
+                    @if (_detail.ExternalRating is { } rating)
+                    {
+                        <div class="dfact">
+                            <div class="n">@rating.ToString("0.0")</div>
+                            <div class="l">@_detail.ExternalSource@(_detail.ExternalRatingCount is { } count ? $" · {count}" : "")</div>
+                        </div>
+                    }
+                    @if (_detail.Genres.Count > 0)
+                    {
+                        <div class="dfact" style="flex-basis:100%">
+                            <div class="n sm">@string.Join(" · ", _detail.Genres)</div>
+                            <div class="l">Genres per @_detail.ExternalSource</div>
+                        </div>
+                    }
+                </div>
+                </div>
             </div>
-            @if (result.ReleaseYear is { } year)
-            {
-                <div class="yr">@year</div>
-            }
-        </button>
-    }
-}
-else if (_searched && !_searching)
-{
-    <p class="muted">Nothing found for “@_query”.</p>
-}
 
-@if (_loadingDetail)
-{
-    <div class="notice">Fetching details…</div>
-}
-
-@if (_detail is not null)
-{
-    <div class="capture">
+            <div class="capture">
         <div class="cap-head">
             <span class="label">Logging</span>
             <span class="cap-sel">
@@ -208,9 +260,31 @@ else if (_searched && !_searching)
                 }
             </div>
 
+            @if (_action is LogAction.Completed)
+            {
+                @* Backfill writes both ends of the pass, so both notes are offered
+                   explicitly — the start one is optional because you often can't
+                   remember what you expected going in. *@
+                <div class="cap-block">
+                    <div class="fl">Start note <span class="opt">optional</span></div>
+                    <textarea class="area dim" @bind="_startNote" @bind:event="oninput"
+                              placeholder="What you expected going in — leave blank if you don't recall."></textarea>
+                </div>
+            }
+
             <div class="cap-block">
-                <div class="fl">Note <b>required</b></div>
-                <textarea class="area" @bind="_note" @bind:event="oninput"
+                <div class="fl">
+                    @NoteLabel
+                    @if (NoteRequired)
+                    {
+                        <b>required</b>
+                    }
+                    else
+                    {
+                        <span class="opt">optional</span>
+                    }
+                </div>
+                <textarea class="area @(NoteRequired ? "" : "dim")" @bind="_note" @bind:event="oninput"
                           placeholder="@NotePlaceholder"></textarea>
             </div>
         }
@@ -222,8 +296,10 @@ else if (_searched && !_searching)
                 @(_saving ? "…" : ActionButton(_action))
             </button>
         </div>
+            </div>
+        }
     </div>
-}
+</div>
 
 @code {
     // The three write actions from the vault's Log-and-capture note. Dropped is
@@ -255,6 +331,7 @@ else if (_searched && !_searching)
     private ConsumptionContext? _context;
     private int _rating;
     private string _note = "";
+    private string _startNote = "";
 
     private bool _saving;
     private string? _error;
@@ -264,19 +341,26 @@ else if (_searched && !_searching)
 
     private async Task RefreshVocabulary() => _vocab = await Library.GetVocabularyAsync();
 
-    private bool CanSubmit =>
-        _action is LogAction.Interested || _note.Trim().Length > 0;
+    // Only a live Start demands a note. Backfilling a finished pass is Profile data,
+    // not a diary entry — forcing prose onto 200 half-remembered items would just
+    // fill the Diary with "n/a". See the vault's Log-and-capture note.
+    private bool NoteRequired => _action is LogAction.Start;
+
+    private bool CanSubmit => !NoteRequired || _note.Trim().Length > 0;
+
+    private string NoteLabel => _action is LogAction.Start ? "Start note" : "Finish note";
 
     private string NotePlaceholder => _action switch
     {
         LogAction.Start => "Why you're picking it up, what you expect…",
-        _ => "A few words on this one — this is what the Diary shows."
+        _ => "How it landed — this is what the Diary shows."
     };
 
     private string FootHint => _action switch
     {
         LogAction.Interested => "Goes to the library unstarted. No note needed.",
-        _ => "Start and finish each need a note — this is what the Diary shows."
+        LogAction.Start => "A start note is required — this is what the Diary shows.",
+        _ => "Backfilling? Rating, genres and moods are what Profile reads. Notes optional."
     };
 
     private static string ActionLabel(LogAction action) => action switch
@@ -358,10 +442,6 @@ else if (_searched && !_searching)
         try
         {
             _detail = await Search.GetByIdAsync(result.ExternalId, result.MediaType);
-
-            // The provider proposes genres; the picker lets me dispose.
-            if (_detail is not null)
-                _genres = [.. _detail.Genres];
         }
         catch (Exception ex)
         {
@@ -390,7 +470,13 @@ else if (_searched && !_searching)
             _discovery);
 
         var note = _note.Trim().Length == 0 ? null : _note.Trim();
-        var start = new PassStart(_startDate, _context, note);
+
+        // Each half gets its own text: the shared-note version wrote the same
+        // string twice, as a Start row and a Finish row.
+        var startNote = _startNote.Trim().Length == 0 ? null : _startNote.Trim();
+
+        var start = new PassStart(_startDate, _context,
+            _action is LogAction.Start ? note : startNote);
 
         try
         {
@@ -446,5 +532,6 @@ else if (_searched && !_searching)
         _context = null;
         _rating = 0;
         _note = "";
+        _startNote = "";
     }
 }

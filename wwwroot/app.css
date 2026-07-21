@@ -12,6 +12,12 @@
     --ac: #e2603f;
     --ac2: #e7a83f;
     --sage: #9db08c;
+
+    /* fallback-tile colours, keyed to media type — in-palette, per the vault */
+    --book: #e2603f;
+    --game: #e7a83f;
+    --movie: #9db08c;
+    --show: #8a7f6a;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -86,22 +92,142 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
 .sub { color: var(--muted); margin-bottom: 26px; max-width: 60ch; }
 
 /* search */
-.searchbar { display: flex; gap: 14px; align-items: stretch; flex-wrap: wrap; max-width: 640px; }
+.searchbar { display: flex; gap: 12px; align-items: stretch; }
 
 .bigsearch {
     flex: 1;
-    min-width: 240px;
+    min-width: 0;
     background: transparent;
     border: 2px solid var(--ink);
-    padding: 17px 20px;
+    padding: 15px 18px;
     color: var(--ink);
-    font-size: 18px;
+    font-size: 17px;
     font-family: inherit;
 }
 
 .bigsearch::placeholder { color: var(--dim); }
 .bigsearch:focus { outline: none; border-color: var(--ac); }
-.hint { color: var(--dim); font-size: 12.5px; margin: 11px 2px 26px; max-width: 640px; }
+.hint { color: var(--dim); font-size: 12.5px; margin: 11px 2px 20px; }
+
+/* two columns: results on the left, the picked item + its log form on the right */
+.logcols {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 30px;
+    align-items: start;
+}
+
+@media (max-width: 900px) {
+    .logcols { grid-template-columns: 1fr; }
+}
+
+.colhead {
+    color: var(--muted);
+    padding-bottom: 9px;
+    margin-bottom: 14px;
+    border-bottom: 2px solid var(--line);
+}
+
+/* picked-item panel — sage rule to read as information, not action.
+   Cover leads: the point of this panel is confirming the right edition. */
+.detail {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-top: 3px solid var(--sage);
+    padding: 20px 22px;
+    display: grid;
+    grid-template-columns: 168px minmax(0, 1fr);
+    gap: 22px;
+    align-items: start;
+}
+
+@media (max-width: 560px) {
+    .detail { grid-template-columns: 1fr; }
+    .dcover { max-width: 168px; }
+}
+
+.dcover {
+    aspect-ratio: 2/3;
+    width: 100%;
+    border: 1px solid var(--line);
+    background: var(--panel2);
+    overflow: hidden;
+    position: relative;
+}
+
+.dcover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+.dcover .fb {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: flex-end;
+    padding: 12px;
+    background: linear-gradient(155deg, var(--tint), #20231e);
+}
+
+.dcover .fb span {
+    font-family: "Futura", sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    line-height: 1.15;
+    color: #fff;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, .5);
+}
+
+.dcover .none {
+    position: absolute;
+    inset: auto 0 0 0;
+    padding: 6px 8px;
+    background: rgba(0, 0, 0, .55);
+    font-family: "Futura", sans-serif;
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    font-size: 8.5px;
+    color: var(--ac2);
+}
+
+.detail .dt { font-family: "Futura", "Avenir Next", sans-serif; font-weight: 600; font-size: 21px; line-height: 1.15; }
+
+.detail .dm {
+    font-family: "Futura", sans-serif;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 6px;
+}
+
+.detail .dd {
+    font-family: "Avenir Next", Georgia, serif;
+    font-size: 13.5px;
+    line-height: 1.55;
+    color: var(--muted);
+    margin-top: 12px;
+    /* CleanDescription preserves paragraph breaks as newlines */
+    white-space: pre-line;
+    /* deliberately short — the cover gets the room, blurb scrolls */
+    max-height: 5.2em;
+    overflow-y: auto;
+    padding-right: 8px;
+}
+
+.detail .dd::-webkit-scrollbar { width: 5px; }
+.detail .dd::-webkit-scrollbar-thumb { background: var(--line); }
+
+.dfacts { display: flex; flex-wrap: wrap; gap: 0; margin-top: 16px; border-top: 1px solid var(--line); }
+.dfact { flex: 1; min-width: 90px; padding: 12px 14px 0 0; }
+.dfact .n { font-family: "Futura", "Century Gothic", sans-serif; font-weight: 700; font-size: 20px; line-height: 1; }
+.dfact .n.sm { font-size: 13px; font-weight: 600; padding-top: 5px; }
+
+.dfact .l {
+    font-family: "Futura", sans-serif;
+    text-transform: uppercase;
+    letter-spacing: .14em;
+    font-size: 9px;
+    color: var(--dim);
+    margin-top: 7px;
+}
 
 .result {
     display: flex;
@@ -110,7 +236,6 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
     padding: 15px 18px;
     border: 1px solid var(--line);
     border-bottom: 0;
-    max-width: 640px;
     width: 100%;
     text-align: left;
     transition: .12s;
@@ -139,8 +264,7 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
 
 /* capture panel */
 .capture {
-    max-width: 640px;
-    margin-top: 26px;
+    margin-top: 18px;
     background: var(--panel);
     border: 1px solid var(--line);
     border-top: 3px solid var(--ac);
@@ -173,6 +297,9 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
 }
 
 .fl b { color: var(--ac); font-weight: 700; margin-left: 4px; }
+.fl .opt { color: var(--dim); font-weight: 600; margin-left: 4px; opacity: .8; }
+.area.dim { border-color: var(--line); }
+.area.dim:focus { border-color: var(--ac); }
 
 /* segmented controls — type filter, action, mood, discovery */
 .segs { display: flex; flex-wrap: wrap; }
@@ -268,8 +395,7 @@ select.in { background: var(--panel2); }
 
 /* notices */
 .notice {
-    max-width: 640px;
-    margin-top: 20px;
+    margin-bottom: 18px;
     padding: 14px 18px;
     border: 1px solid var(--line);
     border-left: 3px solid var(--ac2);

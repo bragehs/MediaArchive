@@ -43,6 +43,36 @@ public class GoogleBooksProviderIntegrationTests
         Assert.Contains(results, r => r.Creator.Any(a => a.Contains("Herbert", StringComparison.OrdinalIgnoreCase)));
     }
 
+    // The provider is the boundary where provider quirks die: Google Books sends
+    // marketing HTML and http-only cover URLs, and neither should reach the model.
+    [Fact]
+    public async Task GetByIdAsync_ReturnsPlainTextDescription_AndHttpsCover()
+    {
+        using var http = new HttpClient();
+        var provider = new GoogleBooksProvider(http, Options.Create(LoadOptions()));
+
+        var results = await WithRetry(() => provider.SearchAsync("the way of kings sanderson"));
+        var first = results.First();
+
+        var item = await WithRetry(() => provider.GetByIdAsync(first.ExternalId));
+
+        Assert.NotNull(item);
+        Assert.False(string.IsNullOrWhiteSpace(item.Description));
+
+        Assert.DoesNotContain("<br", item.Description, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("<p>", item.Description, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("<b>", item.Description, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("&amp;", item.Description);
+        Assert.DoesNotContain("&nbsp;", item.Description);
+        Assert.DoesNotContain(' ', item.Description);
+
+        if (item.ImageUrl is not null)
+        {
+            Assert.StartsWith("https://", item.ImageUrl);
+            Assert.DoesNotContain("edge=curl", item.ImageUrl);
+        }
+    }
+
     // Read the real key from the app's User Secrets (same store the app uses),
     // so this test gets its own quota. Falls back to keyless if none is set.
     private static GoogleBooksOptions LoadOptions()

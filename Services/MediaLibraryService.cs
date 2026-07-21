@@ -62,6 +62,7 @@ public class MediaLibraryService(IDbContextFactory<AppDbContext> dbContextFactor
             return existing;
 
         var created = MediaItemMapper.ToEntity(dto);
+
         db.MediaItems.Add(created);
         return created;
     }
