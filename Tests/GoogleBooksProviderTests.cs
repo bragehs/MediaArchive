@@ -30,7 +30,7 @@ public class GoogleBooksProviderTests
         var json = await LoadFixtureAsync("google-books-dune.json");
         var provider = ProviderReturning(json, out _);
 
-        var results = await provider.SearchAsync("dune", MediaType.Book);
+        var results = await provider.SearchAsync("dune");
 
         Assert.Equal(3, results.Count);
         Assert.All(results, r =>
@@ -46,7 +46,7 @@ public class GoogleBooksProviderTests
         var json = await LoadFixtureAsync("google-books-dune.json");
         var provider = ProviderReturning(json, out _);
 
-        var dune = (await provider.SearchAsync("dune", MediaType.Book))[0];
+        var dune = (await provider.SearchAsync("dune"))[0];
 
         Assert.Equal("B1hSG45JCX4C", dune.ExternalId);
         Assert.Equal("Dune", dune.Title);
@@ -61,7 +61,7 @@ public class GoogleBooksProviderTests
         var provider = ProviderReturning(json, out _);
 
         // publishedDate "2019-08-01" -> 2019
-        var messiah = (await provider.SearchAsync("dune", MediaType.Book))[1];
+        var messiah = (await provider.SearchAsync("dune"))[1];
 
         Assert.Equal(2019, messiah.ReleaseYear);
         Assert.Equal(["Frank Herbert", "Brian Herbert"], messiah.Creator);
@@ -74,10 +74,10 @@ public class GoogleBooksProviderTests
         var provider = ProviderReturning(json, out _);
 
         // Third volume has no authors and no publishedDate.
-        var encyclopedia = (await provider.SearchAsync("dune", MediaType.Book))[2];
+        var encyclopedia = (await provider.SearchAsync("dune"))[2];
 
         Assert.Null(encyclopedia.ReleaseYear);
-        Assert.Empty(encyclopedia.Creator);   // never null — worst case empty list
+        Assert.Empty(encyclopedia.Creator); // never null — worst case empty list
     }
 
     [Fact]
@@ -85,7 +85,7 @@ public class GoogleBooksProviderTests
     {
         var provider = ProviderReturning("""{ "kind": "books#volumes", "totalItems": 0 }""", out _);
 
-        var results = await provider.SearchAsync("zzzznotarealbook", MediaType.Book);
+        var results = await provider.SearchAsync("zzzznotarealbook");
 
         Assert.Empty(results);
     }
@@ -95,7 +95,7 @@ public class GoogleBooksProviderTests
     {
         var provider = ProviderReturning("""{ "items": [] }""", out var handler);
 
-        await provider.SearchAsync("ender's game", MediaType.Book);
+        await provider.SearchAsync("ender's game");
 
         // The space and apostrophe must be percent-encoded in the outgoing URL.
         Assert.Contains("ender%27s%20game", handler.LastRequestUri!.Query);
@@ -104,9 +104,9 @@ public class GoogleBooksProviderTests
     [Fact]
     public async Task SearchAsync_AppendsApiKey_WhenConfigured()
     {
-        var provider = ProviderReturning("""{ "items": [] }""", out var handler, apiKey: "secret123");
+        var provider = ProviderReturning("""{ "items": [] }""", out var handler, "secret123");
 
-        await provider.SearchAsync("dune", MediaType.Book);
+        await provider.SearchAsync("dune");
 
         Assert.Contains("key=secret123", handler.LastRequestUri!.Query);
     }
@@ -116,7 +116,7 @@ public class GoogleBooksProviderTests
     {
         var provider = ProviderReturning("""{ "items": [] }""", out var handler);
 
-        await provider.SearchAsync("dune", MediaType.Book);
+        await provider.SearchAsync("dune");
 
         Assert.DoesNotContain("key=", handler.LastRequestUri!.Query);
     }

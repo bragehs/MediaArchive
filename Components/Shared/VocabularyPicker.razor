@@ -1,0 +1,96 @@
+@* Pick-from-existing-or-create-new input. Selected values render as removable chips;
+   typing filters known values and Enter commits either the highlighted match or the
+   raw text as a new term. *@
+
+<div class="vp">
+    <div class="vp-selected">
+        @foreach (var value in Selected)
+        {
+            <span class="vp-chip">
+                @value
+                <button type="button" class="vp-x" @onclick="() => Remove(value)">×</button>
+            </span>
+        }
+        @if (Selected.Count == 0)
+        {
+            <span class="vp-empty">none</span>
+        }
+    </div>
+
+    <input class="in" @bind="_draft" @bind:event="oninput" @onkeydown="OnKeyDown" placeholder="@Placeholder" />
+
+    @if (Matches.Count > 0)
+    {
+        <div class="vp-suggestions">
+            @foreach (var s in Matches)
+            {
+                <button type="button" class="vp-suggestion" @onclick="() => Commit(s)">@s</button>
+            }
+        </div>
+    }
+
+    @if (_draft.Trim().Length > 0 && !Matches.Any(m => string.Equals(m, _draft.Trim(), StringComparison.OrdinalIgnoreCase)))
+    {
+        <button type="button" class="vp-create" @onclick="() => Commit(_draft)">
+            + create “@_draft.Trim()”
+        </button>
+    }
+</div>
+
+@code {
+    // Values already chosen. Two-way bound so the parent owns the list.
+    [Parameter] public List<string> Selected { get; set; } = [];
+    [Parameter] public EventCallback<List<string>> SelectedChanged { get; set; }
+
+    // Existing vocabulary from the DB — the whole point of the control.
+    [Parameter] public List<string> Suggestions { get; set; } = [];
+
+    // Cap on selections. 1 makes it single-valued (a new pick replaces the old).
+    [Parameter] public int? Max { get; set; }
+
+    [Parameter] public string? Placeholder { get; set; }
+
+    private string _draft = "";
+
+    private List<string> Matches =>
+        Suggestions
+            .Where(s => !Selected.Contains(s, StringComparer.OrdinalIgnoreCase))
+            .Where(s => _draft.Trim().Length == 0
+                        || s.Contains(_draft.Trim(), StringComparison.OrdinalIgnoreCase))
+            .DistinctBy(s => s.ToLowerInvariant())
+            .Take(12)
+            .ToList();
+
+    private async Task Commit(string value)
+    {
+        var trimmed = value.Trim();
+        if (trimmed.Length == 0 || Selected.Contains(trimmed, StringComparer.OrdinalIgnoreCase))
+            return;
+
+        // Single-valued mode: the new pick replaces whatever was there.
+        if (Max is { } max && Selected.Count >= max)
+            Selected.RemoveRange(0, Selected.Count - max + 1);
+
+        Selected.Add(trimmed);
+        _draft = "";
+        await SelectedChanged.InvokeAsync(Selected);
+    }
+
+    private async Task Remove(string value)
+    {
+        Selected.Remove(value);
+        await SelectedChanged.InvokeAsync(Selected);
+    }
+
+    private async Task OnKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key != "Enter")
+            return;
+
+        // Prefer an exact known match over creating a near-duplicate.
+        var exact = Matches.FirstOrDefault(m =>
+            string.Equals(m, _draft.Trim(), StringComparison.OrdinalIgnoreCase));
+
+        await Commit(exact ?? _draft);
+    }
+}

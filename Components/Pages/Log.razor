@@ -1,50 +1,450 @@
 @page "/"
 @page "/log"
+@rendermode InteractiveServer
+@using MediaArchive.Services
+@using MediaArchive.Services.Providers
+@inject MediaSearchService Search
+@inject MediaLibraryService Library
+@inject MediaLogService LogService
 
 <PageTitle>Log · MediaArchive</PageTitle>
 
-<div class="page-head">
-    <h1>Log anything</h1>
-    <p>Search external sources, import, set status &amp; rating. Logging is the app.</p>
+<div class="eyebrow label">Log</div>
+<h1 class="h-lg">Add anything.</h1>
+<p class="sub">
+    Search by title or author. Pick it, choose what you're recording — the real cover is
+    fetched the moment it's logged.
+</p>
+
+<div class="searchbar">
+    <input class="bigsearch" placeholder="Search a title or author…"
+           @bind="_query" @bind:event="oninput" @onkeydown="OnSearchKey" />
+    <button class="btn" @onclick="RunSearch" disabled="@(_searching || _query.Trim().Length == 0)">
+        @(_searching ? "…" : "Search")
+    </button>
 </div>
 
-<div class="note-banner">
-    ⚙️ Design skeleton. The live search + import from IGDB / Google Books (and writing the
-    <code>MediaItem</code>) is <strong>Phase 3 — Log and capture</strong>, intentionally left to build next.
-</div>
-
-<div class="quick-log">
-    <input placeholder="Search a title…  e.g. “Elden Ring”, “Project Hail Mary”" disabled />
-    <button class="btn" disabled>Search</button>
-</div>
-
-<div class="filter-row" style="margin-top:16px">
-    <span class="chip active">All sources</span>
-    <span class="chip">Books · Google Books</span>
-    <span class="chip">Games · IGDB</span>
-    <span class="chip">Film / TV · TMDb</span>
-    <span class="chip">Anime · AniList</span>
-</div>
-
-<div class="section-title">Results preview</div>
-<div class="wall small">
-    @for (var i = 0; i < 6; i++)
+<div class="segs" style="margin-top:14px">
+    @foreach (var type in Enum.GetValues<MediaType>())
     {
-        <div class="card">
-            <div class="poster">
-                <div class="fallback tile-@(_tiles[i])">
-                    <div class="ftype">Search result</div>
-                    <div class="ftitle">Imported cover art →</div>
-                </div>
-            </div>
-            <div class="card-meta">
-                <div class="card-title" style="opacity:.4">Title from API</div>
-                <div class="card-sub">Creator · Year</div>
-            </div>
-        </div>
+        <button class="seg @(type == _mediaType ? "on" : "")" @onclick="() => SetType(type)">
+            @UiHelpers.TypeLabel(type)
+        </button>
     }
 </div>
 
+<p class="hint">Text-only search — covers appear once an item is on display in the Library.</p>
+
+@if (_error is not null)
+{
+    <div class="notice bad">@_error</div>
+}
+
+@if (_savedMessage is not null)
+{
+    <div class="notice good">@_savedMessage</div>
+}
+
+@if (_results.Count > 0)
+{
+    @foreach (var result in _results)
+    {
+        <button class="result @(IsSelected(result) ? "on" : "")" @onclick="() => Select(result)">
+            <div>
+                <div class="rt2">@result.Title</div>
+                <div class="ra">
+                    @UiHelpers.TypeLabel(result.MediaType)
+                    @if (result.Creator.Count > 0)
+                    {
+                        @(" · " + string.Join(", ", result.Creator))
+                    }
+                </div>
+            </div>
+            @if (result.ReleaseYear is { } year)
+            {
+                <div class="yr">@year</div>
+            }
+        </button>
+    }
+}
+else if (_searched && !_searching)
+{
+    <p class="muted">Nothing found for “@_query”.</p>
+}
+
+@if (_loadingDetail)
+{
+    <div class="notice">Fetching details…</div>
+}
+
+@if (_detail is not null)
+{
+    <div class="capture">
+        <div class="cap-head">
+            <span class="label">Logging</span>
+            <span class="cap-sel">
+                @_detail.Title · @UiHelpers.TypeLabel(_detail.MediaType)@(_detail.Creator is null ? "" : " · " + _detail.Creator)
+            </span>
+        </div>
+
+        <div class="cap-block">
+            <div class="fl">What are you recording?</div>
+            <div class="segs">
+                @foreach (var action in Enum.GetValues<LogAction>())
+                {
+                    <button class="seg @(action == _action ? "on" : "")" @onclick="() => _action = action">
+                        @ActionLabel(action)
+                    </button>
+                }
+            </div>
+        </div>
+
+        @* --- the work itself: same for every action --- *@
+        <div class="cap-row">
+            <div>
+                <div class="fl">Genres</div>
+                <VocabularyPicker @bind-Selected="_genres" Suggestions="_vocab.Genres"
+                                  Placeholder="pick or create…" />
+            </div>
+        </div>
+
+        <div class="cap-block">
+            <div class="fl">Moods</div>
+            <div class="segs loose">
+                @foreach (var mood in Enum.GetValues<Mood>())
+                {
+                    <button class="seg @(_moods.Contains(mood) ? "on" : "")" @onclick="() => ToggleMood(mood)">
+                        @UiHelpers.MoodLabel(mood)
+                    </button>
+                }
+            </div>
+        </div>
+
+        <div class="cap-row">
+            <div>
+                <div class="fl">Universe</div>
+                <VocabularyPicker @bind-Selected="_universe" Suggestions="_vocab.Universes"
+                                  Max="1" Placeholder="e.g. Cosmere…" />
+            </div>
+            <div>
+                <div class="fl">Series</div>
+                <VocabularyPicker @bind-Selected="_series" Suggestions="_vocab.Series"
+                                  Max="1" Placeholder="e.g. Mistborn Era 1…" />
+            </div>
+            @if (_series.Count > 0)
+            {
+                <div style="flex:0 0 90px">
+                    <div class="fl">Position</div>
+                    <input class="in" type="number" min="1" @bind="_seriesPosition" />
+                </div>
+            }
+        </div>
+
+        <div class="cap-row">
+            <div>
+                <div class="fl">Discovery</div>
+                <select class="in" @bind="_discovery">
+                    <option value="">—</option>
+                    @foreach (var source in Enum.GetValues<DiscoverySource>())
+                    {
+                        <option value="@source">@UiHelpers.DiscoveryLabel(source)</option>
+                    }
+                </select>
+            </div>
+        </div>
+
+        @* --- pass-specific fields --- *@
+        @if (_action is not LogAction.Interested)
+        {
+            <div class="cap-row">
+                <div>
+                    <div class="fl">Start</div>
+                    <input class="in" type="date" @bind="_startDate" />
+                </div>
+                @if (_action is LogAction.Completed)
+                {
+                    <div>
+                        <div class="fl">End</div>
+                        <input class="in" type="date" @bind="_endDate" />
+                    </div>
+                    <div>
+                        <div class="fl">Effort (@UiHelpers.LengthUnit(_detail.MediaType))</div>
+                        <input class="in" type="number" min="0" @bind="_effort"
+                               placeholder="@(_detail.Length?.ToString() ?? "")" />
+                    </div>
+                }
+            </div>
+
+            <div class="cap-row">
+                <div>
+                    <div class="fl">Context</div>
+                    <select class="in" @bind="_context">
+                        <option value="">—</option>
+                        @foreach (var context in UiHelpers.ContextsFor(_detail.MediaType))
+                        {
+                            <option value="@context">@UiHelpers.ContextLabel(context)</option>
+                        }
+                    </select>
+                </div>
+                @if (_action is LogAction.Completed)
+                {
+                    <div>
+                        <div class="fl">Rating</div>
+                        <div class="stars">
+                            <span class="track">★★★★★</span>
+                            <span class="fill" style="width:@(_rating * 10)%">★★★★★</span>
+                            @for (var half = 1; half <= 10; half++)
+                            {
+                                var value = half;
+                                <button class="hit" style="left:@((half - 1) * 10)%"
+                                        title="@(value / 2.0)" @onclick="() => _rating = value"></button>
+                            }
+                        </div>
+                        @if (_rating > 0)
+                        {
+                            <button class="starclear" @onclick="() => _rating = 0">clear</button>
+                        }
+                    </div>
+                }
+            </div>
+
+            <div class="cap-block">
+                <div class="fl">Note <b>required</b></div>
+                <textarea class="area" @bind="_note" @bind:event="oninput"
+                          placeholder="@NotePlaceholder"></textarea>
+            </div>
+        }
+
+        <div class="cap-foot">
+            <span class="req">@FootHint</span>
+            <button class="btn ghost" @onclick="Reset">Cancel</button>
+            <button class="btn" @onclick="Submit" disabled="@(_saving || !CanSubmit)">
+                @(_saving ? "…" : ActionButton(_action))
+            </button>
+        </div>
+    </div>
+}
+
 @code {
-    private readonly string[] _tiles = ["book", "game", "movie", "show", "anime", "book"];
+    // The three write actions from the vault's Log-and-capture note. Dropped is
+    // deliberately absent — you can't drop something you never started.
+    private enum LogAction { Start, Completed, Interested }
+
+    private string _query = "";
+    private MediaType _mediaType = MediaType.Book;
+    private IReadOnlyList<MediaSearchResultDto> _results = [];
+    private bool _searching;
+    private bool _searched;
+
+    private MediaSearchResultDto? _selected;
+    private MediaItemDto? _detail;
+    private bool _loadingDetail;
+
+    private Vocabulary _vocab = new([], [], []);
+
+    private LogAction _action = LogAction.Start;
+    private List<string> _genres = [];
+    private readonly HashSet<Mood> _moods = [];
+    private List<string> _universe = [];
+    private List<string> _series = [];
+    private int? _seriesPosition;
+    private DiscoverySource? _discovery;
+    private DateOnly? _startDate = DateOnly.FromDateTime(DateTime.Today);
+    private DateOnly? _endDate = DateOnly.FromDateTime(DateTime.Today);
+    private int? _effort;
+    private ConsumptionContext? _context;
+    private int _rating;
+    private string _note = "";
+
+    private bool _saving;
+    private string? _error;
+    private string? _savedMessage;
+
+    protected override Task OnInitializedAsync() => RefreshVocabulary();
+
+    private async Task RefreshVocabulary() => _vocab = await Library.GetVocabularyAsync();
+
+    private bool CanSubmit =>
+        _action is LogAction.Interested || _note.Trim().Length > 0;
+
+    private string NotePlaceholder => _action switch
+    {
+        LogAction.Start => "Why you're picking it up, what you expect…",
+        _ => "A few words on this one — this is what the Diary shows."
+    };
+
+    private string FootHint => _action switch
+    {
+        LogAction.Interested => "Goes to the library unstarted. No note needed.",
+        _ => "Start and finish each need a note — this is what the Diary shows."
+    };
+
+    private static string ActionLabel(LogAction action) => action switch
+    {
+        LogAction.Start => "Start a pass",
+        LogAction.Completed => "Already finished",
+        _ => "Just interested"
+    };
+
+    private static string ActionButton(LogAction action) => action switch
+    {
+        LogAction.Start => "Start it",
+        LogAction.Completed => "Log it",
+        _ => "Save to library"
+    };
+
+    private bool IsSelected(MediaSearchResultDto result) =>
+        _selected is not null &&
+        _selected.ExternalId == result.ExternalId &&
+        _selected.ExternalSource == result.ExternalSource;
+
+    private void ToggleMood(Mood mood)
+    {
+        if (!_moods.Add(mood))
+            _moods.Remove(mood);
+    }
+
+    private async Task SetType(MediaType type)
+    {
+        _mediaType = type;
+        if (_searched)
+            await RunSearch();
+    }
+
+    private async Task OnSearchKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+            await RunSearch();
+    }
+
+    private async Task RunSearch()
+    {
+        if (_query.Trim().Length == 0)
+            return;
+
+        _searching = true;
+        _error = null;
+        _savedMessage = null;
+
+        try
+        {
+            _results = await Search.SearchAsync(_query.Trim(), _mediaType);
+            _searched = true;
+        }
+        catch (NotSupportedException)
+        {
+            _results = [];
+            _error = $"No provider is wired up for {UiHelpers.TypeLabel(_mediaType)} yet — books only for now.";
+        }
+        catch (Exception ex)
+        {
+            _results = [];
+            _error = ex.Message;
+        }
+        finally
+        {
+            _searching = false;
+        }
+    }
+
+    private async Task Select(MediaSearchResultDto result)
+    {
+        _selected = result;
+        _detail = null;
+        _loadingDetail = true;
+        _error = null;
+        _savedMessage = null;
+
+        try
+        {
+            _detail = await Search.GetByIdAsync(result.ExternalId, result.MediaType);
+
+            // The provider proposes genres; the picker lets me dispose.
+            if (_detail is not null)
+                _genres = [.. _detail.Genres];
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _loadingDetail = false;
+        }
+    }
+
+    private async Task Submit()
+    {
+        if (_detail is null)
+            return;
+
+        _saving = true;
+        _error = null;
+
+        var details = new WorkDetails(
+            _genres,
+            [.. _moods],
+            _universe.FirstOrDefault(),
+            _series.FirstOrDefault(),
+            _seriesPosition,
+            _discovery);
+
+        var note = _note.Trim().Length == 0 ? null : _note.Trim();
+        var start = new PassStart(_startDate, _context, note);
+
+        try
+        {
+            switch (_action)
+            {
+                case LogAction.Interested:
+                    await Library.AddToLibraryAsync(_detail, details);
+                    break;
+
+                case LogAction.Start:
+                    var userMediaItemId = await Library.AddToLibraryAsync(_detail, details);
+                    await LogService.StartPassAsync(userMediaItemId, start);
+                    break;
+
+                default:
+                    var finish = new PassFinish(
+                        _endDate ?? DateOnly.FromDateTime(DateTime.Today),
+                        _rating == 0 ? null : _rating,
+                        _effort,
+                        note);
+                    await LogService.LogCompletedAsync(_detail, details, start, finish);
+                    break;
+            }
+
+            _savedMessage = $"“{_detail.Title}” — {ActionLabel(_action).ToLowerInvariant()}.";
+            await RefreshVocabulary();
+            Reset();
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private void Reset()
+    {
+        _selected = null;
+        _detail = null;
+        _action = LogAction.Start;
+        _genres = [];
+        _moods.Clear();
+        _universe = [];
+        _series = [];
+        _seriesPosition = null;
+        _discovery = null;
+        _startDate = DateOnly.FromDateTime(DateTime.Today);
+        _endDate = DateOnly.FromDateTime(DateTime.Today);
+        _effort = null;
+        _context = null;
+        _rating = 0;
+        _note = "";
+    }
 }

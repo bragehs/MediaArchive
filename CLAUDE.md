@@ -18,6 +18,8 @@ with controller APIs**, so the transferable skills — the C# language, EF Core,
 the service layer, async, LINQ, architecture — matter to me far more than the Blazor
 UI. Optimize our collaboration for *me learning*, not for you shipping fast.
 
+DONT WRITE SO MANY COMMENTS.
+
 ### The learning split — this is the important part
 
 Treat these two zones of the codebase differently:

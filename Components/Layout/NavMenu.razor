@@ -1,12 +1,13 @@
-<nav class="sidebar">
-    <div class="brand">
-        <span class="logo">◆</span> MediaArchive
-    </div>
+@* The five surfaces from the vault's IA. Only Log exists yet; the rest are
+   inert placeholders so the masthead reads correctly. *@
 
-    <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-        <span class="ico">＋</span> Log
-    </NavLink>
-
-    <div class="spacer"></div>
-    <div class="foot">Local media OS · single user<br />Rebuilding from the service layer up</div>
-</nav>
+<div class="top">
+    <div class="brand">Media<b>Archive</b></div>
+    <nav class="tabs">
+        <span class="soon label">Home</span>
+        <NavLink href="" Match="NavLinkMatch.All">Log</NavLink>
+        <span class="soon label">Library</span>
+        <span class="soon label">Diary</span>
+        <span class="soon label">Profile</span>
+    </nav>
+</div>

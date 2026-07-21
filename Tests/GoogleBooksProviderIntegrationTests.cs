@@ -21,7 +21,7 @@ public class GoogleBooksProviderIntegrationTests
         var provider = new GoogleBooksProvider(http, Options.Create(LoadOptions()));
 
         var results = await WithRetry(() =>
-            provider.SearchAsync("dune frank herbert", MediaType.Book));
+            provider.SearchAsync("dune frank herbert"));
 
         // Google's ordering isn't guaranteed, so assert on the shape of the
         // data and that *some* result looks like the book we searched for,
@@ -34,7 +34,7 @@ public class GoogleBooksProviderIntegrationTests
             Assert.Equal(MediaType.Book, r.MediaType);
             Assert.False(string.IsNullOrWhiteSpace(r.ExternalId));
             Assert.False(string.IsNullOrWhiteSpace(r.Title));
-            Assert.NotNull(r.Creator);              // never null, worst case empty
+            Assert.NotNull(r.Creator); // never null, worst case empty
         });
 
         // The parsing/mapping actually pulled real data through:

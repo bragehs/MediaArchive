@@ -17,8 +17,9 @@ public record MediaItemDto(
     string? ImageUrl,
     int? ReleaseYear,
     MediaType MediaType,
+    int? Length,
     string? Description,
     string? Creator,
     List<string> Genres,
-    string? Universe,
-    int? UniverseId);
+    double? ExternalRating,
+    int? ExternalRatingCount);

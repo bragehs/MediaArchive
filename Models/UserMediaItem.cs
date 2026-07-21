@@ -13,9 +13,7 @@ public class UserMediaItem
 
     public bool IsFavorite { get; set; }
 
-    public string? PersonalTags { get; set; }
-
-    public string? Notes { get; set; }
+    public DiscoverySource? Discovery { get; set; }
 
     public DateOnly AddedDate { get; set; } = DateOnly.FromDateTime(DateTime.Today);
 

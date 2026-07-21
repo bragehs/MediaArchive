@@ -3,6 +3,7 @@ using System;
 using MediaArchive.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace MediaArchive.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260721103114_MoodsAndSeries")]
+    partial class MoodsAndSeries
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.0");
@@ -129,7 +132,7 @@ namespace MediaArchive.Migrations
                     b.Property<int?>("ReleaseYear")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int>("SeriesId")
+                    b.Property<int?>("SeriesId")
                         .HasColumnType("INTEGER");
 
                     b.Property<int?>("SeriesPosition")
@@ -199,13 +202,6 @@ namespace MediaArchive.Migrations
                         .IsUnique();
 
                     b.ToTable("Series");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            Name = "Standalone"
-                        });
                 });
 
             modelBuilder.Entity("MediaArchive.Models.Universe", b =>
@@ -246,6 +242,9 @@ namespace MediaArchive.Migrations
 
                     b.Property<int>("MediaItemId")
                         .HasColumnType("INTEGER");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("TEXT");
 
                     b.Property<int?>("Rating")
                         .HasColumnType("INTEGER");
@@ -350,8 +349,7 @@ namespace MediaArchive.Migrations
                     b.HasOne("MediaArchive.Models.Series", "Series")
                         .WithMany("Items")
                         .HasForeignKey("SeriesId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("MediaArchive.Models.Universe", "Universe")
                         .WithMany("Items")

@@ -5,13 +5,14 @@
 # as `googleBooksKey` and add `&key={{googleBooksKey}}` to the requests.
 
 ### Search volumes by free text
-GET https://www.googleapis.com/books/v1/volumes?q=hollow+knight&maxResults=5&key={{googleBooksKey}}
+GET https://books.googleapis.com/books/v1/volumes?q=hollow+knight&maxResults=5&key={{googleBooksKey}}
 
 ### Search by title + author (field-scoped query)
-GET https://www.googleapis.com/books/v1/volumes?q=intitle:dune+inauthor:herbert&maxResults=5&key={{googleBooksKey}}
+GET https://books.googleapis.com/books/v1/volumes?q=intitle:mistborn+inauthor:sanderson&maxResults=5&
+    key={{googleBooksKey}}
 
 ### Look up a single volume by ISBN
-GET https://www.googleapis.com/books/v1/volumes?q=isbn:9780441172719&key={{googleBooksKey}}
+GET https://books.googleapis.com/books/v1/volumes?q=isbn:9780441172719&key={{googleBooksKey}}
 
 ### Get a single volume by its Google volume id
-GET https://www.googleapis.com/books/v1/volumes/zyTCAlFPjgYC?key={{googleBooksKey}}
+GET https://books.googleapis.com/books/v1/volumes/zyTCAlFPjgYC?key={{googleBooksKey}}

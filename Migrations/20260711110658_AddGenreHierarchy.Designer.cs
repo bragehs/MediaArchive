@@ -3,6 +3,7 @@ using System;
 using MediaArchive.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace MediaArchive.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260711110658_AddGenreHierarchy")]
+    partial class AddGenreHierarchy
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.0");
@@ -23,13 +26,13 @@ namespace MediaArchive.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<int?>("Context")
-                        .HasColumnType("INTEGER");
-
                     b.Property<int?>("Effort")
                         .HasColumnType("INTEGER");
 
                     b.Property<DateOnly?>("EndDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Notes")
                         .HasColumnType("TEXT");
 
                     b.Property<int?>("RatingAtTime")
@@ -46,34 +49,6 @@ namespace MediaArchive.Migrations
                     b.HasIndex("UserMediaItemId");
 
                     b.ToTable("ConsumptionEntries");
-                });
-
-            modelBuilder.Entity("MediaArchive.Models.EntryNote", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("ConsumptionEntryId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int?>("EffortAtTime")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("Kind")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Text")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ConsumptionEntryId");
-
-                    b.ToTable("EntryNotes");
                 });
 
             modelBuilder.Entity("MediaArchive.Models.Genre", b =>
@@ -111,12 +86,6 @@ namespace MediaArchive.Migrations
                     b.Property<string>("ExternalId")
                         .HasColumnType("TEXT");
 
-                    b.Property<double?>("ExternalRating")
-                        .HasColumnType("REAL");
-
-                    b.Property<int?>("ExternalRatingCount")
-                        .HasColumnType("INTEGER");
-
                     b.Property<string>("ExternalSource")
                         .HasColumnType("TEXT");
 
@@ -129,12 +98,6 @@ namespace MediaArchive.Migrations
                     b.Property<int?>("ReleaseYear")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int>("SeriesId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int?>("SeriesPosition")
-                        .HasColumnType("INTEGER");
-
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasColumnType("TEXT");
@@ -143,8 +106,6 @@ namespace MediaArchive.Migrations
                         .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("SeriesId");
 
                     b.HasIndex("UniverseId");
 
@@ -170,44 +131,6 @@ namespace MediaArchive.Migrations
                     b.ToTable("MediaItemGenre");
                 });
 
-            modelBuilder.Entity("MediaArchive.Models.MediaItemMood", b =>
-                {
-                    b.Property<int>("MediaItemId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("Mood")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("MediaItemId", "Mood");
-
-                    b.ToTable("MediaItemMood");
-                });
-
-            modelBuilder.Entity("MediaArchive.Models.Series", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Name")
-                        .IsUnique();
-
-                    b.ToTable("Series");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            Name = "Standalone"
-                        });
-                });
-
             modelBuilder.Entity("MediaArchive.Models.Universe", b =>
                 {
                     b.Property<int>("Id")
@@ -223,9 +146,6 @@ namespace MediaArchive.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Name")
-                        .IsUnique();
-
                     b.ToTable("Universes");
                 });
 
@@ -238,14 +158,17 @@ namespace MediaArchive.Migrations
                     b.Property<DateOnly>("AddedDate")
                         .HasColumnType("TEXT");
 
-                    b.Property<int?>("Discovery")
-                        .HasColumnType("INTEGER");
-
                     b.Property<bool>("IsFavorite")
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("MediaItemId")
                         .HasColumnType("INTEGER");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("PersonalTags")
+                        .HasColumnType("TEXT");
 
                     b.Property<int?>("Rating")
                         .HasColumnType("INTEGER");
@@ -261,15 +184,22 @@ namespace MediaArchive.Migrations
                     b.ToTable("UserMediaItems");
                 });
 
+            modelBuilder.Entity("MediaArchive.Models.Anime", b =>
+                {
+                    b.HasBaseType("MediaArchive.Models.MediaItem");
+
+                    b.Property<string>("Studio")
+                        .HasColumnType("TEXT");
+
+                    b.HasDiscriminator().HasValue(4);
+                });
+
             modelBuilder.Entity("MediaArchive.Models.Book", b =>
                 {
                     b.HasBaseType("MediaArchive.Models.MediaItem");
 
                     b.Property<string>("Author")
                         .HasColumnType("TEXT");
-
-                    b.Property<int?>("PageCount")
-                        .HasColumnType("INTEGER");
 
                     b.HasDiscriminator().HasValue(0);
                 });
@@ -281,9 +211,6 @@ namespace MediaArchive.Migrations
                     b.Property<string>("Developer")
                         .HasColumnType("TEXT");
 
-                    b.Property<int?>("TimeToBeatHours")
-                        .HasColumnType("INTEGER");
-
                     b.HasDiscriminator().HasValue(1);
                 });
 
@@ -294,9 +221,6 @@ namespace MediaArchive.Migrations
                     b.Property<string>("Director")
                         .HasColumnType("TEXT");
 
-                    b.Property<int?>("RuntimeMinutes")
-                        .HasColumnType("INTEGER");
-
                     b.HasDiscriminator().HasValue(2);
                 });
 
@@ -304,11 +228,14 @@ namespace MediaArchive.Migrations
                 {
                     b.HasBaseType("MediaArchive.Models.MediaItem");
 
-                    b.Property<int?>("EpisodeCount")
-                        .HasColumnType("INTEGER");
-
                     b.Property<string>("Studio")
                         .HasColumnType("TEXT");
+
+                    b.ToTable("MediaItems", t =>
+                        {
+                            t.Property("Studio")
+                                .HasColumnName("Show_Studio");
+                        });
 
                     b.HasDiscriminator().HasValue(3);
                 });
@@ -324,17 +251,6 @@ namespace MediaArchive.Migrations
                     b.Navigation("UserMediaItem");
                 });
 
-            modelBuilder.Entity("MediaArchive.Models.EntryNote", b =>
-                {
-                    b.HasOne("MediaArchive.Models.ConsumptionEntry", "ConsumptionEntry")
-                        .WithMany("Notes")
-                        .HasForeignKey("ConsumptionEntryId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("ConsumptionEntry");
-                });
-
             modelBuilder.Entity("MediaArchive.Models.Genre", b =>
                 {
                     b.HasOne("MediaArchive.Models.Genre", "ParentGenre")
@@ -347,17 +263,9 @@ namespace MediaArchive.Migrations
 
             modelBuilder.Entity("MediaArchive.Models.MediaItem", b =>
                 {
-                    b.HasOne("MediaArchive.Models.Series", "Series")
-                        .WithMany("Items")
-                        .HasForeignKey("SeriesId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.HasOne("MediaArchive.Models.Universe", "Universe")
                         .WithMany("Items")
                         .HasForeignKey("UniverseId");
-
-                    b.Navigation("Series");
 
                     b.Navigation("Universe");
                 });
@@ -381,17 +289,6 @@ namespace MediaArchive.Migrations
                     b.Navigation("MediaItem");
                 });
 
-            modelBuilder.Entity("MediaArchive.Models.MediaItemMood", b =>
-                {
-                    b.HasOne("MediaArchive.Models.MediaItem", "MediaItem")
-                        .WithMany("Moods")
-                        .HasForeignKey("MediaItemId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("MediaItem");
-                });
-
             modelBuilder.Entity("MediaArchive.Models.UserMediaItem", b =>
                 {
                     b.HasOne("MediaArchive.Models.MediaItem", "MediaItem")
@@ -401,11 +298,6 @@ namespace MediaArchive.Migrations
                         .IsRequired();
 
                     b.Navigation("MediaItem");
-                });
-
-            modelBuilder.Entity("MediaArchive.Models.ConsumptionEntry", b =>
-                {
-                    b.Navigation("Notes");
                 });
 
             modelBuilder.Entity("MediaArchive.Models.Genre", b =>
@@ -419,14 +311,7 @@ namespace MediaArchive.Migrations
                 {
                     b.Navigation("Genres");
 
-                    b.Navigation("Moods");
-
                     b.Navigation("UserMediaItem");
-                });
-
-            modelBuilder.Entity("MediaArchive.Models.Series", b =>
-                {
-                    b.Navigation("Items");
                 });
 
             modelBuilder.Entity("MediaArchive.Models.Universe", b =>

@@ -1,6 +1,6 @@
 namespace MediaArchive.Models;
 
-public class Universe
+public class Universe : INamed
 {
     public int Id { get; set; }
 

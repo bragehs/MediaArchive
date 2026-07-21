@@ -8,6 +8,9 @@ public interface IMediaProvider
 
     Task<IReadOnlyList<MediaSearchResultDto>> SearchAsync(
         string query,
-        MediaType mediaType,
+        CancellationToken cancellationToken = default);
+
+    Task<MediaItemDto?> GetByIdAsync(
+        string id,
         CancellationToken cancellationToken = default);
 }

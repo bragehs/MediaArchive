@@ -14,5 +14,9 @@ public class ConsumptionEntry
 
     public int? Effort { get; set; }
 
-    public string? Notes { get; set; }
+    // Where/how I experienced this pass (audiobook, cinema, console…).
+    public ConsumptionContext? Context { get; set; }
+
+    // The note thread for this pass.
+    public List<EntryNote> Notes { get; set; } = [];
 }

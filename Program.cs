@@ -1,5 +1,6 @@
 using MediaArchive.Components;
 using MediaArchive.Data;
+using MediaArchive.Services;
 using MediaArchive.Services.Providers;
 using Microsoft.EntityFrameworkCore;
 
@@ -20,14 +21,19 @@ builder.Services.Configure<GoogleBooksOptions>(
 builder.Services.AddHttpClient<GoogleBooksProvider>();
 builder.Services.AddTransient<IMediaProvider>(sp => sp.GetRequiredService<GoogleBooksProvider>());
 
+builder.Services.AddScoped<MediaSearchService>();
+builder.Services.AddScoped<MediaLogService>();
+builder.Services.AddScoped<MediaLibraryService>();
+
 
 var app = builder.Build();
 
 if (!app.Environment.IsDevelopment())
 {
-    app.UseExceptionHandler("/Error", createScopeForErrors: true);
+    app.UseExceptionHandler("/Error", true);
     app.UseHsts();
 }
+
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 app.UseHttpsRedirection();
 
@@ -41,7 +47,6 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     db.Database.Migrate();
-    DbSeeder.Seed(db);
 }
 
 app.Run();
