@@ -37,7 +37,13 @@ public enum Mood
     Sad,
     Reflective,
     Hopeful,
-    Lighthearted
+    Lighthearted,
+    Relaxing,
+    Inspiring,
+    Informative,
+    Slow_paced,
+    Medium_paced,
+    Fast_paced
 }
 
 // How an item entered my life. Medium-agnostic by design — the axis only works

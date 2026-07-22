@@ -1,7 +1,7 @@
 /* Vitrine — settled 2026-07-11. Flat, printed, editorial. No blur, no glow,
    near-zero radius. Warm sage-grey with one persimmon spot colour. */
 :root {
-    --bg: #2b2f29;
+    --bg: #283127;
     --panel: #333831;
     --panel2: #3b4038;
     --line: rgba(242, 239, 230, .16);
@@ -9,12 +9,12 @@
     --ink: #f3f0e7;
     --muted: #aab0a1;
     --dim: #787e6f;
-    --ac: #e2603f;
+    --ac: #4f9053;
     --ac2: #e7a83f;
     --sage: #9db08c;
 
     /* fallback-tile colours, keyed to media type — in-palette, per the vault */
-    --book: #e2603f;
+    --book: #4f9053;
     --game: #e7a83f;
     --movie: #9db08c;
     --show: #8a7f6a;
