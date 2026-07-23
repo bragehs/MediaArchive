@@ -11,14 +11,16 @@ layout and `Migrations/` for schema history.
 **Stack:** ASP.NET Core Blazor Web App · .NET 10 · EF Core 10 + SQLite
 (`mediaarchive.db`) · Razor components inject services / `DbContext` directly.
 
+## Important
+
+Dont write so many comments when coding, only when necessary.
+
 ## This is a learning project — read this before writing code
 
 I'm **new to C#** and building this to learn. My day job is **backend ASP.NET Core
 with controller APIs**, so the transferable skills — the C# language, EF Core, DI,
 the service layer, async, LINQ, architecture — matter to me far more than the Blazor
 UI. Optimize our collaboration for *me learning*, not for you shipping fast.
-
-DONT WRITE SO MANY COMMENTS.
 
 ### The learning split — this is the important part
 

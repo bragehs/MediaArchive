@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using MediaArchive.Models;
 
@@ -65,7 +66,7 @@ public class TmdbProvider(HttpClient httpClient) : IMediaProvider
             MediaType.Movie,
             movie.Title ?? "Untitled",
             movie.PosterPath is not null ? $"{ImageBaseUrl}{movie.PosterPath}" : null,
-            ParseYear(movie.ReleaseDate)
+            ParseDate(movie.ReleaseDate)
         );
     }
 
@@ -94,13 +95,14 @@ public class TmdbProvider(HttpClient httpClient) : IMediaProvider
             MediaType.Show,
             show.Name ?? "Untitled",
             show.PosterPath is not null ? $"{ImageBaseUrl}{show.PosterPath}" : null,
-            ParseYear(show.FirstAirDate)
+            ParseDate(show.FirstAirDate)
         );
     }
 
-    private static int? ParseYear(string? date)
+    // Full ISO date, but "" for unreleased titles.
+    private static DateOnly? ParseDate(string? date)
     {
-        return date is { Length: >= 4 } && int.TryParse(date[..4], out var year) ? year : null;
+        return DateOnly.TryParse(date, CultureInfo.InvariantCulture, out var parsed) ? parsed : null;
     }
 
     private sealed record TmdbResponse<T>(List<T>? Results);
@@ -140,7 +142,12 @@ public class TmdbProvider(HttpClient httpClient) : IMediaProvider
         List<TmdbGenre>? Genres,
         double? VoteAverage,
         int? VoteCount,
-        List<TmdbCompany>? Networks);
+        List<TmdbCompany>? Networks,
+        // Often empty on newer shows — fall back to LastEpisodeToAir.Runtime.
+        List<int>? EpisodeRunTime,
+        TmdbEpisode? LastEpisodeToAir);
+
+    private sealed record TmdbEpisode(int? Runtime);
 
     private sealed record TmdbGenre(int Id, string? Name);
 

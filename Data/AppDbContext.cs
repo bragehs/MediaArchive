@@ -12,6 +12,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<Show> Shows => Set<Show>();
 
     public DbSet<Genre> Genres => Set<Genre>();
+    public DbSet<Person> People => Set<Person>();
     public DbSet<Universe> Universes => Set<Universe>();
     public DbSet<Series> Series => Set<Series>();
     public DbSet<UserMediaItem> UserMediaItems => Set<UserMediaItem>();
@@ -49,6 +50,14 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         // Mood is an enum, not an entity — the pair itself is the key.
         builder.Entity<MediaItemMood>()
             .HasKey(mm => new { mm.MediaItemId, mm.Mood });
+
+        // One person can hold several roles on one item, so Role is part of the key.
+        builder.Entity<MediaItemCredit>()
+            .HasKey(mc => new { mc.MediaItemId, mc.PersonId, mc.Role });
+
+        builder.Entity<Person>()
+            .HasIndex(p => p.Name)
+            .IsUnique();
 
         builder.Entity<Universe>()
             .HasIndex(u => u.Name)

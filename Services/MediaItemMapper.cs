@@ -9,16 +9,21 @@ public static class MediaItemMapper
     {
         MediaItem item = dto.MediaType switch
         {
-            MediaType.Book => new Book { Title = dto.Title, Author = dto.Creator, PageCount = dto.Length },
-            MediaType.Game => new Game { Title = dto.Title, Developer = dto.Creator, TimeToBeatHours = dto.Length },
-            MediaType.Movie => new Movie { Title = dto.Title, Director = dto.Creator, RuntimeMinutes = dto.Length },
-            MediaType.Show => new Show { Title = dto.Title, Studio = dto.Creator, EpisodeCount = dto.Length },
+            MediaType.Book => new Book { Title = dto.Title, PageCount = dto.Length },
+            MediaType.Game => new Game { Title = dto.Title, TimeToBeatHours = dto.Length },
+            MediaType.Movie => new Movie { Title = dto.Title, RuntimeMinutes = dto.Length },
+            MediaType.Show => new Show
+            {
+                Title = dto.Title,
+                EpisodeCount = dto.Length,
+                EpisodeRuntime = dto.EpisodeRuntime
+            },
             _ => throw new ArgumentOutOfRangeException(nameof(dto), dto.MediaType, "Unsupported media type.")
         };
 
         item.MediaType = dto.MediaType;
         item.ImageUrl = dto.ImageUrl;
-        item.ReleaseYear = dto.ReleaseYear;
+        item.ReleaseDate = dto.ReleaseDate;
         item.Description = dto.Description;
         item.ExternalId = dto.ExternalId;
         item.ExternalSource = dto.ExternalSource;

@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using System.Text.RegularExpressions;
 using MediaArchive.Models;
@@ -70,7 +71,7 @@ public partial class GoogleBooksProvider(HttpClient httpClient, IOptions<GoogleB
             MediaType.Book,
             info?.Title ?? "Untitled",
             NormaliseCoverUrl(info?.ImageLinks?.Thumbnail),
-            ParseYear(info?.PublishedDate));
+            ParseDate(info?.PublishedDate));
     }
 
     private static MediaItemDto MapToItem(GoogleBooksVolume volume)
@@ -83,11 +84,11 @@ public partial class GoogleBooksProvider(HttpClient httpClient, IOptions<GoogleB
             volume.Id,
             info?.Title ?? "Untitled",
             NormaliseCoverUrl(info?.ImageLinks?.Thumbnail),
-            ParseYear(info?.PublishedDate),
+            ParseDate(info?.PublishedDate),
             MediaType.Book,
             info?.PageCount,
             CleanDescription(info?.Description),
-            authors.Count > 0 ? string.Join(", ", authors) : null,
+            [.. authors.Select(a => new CreditDto(a, CreditRole.PrimaryCreator))],
             info?.Categories ?? [],
             RatingScale.FromFive(info?.AverageRating),
             info?.RatingsCount);
@@ -138,12 +139,22 @@ public partial class GoogleBooksProvider(HttpClient httpClient, IOptions<GoogleB
     [GeneratedRegex(@"\n{3,}")]
     private static partial Regex BlankLines();
 
-    private static int? ParseYear(string? publishedDate)
+    // Google Books gives "1987", "1987-06" or "1987-06-15" — partials pad to Jan 1.
+    private static DateOnly? ParseDate(string? publishedDate)
     {
-        if (publishedDate is null || publishedDate.Length < 4)
+        if (string.IsNullOrWhiteSpace(publishedDate))
             return null;
 
-        return int.TryParse(publishedDate[..4], out var year) ? year : null;
+        if (DateOnly.TryParse(publishedDate, CultureInfo.InvariantCulture, out var full))
+            return full;
+
+        if (publishedDate.Length >= 7 &&
+            DateOnly.TryParse($"{publishedDate[..7]}-01", CultureInfo.InvariantCulture, out var month))
+            return month;
+
+        return publishedDate.Length >= 4 && int.TryParse(publishedDate[..4], out var year)
+            ? new DateOnly(year, 1, 1)
+            : null;
     }
 
     private sealed record GoogleBooksResponse(List<GoogleBooksVolume>? Items);

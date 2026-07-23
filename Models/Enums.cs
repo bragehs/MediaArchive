@@ -23,8 +23,18 @@ public enum NoteKind
     Finish
 }
 
-// How a work felt. Fixed, closed vocabulary — the point is that it's cheap enough
-// to fill in every time, so the axis stays uniformly populated.
+// PrimaryCreator is the uniform one (author / director / developer / lead studio)
+// and is what Creator surfaces.
+public enum CreditRole
+{
+    PrimaryCreator,
+    Writer,
+    Composer,
+    Cast,
+    Narrator,
+    Studio
+}
+
 public enum Mood
 {
     Dark,
@@ -40,14 +50,9 @@ public enum Mood
     Lighthearted,
     Relaxing,
     Inspiring,
-    Informative,
-    Slow_paced,
-    Medium_paced,
-    Fast_paced
+    Informative
 }
 
-// How an item entered my life. Medium-agnostic by design — the axis only works
-// for cross-media insight if it means the same thing for a book and a game.
 public enum DiscoverySource
 {
     Friend,
@@ -63,8 +68,6 @@ public enum DiscoverySource
     Other
 }
 
-// Where/how a single pass was experienced. Type-specific values; the UI narrows
-// the list by MediaType.
 public enum ConsumptionContext
 {
     Print,

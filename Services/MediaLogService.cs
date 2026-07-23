@@ -75,11 +75,7 @@ public class MediaLogService(
         var userItem = entry.UserMediaItem!;
         var completed = !finish.Dropped;
 
-        // A completed pass means the whole thing was consumed, so effort IS the item's
-        // length (pages / hours / episodes — units come from the subclass).
-        entry.Effort = completed && userItem.MediaItem?.Length is { } length
-            ? length
-            : finish.Effort ?? entry.Effort;
+        entry.Effort = finish.Effort ?? entry.Effort;
 
         entry.EndDate = finish.EndDate;
         entry.RatingAtTime = finish.Rating;

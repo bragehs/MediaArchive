@@ -34,6 +34,8 @@ public class IgdbProvider(HttpClient httpClient, IOptions<IgdbOptions> options) 
     //   where id = {externalId};
     // Map into the rich MediaItemDto. Genres/Universe stay null — filled manually.
     // (If a search already returned everything you need, this can defer to that instead.)
+
+    // IGBD -> Themes -> Genres and genres -> Tags
     public Task<MediaItemDto?> GetByIdAsync(string id,
         MediaType _,
         CancellationToken cancellationToken = default)

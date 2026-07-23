@@ -225,6 +225,12 @@
                         <div class="fl">Effort (@UiHelpers.LengthUnit(_detail.MediaType))</div>
                         <input class="in" type="number" min="0" @bind="_effort"
                                placeholder="@(_detail.Length?.ToString() ?? "")" />
+                        @if (_detail.Length is { } suggested && _effort != suggested)
+                        {
+                            <button class="hintbtn" @onclick="() => _effort = suggested">
+                                use @suggested @UiHelpers.LengthUnit(_detail.MediaType) from @_detail.ExternalSource
+                            </button>
+                        }
                     </div>
                 }
             </div>
@@ -444,6 +450,7 @@
         try
         {
             _detail = await Search.GetByIdAsync(result.ExternalId, result.MediaType);
+            _effort = _detail?.Length;
         }
         catch (Exception ex)
         {

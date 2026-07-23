@@ -42,6 +42,7 @@ public class MediaLibraryService(IDbContextFactory<AppDbContext> dbContextFactor
 
         await ApplyGenresAsync(db, mediaItem, details.Genres, ct);
         await ApplyMoodsAsync(db, mediaItem, details.Moods, ct);
+        await ApplyCreditsAsync(db, mediaItem, item.Credits, ct);
 
         var userItem = await ResolveUserMediaItemAsync(db, mediaItem, ct);
         userItem.Discovery = details.Discovery ?? userItem.Discovery;
@@ -97,6 +98,42 @@ public class MediaLibraryService(IDbContextFactory<AppDbContext> dbContextFactor
 
         foreach (var genre in genres.Where(g => g.Id == 0 || !linked.Contains(g.Id)))
             mediaItem.Genres.Add(new MediaItemGenre { Genre = genre });
+    }
+
+    private static async Task ApplyCreditsAsync(AppDbContext db, MediaItem mediaItem,
+        List<CreditDto> credits, CancellationToken ct)
+    {
+        // (Person, Role) is the composite key, so a repeated pair would collide.
+        credits = credits
+            .Where(c => !string.IsNullOrWhiteSpace(c.Name))
+            .DistinctBy(c => (c.Name.Trim().ToLowerInvariant(), c.Role))
+            .ToList();
+
+        if (credits.Count == 0)
+            return;
+
+        var people = await ResolveNamedAsync(db, credits.Select(c => c.Name),
+            name => new Person { Name = name }, ct);
+
+        if (people.Count == 0)
+            return;
+
+        var byName = people.ToDictionary(p => p.Name, StringComparer.OrdinalIgnoreCase);
+
+        await LoadIfPersistedAsync(db, mediaItem, m => m.Credits, ct);
+
+        var linked = mediaItem.Credits.Select(mc => (mc.PersonId, mc.Role)).ToHashSet();
+
+        foreach (var credit in credits)
+        {
+            if (!byName.TryGetValue(credit.Name.Trim(), out var person))
+                continue;
+
+            if (person.Id != 0 && !linked.Add((person.Id, credit.Role)))
+                continue;
+
+            mediaItem.Credits.Add(new MediaItemCredit { Person = person, Role = credit.Role });
+        }
     }
 
     private static async Task ApplyMoodsAsync(AppDbContext db, MediaItem mediaItem,
