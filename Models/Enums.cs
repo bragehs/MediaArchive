@@ -27,10 +27,8 @@ public enum CreditRole
 {
     Author,
     Director,
-    Developer,
-    Studio,
-    Writer,
-    Narrator
+    Screenplay,
+    Studio
 }
 
 public static class MediaTypeExtensions
@@ -41,7 +39,7 @@ public static class MediaTypeExtensions
         return mediaType switch
         {
             MediaType.Book => CreditRole.Author,
-            MediaType.Game => CreditRole.Developer,
+            MediaType.Game => CreditRole.Studio,
             MediaType.Movie or MediaType.Show => CreditRole.Director,
             _ => throw new ArgumentOutOfRangeException(nameof(mediaType), mediaType, null)
         };

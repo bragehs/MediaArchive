@@ -22,7 +22,7 @@ GET https://api.themoviedb.org/3/search/multi?query=akira&include_adult=false
 Authorization: Bearer {{tmdbAccessToken}}
 
 ### Movie details by id (append_to_response pulls extras in one request)
-GET https://api.themoviedb.org/3/movie/78?append_to_response=credits
+GET https://api.themoviedb.org/3/movie/78?append_to_response=credits,keywords
 Authorization: Bearer {{tmdbAccessToken}}
 
 ### TV show details by id

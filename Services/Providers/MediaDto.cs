@@ -25,7 +25,7 @@ public record MediaItemDto(
     int? Length,
     string? Description,
     List<CreditDto> Credits,
-    List<string> Genres,
+    List<string?> Genres,
     double? ExternalRating,
     int? ExternalRatingCount,
     // A provider with no tag feed passes an empty list, never null.
