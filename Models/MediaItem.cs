@@ -20,7 +20,7 @@ public abstract class MediaItem
     public string? ExternalId { get; set; }
     public string? ExternalSource { get; set; }
 
-    // Provider's own average, normalised to a 0-5 scale. Snapped to half-stars in the UI.
+    // Provider's own average, normalised to a 0-10 scale (matching the user rating).
     public double? ExternalRating { get; set; }
     public int? ExternalRatingCount { get; set; }
 

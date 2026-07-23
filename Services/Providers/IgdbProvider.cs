@@ -18,8 +18,9 @@ public class IgdbProvider(HttpClient httpClient, IgdbAuthenticator authenticator
         PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
     };
 
-    private readonly HttpClient _httpClient = httpClient;
     private readonly IgdbAuthenticator _authenticator = authenticator;
+
+    private readonly HttpClient _httpClient = httpClient;
 
     public bool CanHandle(MediaType mediaType)
     {
@@ -32,8 +33,8 @@ public class IgdbProvider(HttpClient httpClient, IgdbAuthenticator authenticator
         CancellationToken cancellationToken = default)
     {
         var body = $"search \"{Escape(query)}\"; "
-                 + "fields name,first_release_date,cover.image_id; "
-                 + $"limit {SearchLimit};";
+                   + "fields name,first_release_date,cover.image_id; "
+                   + $"limit {SearchLimit};";
 
         var games = await QueryGamesAsync(body, cancellationToken);
 
@@ -49,13 +50,14 @@ public class IgdbProvider(HttpClient httpClient, IgdbAuthenticator authenticator
             return null;
 
         var body = "fields name,summary,first_release_date,cover.image_id,"
-                 + "involved_companies.company.name,involved_companies.developer,"
-                 + "genres.name,themes.name,keywords.name,total_rating,total_rating_count; "
-                 + $"where id = {gameId};";
+                   + "involved_companies.company.name,involved_companies.developer,"
+                   + "genres.name,themes.name,keywords.name,total_rating,total_rating_count; "
+                   + $"where id = {gameId};";
 
         var games = await QueryGamesAsync(body, cancellationToken);
 
         var game = games.FirstOrDefault();
+
 
         return game is null ? null : MapToItem(game);
     }
