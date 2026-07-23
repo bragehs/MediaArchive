@@ -8,13 +8,13 @@ public class MediaSearchService(IEnumerable<IMediaProvider> providers)
     public Task<IReadOnlyList<MediaSearchResultDto>> SearchAsync(string query, MediaType mediaType,
         CancellationToken cancellationToken = default)
     {
-        return ResolveProvider(mediaType).SearchAsync(query, cancellationToken);
+        return ResolveProvider(mediaType).SearchAsync(query, mediaType, cancellationToken);
     }
 
     public Task<MediaItemDto?> GetByIdAsync(string id, MediaType mediaType,
         CancellationToken cancellationToken = default)
     {
-        return ResolveProvider(mediaType).GetByIdAsync(id, cancellationToken);
+        return ResolveProvider(mediaType).GetByIdAsync(id, mediaType, cancellationToken);
     }
 
     private IMediaProvider ResolveProvider(MediaType mediaType)

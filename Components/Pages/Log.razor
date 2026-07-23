@@ -46,15 +46,17 @@
             @foreach (var result in _results)
             {
                 <button class="result @(IsSelected(result) ? "on" : "")" @onclick="() => Select(result)">
-                    <div>
+                    @if (result.ImageUrl is { } cover)
+                    {
+                        <img class="rcov" src="@cover" alt="" loading="lazy" />
+                    }
+                    else
+                    {
+                        <div class="rcov rcov-none"></div>
+                    }
+                    <div class="rmeta">
                         <div class="rt2">@result.Title</div>
-                        <div class="ra">
-                            @UiHelpers.TypeLabel(result.MediaType)
-                            @if (result.Creator.Count > 0)
-                            {
-                                @(" · " + string.Join(", ", result.Creator))
-                            }
-                        </div>
+                        <div class="ra">@UiHelpers.TypeLabel(result.MediaType)</div>
                     </div>
                     @if (result.ReleaseYear is { } year)
                     {

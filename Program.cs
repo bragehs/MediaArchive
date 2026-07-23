@@ -1,8 +1,10 @@
+using System.Net.Http.Headers;
 using MediaArchive.Components;
 using MediaArchive.Data;
 using MediaArchive.Services;
 using MediaArchive.Services.Providers;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,6 +22,18 @@ builder.Services.Configure<GoogleBooksOptions>(
     builder.Configuration.GetSection(GoogleBooksOptions.SectionName));
 builder.Services.AddHttpClient<GoogleBooksProvider>();
 builder.Services.AddTransient<IMediaProvider>(sp => sp.GetRequiredService<GoogleBooksProvider>());
+
+builder.Services.Configure<TmdbOptions>(
+    builder.Configuration.GetSection(TmdbOptions.SectionName));
+builder.Services.AddHttpClient<TmdbProvider>((sp, client) =>
+{
+    var tmdb = sp.GetRequiredService<IOptions<TmdbOptions>>().Value;
+
+    client.BaseAddress = new Uri("https://api.themoviedb.org/3/");
+    client.DefaultRequestHeaders.Authorization =
+        new AuthenticationHeaderValue("Bearer", tmdb.ReadAccessToken);
+});
+builder.Services.AddTransient<IMediaProvider>(sp => sp.GetRequiredService<TmdbProvider>());
 
 builder.Services.AddScoped<MediaSearchService>();
 builder.Services.AddScoped<MediaLogService>();

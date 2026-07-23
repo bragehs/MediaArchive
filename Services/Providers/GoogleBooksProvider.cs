@@ -19,6 +19,7 @@ public partial class GoogleBooksProvider(HttpClient httpClient, IOptions<GoogleB
     }
 
     public async Task<MediaItemDto?> GetByIdAsync(string id,
+        MediaType _,
         CancellationToken cancellationToken = default)
     {
         var url = $"{BaseUrl}/{Uri.EscapeDataString(id)}";
@@ -40,6 +41,7 @@ public partial class GoogleBooksProvider(HttpClient httpClient, IOptions<GoogleB
     }
 
     public async Task<IReadOnlyList<MediaSearchResultDto>> SearchAsync(string query,
+        MediaType _,
         CancellationToken cancellationToken = default)
     {
         var encodedQuery = Uri.EscapeDataString(query);
@@ -67,7 +69,7 @@ public partial class GoogleBooksProvider(HttpClient httpClient, IOptions<GoogleB
             volume.Id,
             MediaType.Book,
             info?.Title ?? "Untitled",
-            info?.Authors ?? [],
+            NormaliseCoverUrl(info?.ImageLinks?.Thumbnail),
             ParseYear(info?.PublishedDate));
     }
 

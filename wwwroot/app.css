@@ -245,6 +245,25 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
 .result:hover, .result.on { background: var(--panel); border-left: 3px solid var(--ac); padding-left: 15px; }
 .result .rt2 { font-family: "Futura", "Avenir Next", sans-serif; font-weight: 600; font-size: 15.5px; }
 
+/* min-width:0 lets a long title wrap instead of forcing the row wider. */
+.result .rmeta { min-width: 0; overflow-wrap: anywhere; }
+
+/* Search-row cover. Fixed box so rows stay aligned whatever the source aspect is. */
+.result .rcov {
+    flex: 0 0 104px;
+    width: 104px;
+    height: 156px;
+    object-fit: cover;
+    border: 1px solid var(--line);
+    background: var(--panel);
+}
+
+.result .rcov-none {
+    background: repeating-linear-gradient(
+        -45deg, transparent, transparent 4px,
+        var(--line) 4px, var(--line) 5px);
+}
+
 .result .ra {
     font-family: "Futura", sans-serif;
     text-transform: uppercase;

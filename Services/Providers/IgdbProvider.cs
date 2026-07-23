@@ -7,9 +7,9 @@ public class IgdbProvider(HttpClient httpClient, IOptions<IgdbOptions> options) 
 {
     private const string BaseUrl = "https://api.igdb.com/v4";
     private const string SourceName = "Igdb";
-    private readonly IgdbOptions _options = options.Value;
 
     private readonly HttpClient _httpClient = httpClient;
+    private readonly IgdbOptions _options = options.Value;
 
     public bool CanHandle(MediaType mediaType)
     {
@@ -17,6 +17,7 @@ public class IgdbProvider(HttpClient httpClient, IOptions<IgdbOptions> options) 
     }
 
     public Task<IReadOnlyList<MediaSearchResultDto>> SearchAsync(string query,
+        MediaType _,
         CancellationToken cancellationToken = default)
     {
         // IGDB uses POST /games with an Apicalypse query body where YOU list the fields:
@@ -34,6 +35,7 @@ public class IgdbProvider(HttpClient httpClient, IOptions<IgdbOptions> options) 
     // Map into the rich MediaItemDto. Genres/Universe stay null — filled manually.
     // (If a search already returned everything you need, this can defer to that instead.)
     public Task<MediaItemDto?> GetByIdAsync(string id,
+        MediaType _,
         CancellationToken cancellationToken = default)
     {
         throw new NotImplementedException();

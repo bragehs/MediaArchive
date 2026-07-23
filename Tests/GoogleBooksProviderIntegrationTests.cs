@@ -21,7 +21,7 @@ public class GoogleBooksProviderIntegrationTests
         var provider = new GoogleBooksProvider(http, Options.Create(LoadOptions()));
 
         var results = await WithRetry(() =>
-            provider.SearchAsync("dune frank herbert"));
+            provider.SearchAsync("dune frank herbert", MediaType.Book));
 
         // Google's ordering isn't guaranteed, so assert on the shape of the
         // data and that *some* result looks like the book we searched for,
@@ -34,13 +34,14 @@ public class GoogleBooksProviderIntegrationTests
             Assert.Equal(MediaType.Book, r.MediaType);
             Assert.False(string.IsNullOrWhiteSpace(r.ExternalId));
             Assert.False(string.IsNullOrWhiteSpace(r.Title));
-            Assert.NotNull(r.Creator); // never null, worst case empty
         });
 
         // The parsing/mapping actually pulled real data through:
         Assert.Contains(results, r => r.Title.Contains("Dune", StringComparison.OrdinalIgnoreCase));
         Assert.Contains(results, r => r.ReleaseYear is > 1900 and < 2100);
-        Assert.Contains(results, r => r.Creator.Any(a => a.Contains("Herbert", StringComparison.OrdinalIgnoreCase)));
+        // Covers must be https by the time they leave the provider — the grid renders these.
+        Assert.Contains(results, r => r.ImageUrl is not null);
+        Assert.All(results, r => Assert.True(r.ImageUrl is null || r.ImageUrl.StartsWith("https://")));
     }
 
     // The provider is the boundary where provider quirks die: Google Books sends
@@ -51,10 +52,10 @@ public class GoogleBooksProviderIntegrationTests
         using var http = new HttpClient();
         var provider = new GoogleBooksProvider(http, Options.Create(LoadOptions()));
 
-        var results = await WithRetry(() => provider.SearchAsync("the way of kings sanderson"));
+        var results = await WithRetry(() => provider.SearchAsync("the way of kings sanderson", MediaType.Book));
         var first = results.First();
 
-        var item = await WithRetry(() => provider.GetByIdAsync(first.ExternalId));
+        var item = await WithRetry(() => provider.GetByIdAsync(first.ExternalId, MediaType.Book));
 
         Assert.NotNull(item);
         Assert.False(string.IsNullOrWhiteSpace(item.Description));

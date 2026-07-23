@@ -1,13 +1,18 @@
+using System.Text.Json;
 using MediaArchive.Models;
-using Microsoft.Extensions.Options;
 
 namespace MediaArchive.Services.Providers;
 
-public class TmdbProvider(HttpClient httpClient, IOptions<TmdbOptions> options) : IMediaProvider
+public class TmdbProvider(HttpClient httpClient) : IMediaProvider
 {
-    private const string BaseUrl = "https://api.themoviedb.org/3";
     private const string SourceName = "Tmdb";
-    private readonly string? _apiKey = options.Value.ApiKey;
+    private const string ImageBaseUrl = "https://image.tmdb.org/t/p/w500";
+
+    // TMDB is snake_case; the Web defaults alone would leave those properties null.
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
+    };
 
     private readonly HttpClient _httpClient = httpClient;
 
@@ -17,25 +22,131 @@ public class TmdbProvider(HttpClient httpClient, IOptions<TmdbOptions> options) 
     }
 
     public Task<IReadOnlyList<MediaSearchResultDto>> SearchAsync(string query,
+        MediaType mediaType,
         CancellationToken cancellationToken = default)
     {
-        // GET /search/movie (or /search/tv) ?query=...
-        // Returns title, overview, poster_path, release_date — enough for the skinny
-        // MediaSearchResultDto. Map each result to a search DTO.
+        return mediaType switch
+        {
+            MediaType.Movie => SearchMoviesAsync(query, cancellationToken),
+            MediaType.Show => SearchShowsAsync(query, cancellationToken),
+            _ => throw new ArgumentOutOfRangeException(nameof(mediaType), mediaType, null)
+        };
+    }
+
+    public Task<MediaItemDto?> GetByIdAsync(string id,
+        MediaType mediaType,
+        CancellationToken cancellationToken = default)
+    {
         throw new NotImplementedException();
     }
 
-    // This is why the two-DTO split exists. TMDB's search endpoint does NOT return
-    // runtime, credits (cast/crew), keywords, or belongs_to_collection. Those live only
-    // on the detail endpoint:
-    //   GET /movie/{id}?append_to_response=credits,keywords
-    // One call with append_to_response bundles the extras, so no third request needed.
-    // Map the response into the rich MediaItemDto: runtime -> Length, overview ->
-    // Description, poster_path -> ImageUrl, and the director from credits -> Creator.
-    // Genres/Universe stay null here — they're filled manually in the add form.
-    public Task<MediaItemDto?> GetByIdAsync(string id,
+    public async Task<IReadOnlyList<MediaSearchResultDto>> SearchMoviesAsync(string query,
         CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        var encodedQuery = Uri.EscapeDataString(query);
+        var url = $"search/movie?query={encodedQuery}&include_adult=false";
+
+        var response =
+            await _httpClient.GetFromJsonAsync<TmdbResponse<TmdbMovieResult>>(url, JsonOptions, cancellationToken);
+
+        if (response?.Results is null)
+            return [];
+
+        return response.Results
+            .Select(MapToSearchResult)
+            .ToList();
     }
+
+    private static MediaSearchResultDto MapToSearchResult(TmdbMovieResult movie)
+    {
+        return new MediaSearchResultDto(
+            SourceName,
+            movie.Id.ToString(),
+            MediaType.Movie,
+            movie.Title ?? "Untitled",
+            movie.PosterPath is not null ? $"{ImageBaseUrl}{movie.PosterPath}" : null,
+            ParseYear(movie.ReleaseDate)
+        );
+    }
+
+    public async Task<IReadOnlyList<MediaSearchResultDto>> SearchShowsAsync(string query,
+        CancellationToken cancellationToken = default)
+    {
+        var encodedQuery = Uri.EscapeDataString(query);
+        var url = $"search/tv?query={encodedQuery}&include_adult=false";
+
+        var response =
+            await _httpClient.GetFromJsonAsync<TmdbResponse<TmdbTvResult>>(url, JsonOptions, cancellationToken);
+
+        if (response?.Results is null)
+            return [];
+
+        return response.Results
+            .Select(MapToSearchResult)
+            .ToList();
+    }
+
+    private static MediaSearchResultDto MapToSearchResult(TmdbTvResult show)
+    {
+        return new MediaSearchResultDto(
+            SourceName,
+            show.Id.ToString(),
+            MediaType.Show,
+            show.Name ?? "Untitled",
+            show.PosterPath is not null ? $"{ImageBaseUrl}{show.PosterPath}" : null,
+            ParseYear(show.FirstAirDate)
+        );
+    }
+
+    private static int? ParseYear(string? date)
+    {
+        return date is { Length: >= 4 } && int.TryParse(date[..4], out var year) ? year : null;
+    }
+
+    private sealed record TmdbResponse<T>(List<T>? Results);
+
+    private sealed record TmdbMovieResult(
+        int Id,
+        string? Title,
+        string? ReleaseDate,
+        string? PosterPath);
+
+    private sealed record TmdbTvResult(
+        int Id,
+        string? Name,
+        string? FirstAirDate,
+        string? PosterPath);
+
+    // Detail: fetched with append_to_response so credits arrive in the same call.
+    private sealed record TmdbMovieDetail(
+        int Id,
+        string? Title,
+        string? Overview,
+        string? ReleaseDate,
+        string? PosterPath,
+        int? Runtime,
+        List<TmdbGenre>? Genres,
+        double? VoteAverage,
+        int? VoteCount,
+        TmdbCredits? Credits);
+
+    private sealed record TmdbTvDetail(
+        int Id,
+        string? Name,
+        string? Overview,
+        string? FirstAirDate,
+        string? PosterPath,
+        int? NumberOfEpisodes,
+        List<TmdbGenre>? Genres,
+        double? VoteAverage,
+        int? VoteCount,
+        List<TmdbCompany>? Networks);
+
+    private sealed record TmdbGenre(int Id, string? Name);
+
+    private sealed record TmdbCompany(int Id, string? Name);
+
+    private sealed record TmdbCredits(List<TmdbCrewMember>? Crew);
+
+    private sealed record TmdbCrewMember(string? Name, string? Job);
 }

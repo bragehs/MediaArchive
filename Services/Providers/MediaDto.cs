@@ -7,7 +7,7 @@ public record MediaSearchResultDto(
     string ExternalId,
     MediaType MediaType,
     string Title,
-    List<string> Creator,
+    string? ImageUrl,
     int? ReleaseYear);
 
 public record MediaItemDto(

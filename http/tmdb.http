@@ -14,7 +14,7 @@ GET https://api.themoviedb.org/3/search/movie?query=blade%20runner&include_adult
 Authorization: Bearer {{tmdbAccessToken}}
 
 ### Search TV shows by title (covers anime series too)
-GET https://api.themoviedb.org/3/search/tv?query=frieren&include_adult=false
+GET https://api.themoviedb.org/3/search/tv?query=breaking&bad&include_adult=false
 Authorization: Bearer {{tmdbAccessToken}}
 
 ### Multi-search (movies + TV + people in one call)
