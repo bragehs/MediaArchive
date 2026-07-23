@@ -73,11 +73,12 @@ public class MediaLogService(
             .FirstAsync(e => e.Id == entryId, ct);
 
         var userItem = entry.UserMediaItem!;
-        var completed = !finish.Dropped;
+        var outcome = finish.Dropped ? PassOutcome.Dropped : PassOutcome.Completed;
 
         entry.Effort = finish.Effort ?? entry.Effort;
 
         entry.EndDate = finish.EndDate;
+        entry.Outcome = outcome;
         entry.RatingAtTime = finish.Rating;
 
         if (!string.IsNullOrWhiteSpace(finish.Note))
@@ -88,7 +89,10 @@ public class MediaLogService(
                 Text = finish.Note.Trim()
             });
 
-        userItem.Status = completed ? MediaStatus.Completed : MediaStatus.Dropped;
+        // Status stays my *current* relationship to the work — latest pass wins.
+        userItem.Status = outcome is PassOutcome.Completed
+            ? MediaStatus.Completed
+            : MediaStatus.Dropped;
         userItem.Rating = finish.Rating ?? userItem.Rating;
 
         await db.SaveChangesAsync(ct);

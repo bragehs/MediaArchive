@@ -10,6 +10,8 @@ public class ConsumptionEntry
     public DateOnly? StartDate { get; set; }
     public DateOnly? EndDate { get; set; }
 
+    public PassOutcome? Outcome { get; set; }
+
     public int? RatingAtTime { get; set; }
 
     public int? Effort { get; set; }

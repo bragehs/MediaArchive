@@ -16,6 +16,12 @@ public enum MediaStatus
     Dropped
 }
 
+public enum PassOutcome
+{
+    Completed,
+    Dropped
+}
+
 public enum NoteKind
 {
     Start,
