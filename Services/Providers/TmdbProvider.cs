@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Net;
 using System.Text.Json;
 using MediaArchive.Models;
 
@@ -38,7 +39,29 @@ public class TmdbProvider(HttpClient httpClient) : IMediaProvider
         MediaType mediaType,
         CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        return mediaType switch
+        {
+            MediaType.Movie => GetByIdMoviesAsync(query, cancellationToken),
+            MediaType.Show => GetByIdShowsAsync(query, cancellationToken),
+            _ => throw new ArgumentOutOfRangeException(nameof(mediaType), mediaType, null)
+        };
+    }
+
+    public async Task<MediaItemDto?> GetByIdMoviesAsync(string id, CancellationToken cancellationToken = default)
+    {
+        var url = $"movie/{id}?append_to_response=credits";
+
+        var response = await _httpClient.GetAsync(url, cancellationToken);
+
+        if (response.StatusCode == HttpStatusCode.NotFound)
+            return null;
+
+        response.EnsureSuccessStatusCode();
+
+        var volume = await response.Content
+            .ReadFromJsonAsync<TmdbMovieDetail>(cancellationToken);
+
+        return volume is null ? null : MapToItem(volume);
     }
 
     public async Task<IReadOnlyList<MediaSearchResultDto>> SearchMoviesAsync(string query,
@@ -56,6 +79,23 @@ public class TmdbProvider(HttpClient httpClient) : IMediaProvider
         return response.Results
             .Select(MapToSearchResult)
             .ToList();
+    }
+
+    private static MediaItemDto MapToItem(TmdbMovieDetail movie)
+    {
+        var 
+        return new MediaItemDto(
+            SourceName,
+            movie.Id.ToString(),
+            movie.Title ?? "Untitled",
+            movie.PosterPath is not null ? $"{ImageBaseUrl}{movie.PosterPath}" : null,
+            ParseDate(movie.ReleaseDate),
+            MediaType.Movie,
+            movie.Runtime,
+            movie.Overview,
+            
+            
+        )
     }
 
     private static MediaSearchResultDto MapToSearchResult(TmdbMovieResult movie)

@@ -23,16 +23,29 @@ public enum NoteKind
     Finish
 }
 
-// PrimaryCreator is the uniform one (author / director / developer / lead studio)
-// and is what Creator surfaces.
 public enum CreditRole
 {
-    PrimaryCreator,
+    Author,
+    Director,
+    Developer,
+    Studio,
     Writer,
-    Composer,
-    Cast,
-    Narrator,
-    Studio
+    Narrator
+}
+
+public static class MediaTypeExtensions
+{
+    // The role Creator surfaces — every media type has exactly one headline credit.
+    public static CreditRole PrimaryCreditRole(this MediaType mediaType)
+    {
+        return mediaType switch
+        {
+            MediaType.Book => CreditRole.Author,
+            MediaType.Game => CreditRole.Developer,
+            MediaType.Movie or MediaType.Show => CreditRole.Director,
+            _ => throw new ArgumentOutOfRangeException(nameof(mediaType), mediaType, null)
+        };
+    }
 }
 
 public enum DiscoverySource

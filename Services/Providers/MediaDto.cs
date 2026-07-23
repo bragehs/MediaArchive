@@ -38,8 +38,10 @@ public record MediaItemDto(
     {
         get
         {
+            var primaryRole = MediaType.PrimaryCreditRole();
+
             var joined = string.Join(", ",
-                Credits.Where(c => c.Role == CreditRole.PrimaryCreator).Select(c => c.Name));
+                Credits.Where(c => c.Role == primaryRole).Select(c => c.Name));
 
             return joined.Length == 0 ? null : joined;
         }

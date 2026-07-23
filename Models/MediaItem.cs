@@ -47,8 +47,10 @@ public abstract class MediaItem
     {
         get
         {
+            var primaryRole = MediaType.PrimaryCreditRole();
+
             var names = Credits
-                .Where(c => c is { Role: CreditRole.PrimaryCreator, Person: not null })
+                .Where(c => c.Role == primaryRole && c.Person is not null)
                 .Select(c => c.Person!.Name);
 
             var joined = string.Join(", ", names);

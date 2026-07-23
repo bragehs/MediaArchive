@@ -88,7 +88,7 @@ public partial class GoogleBooksProvider(HttpClient httpClient, IOptions<GoogleB
             MediaType.Book,
             info?.PageCount,
             CleanDescription(info?.Description),
-            [.. authors.Select(a => new CreditDto(a, CreditRole.PrimaryCreator))],
+            [.. authors.Select(a => new CreditDto(a, CreditRole.Author))],
             info?.Categories ?? [],
             RatingScale.FromFive(info?.AverageRating),
             info?.RatingsCount,
