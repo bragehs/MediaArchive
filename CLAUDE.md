@@ -66,7 +66,7 @@ UI and services.
 
 Building one vertical slice — **Log → Library → item detail** — end-to-end before
 Diary/Profile. Current focus: **Phase 3 (Log & capture)** — universal add flow that
-imports from IGDB / Google Books via a C# service. Phases 1–2 (unified TPH schema +
+imports from IGDB / Open Library via a C# service. Phases 1–2 (unified TPH schema +
 Blazor app with read-only surfaces) are done.
 
 ## Build & run

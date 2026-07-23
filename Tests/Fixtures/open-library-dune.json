@@ -1,0 +1,98 @@
+{
+  "numFound": 45092,
+  "start": 0,
+  "numFoundExact": true,
+  "num_found": 45092,
+  "documentation_url": "https://openlibrary.org/dev/docs/api/search",
+  "q": "dune",
+  "offset": null,
+  "docs": [
+    {
+      "author_name": [
+        "Frank Herbert"
+      ],
+      "cover_i": 11481354,
+      "first_publish_year": 1965,
+      "key": "/works/OL893415W",
+      "number_of_pages_median": 592,
+      "title": "Dune",
+      "subject": [
+        "Dune (Imaginary place)",
+        "Fiction",
+        "Fiction, science fiction, general",
+        "Dune (imaginary place), fiction",
+        "New York Times reviewed",
+        "Science fiction",
+        "Science-fiction",
+        "American literature",
+        "nyt:mass-market-monthly=2021-11-07",
+        "New York Times bestseller",
+        "award:nebula_award=novel",
+        "nyt:trade-fiction-paperback=2021-11-07",
+        "Hugo Award Winner",
+        "award:hugo_award=1966",
+        "award:hugo_award=novel",
+        "American Science fiction",
+        "Long Now Manual for Civilization",
+        "Ecology",
+        "Fantasy fiction"
+      ],
+      "ratings_average": 4.307512,
+      "ratings_count": 426
+    },
+    {
+      "author_name": [
+        "Frank Herbert"
+      ],
+      "cover_i": 2421405,
+      "first_publish_year": 1969,
+      "key": "/works/OL893526W",
+      "number_of_pages_median": 278,
+      "title": "Dune Messiah",
+      "subject": [
+        "American Science fiction",
+        "Dune (Imaginary place)",
+        "Fiction",
+        "Imaginary places",
+        "Science Fiction",
+        "Translations into Russian",
+        "Novela",
+        "Dune (Lugar imaginario)",
+        "Lectures et morceaux choisis",
+        "Anglais (langue)",
+        "Roman ame ricain",
+        "Science-fiction ame ricaine",
+        "Long Now Manual for Civilization",
+        "Roman américain",
+        "Science-fiction américaine",
+        "Dune (imaginary place), fiction",
+        "Fiction, science fiction, general"
+      ],
+      "ratings_average": 3.9562044,
+      "ratings_count": 137
+    },
+    {
+      "author_name": [
+        "Frank Herbert"
+      ],
+      "key": "/works/OL893516W",
+      "title": "Children of Dune",
+      "subject": [
+        "Dune (Imaginary place)",
+        "Fiction",
+        "Fiction in English",
+        "Science Fiction",
+        "Dune (imaginary place), fiction",
+        "Fiction, science fiction, general",
+        "Fiction, fantasy, general",
+        "American Science fiction",
+        "Reading Level-Grade 7",
+        "Reading Level-Grade 9",
+        "Reading Level-Grade 8",
+        "Reading Level-Grade 11",
+        "Reading Level-Grade 10",
+        "Reading Level-Grade 12"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+# Open Library (books) — REST, no key and no OAuth.
+#
+# There is no API key at all. Open Library instead asks every client to send a
+# User-Agent that identifies the app and a contact address; anonymous clients
+# get rate-limited hard. The app sends the same string from OpenLibraryProvider.
+
+@userAgent = MediaArchive (https://github.com/bragehs/MediaArchive; brage.skjorestad@gmail.com)
+@fields = key,title,author_name,first_publish_year,cover_i,number_of_pages_median,ratings_average,ratings_count,subject
+
+### Search works by free text
+GET {{openLibraryBaseUrl}}/search.json?q=final+empire&fields={{fields}}&limit=5
+User-Agent: {{userAgent}}
+
+### Search by title + author (field-scoped query)
+GET {{openLibraryBaseUrl}}/search.json?q=title:mistborn+author:sanderson&fields={{fields}}&limit=5
+User-Agent: {{userAgent}}
+
+### Look up by ISBN
+GET {{openLibraryBaseUrl}}/search.json?q=isbn:9780441172719&fields={{fields}}&limit=5
+User-Agent: {{userAgent}}
+
+### The same row the provider reads back in GetByIdAsync — search index by work key
+GET {{openLibraryBaseUrl}}/search.json?q=key:/works/OL893415W&fields={{fields}}&limit=1
+User-Agent: {{userAgent}}
+
+### The work record — this is the only endpoint carrying the description
+GET {{openLibraryBaseUrl}}/works/OL893415W.json
+User-Agent: {{userAgent}}

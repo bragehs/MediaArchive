@@ -18,10 +18,12 @@ builder.Services.AddDbContextFactory<AppDbContext>(options =>
 
 // Media providers: bind config, give each provider its own typed HttpClient,
 // then expose it via IMediaProvider so consumers can inject them as a set.
-builder.Services.Configure<GoogleBooksOptions>(
-    builder.Configuration.GetSection(GoogleBooksOptions.SectionName));
-builder.Services.AddHttpClient<GoogleBooksProvider>();
-builder.Services.AddTransient<IMediaProvider>(sp => sp.GetRequiredService<GoogleBooksProvider>());
+builder.Services.AddHttpClient<OpenLibraryProvider>(client =>
+{
+    // Open Library takes no API key but rate-limits anonymous clients hard.
+    client.DefaultRequestHeaders.UserAgent.ParseAdd(OpenLibraryProvider.UserAgent);
+});
+builder.Services.AddTransient<IMediaProvider>(sp => sp.GetRequiredService<OpenLibraryProvider>());
 
 builder.Services.Configure<TmdbOptions>(
     builder.Configuration.GetSection(TmdbOptions.SectionName));

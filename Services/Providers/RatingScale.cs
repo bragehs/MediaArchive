@@ -11,7 +11,7 @@ public static class RatingScale
     // IGDB: rating / total_rating
     public static double? FromHundred(double? value) => Normalise(value, 100.0);
 
-    // Google Books: averageRating is already 0-5.
+    // Open Library: ratings_average is already 0-5.
     public static double? FromFive(double? value) => Normalise(value, Max);
 
     private static double? Normalise(double? value, double sourceMax)

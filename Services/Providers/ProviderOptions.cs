@@ -1,12 +1,5 @@
 namespace MediaArchive.Services.Providers;
 
-public sealed class GoogleBooksOptions
-{
-    public const string SectionName = "GoogleBooks";
-
-    public string? ApiKey { get; set; }
-}
-
 public sealed class TmdbOptions
 {
     public const string SectionName = "Tmdb";
