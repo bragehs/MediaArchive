@@ -372,6 +372,18 @@ select.in { background: var(--panel2); }
 
 .hintbtn:hover { color: var(--ac); }
 
+.newtags { border-left: 2px solid var(--ac); padding-left: 12px; }
+
+.newtag {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 7px;
+}
+
+.newtag .vp-chip { flex: 0 0 auto; }
+.newtag .in { flex: 1 1 0; min-width: 0; }
+
 .area {
     width: 100%;
     background: transparent;

@@ -129,6 +129,13 @@
                             <div class="l">Genres per @_detail.ExternalSource</div>
                         </div>
                     }
+                    @if (_detail.Tags.Count > 0)
+                    {
+                        <div class="dfact" style="flex-basis:100%">
+                            <div class="n sm">@string.Join(" · ", _detail.Tags)</div>
+                            <div class="l">Tags per @_detail.ExternalSource</div>
+                        </div>
+                    }
                 </div>
                 </div>
             </div>
@@ -162,17 +169,45 @@
             </div>
         </div>
 
-        <div class="cap-block">
-            <div class="fl">Moods</div>
-            <div class="segs loose">
-                @foreach (var mood in Enum.GetValues<Mood>())
-                {
-                    <button class="seg @(_moods.Contains(mood) ? "on" : "")" @onclick="() => ToggleMood(mood)">
-                        @UiHelpers.MoodLabel(mood)
-                    </button>
-                }
+        <div class="cap-row">
+            <div>
+                <div class="fl">Tags</div>
+                <VocabularyPicker @bind-Selected="_tags" Suggestions="_vocab.Tags"
+                                  Placeholder="pick or create…" />
             </div>
         </div>
+
+        @if (NewTags.Count > 0)
+        {
+            <div class="cap-block newtags">
+                <div class="fl">
+                    New tag@(NewTags.Count == 1 ? "" : "s") — classify once<b>*</b>
+                    <span class="opt">picked again later, this is remembered</span>
+                </div>
+                @foreach (var tag in NewTags)
+                {
+                    <div class="newtag">
+                        <span class="vp-chip">@tag</span>
+                        <select class="in" value="@FacetOf(tag)"
+                                @onchange="e => SetFacet(tag, e.Value?.ToString())">
+                            <option value="">facet…</option>
+                            @foreach (var facet in Enum.GetValues<TagFacet>())
+                            {
+                                <option value="@facet">@facet</option>
+                            }
+                        </select>
+                        <select class="in" value="@AppliesToOf(tag)"
+                                @onchange="e => SetAppliesTo(tag, e.Value?.ToString())">
+                            <option value="">All media</option>
+                            @foreach (var type in Enum.GetValues<MediaType>())
+                            {
+                                <option value="@type">@UiHelpers.TypeLabel(type) only</option>
+                            }
+                        </select>
+                    </div>
+                }
+            </div>
+        }
 
         <div class="cap-row">
             <div>
@@ -324,11 +359,12 @@
     private MediaItemDto? _detail;
     private bool _loadingDetail;
 
-    private Vocabulary _vocab = new([], [], []);
+    private Vocabulary _vocab = new([], [], [], []);
 
     private LogAction _action = LogAction.Start;
     private List<string> _genres = [];
-    private readonly HashSet<Mood> _moods = [];
+    private List<string> _tags = [];
+    private readonly Dictionary<string, TagInput> _newTags = new(StringComparer.OrdinalIgnoreCase);
     private List<string> _universe = [];
     private List<string> _series = [];
     private int? _seriesPosition;
@@ -354,7 +390,33 @@
     // fill the Diary with "n/a". See the vault's Log-and-capture note.
     private bool NoteRequired => _action is LogAction.Start;
 
-    private bool CanSubmit => !NoteRequired || _note.Trim().Length > 0;
+    private bool CanSubmit =>
+        (!NoteRequired || _note.Trim().Length > 0) && NewTags.All(t => FacetOf(t).Length > 0);
+
+    // A tag the DB hasn't seen — the one moment its facet can be set.
+    private List<string> NewTags =>
+        [.. _tags.Where(t => !_vocab.Tags.Contains(t, StringComparer.OrdinalIgnoreCase))];
+
+    private string FacetOf(string tag) =>
+        _newTags.TryGetValue(tag, out var input) && input.Facet is { } facet ? facet.ToString() : "";
+
+    private string AppliesToOf(string tag) =>
+        _newTags.TryGetValue(tag, out var input) && input.AppliesTo is { } type ? type.ToString() : "";
+
+    private void SetFacet(string tag, string? value)
+    {
+        var facet = Enum.TryParse<TagFacet>(value, out var parsed) ? parsed : (TagFacet?)null;
+        _newTags[tag] = Existing(tag) with { Facet = facet };
+    }
+
+    private void SetAppliesTo(string tag, string? value)
+    {
+        var type = Enum.TryParse<MediaType>(value, out var parsed) ? parsed : (MediaType?)null;
+        _newTags[tag] = Existing(tag) with { AppliesTo = type };
+    }
+
+    private TagInput Existing(string tag) =>
+        _newTags.TryGetValue(tag, out var input) ? input : new TagInput(tag, null, null);
 
     private string NoteLabel => _action is LogAction.Start ? "Start note" : "Finish note";
 
@@ -364,7 +426,9 @@
         _ => "How it landed — this is what the Diary shows."
     };
 
-    private string FootHint => _action switch
+    private string FootHint => NewTags.Any(t => FacetOf(t).Length == 0)
+        ? "Give every new tag a facet — it's only asked once, then it's just a pick."
+        : _action switch
     {
         LogAction.Interested => "Goes to the library unstarted. No note needed.",
         LogAction.Start => "A start note is required — this is what the Diary shows.",
@@ -390,11 +454,6 @@
         _selected.ExternalId == result.ExternalId &&
         _selected.ExternalSource == result.ExternalSource;
 
-    private void ToggleMood(Mood mood)
-    {
-        if (!_moods.Add(mood))
-            _moods.Remove(mood);
-    }
 
     private async Task SetType(MediaType type)
     {
@@ -472,7 +531,7 @@
 
         var details = new WorkDetails(
             _genres,
-            [.. _moods],
+            [.. _tags.Select(Existing)],
             _universe.FirstOrDefault(),
             _series.FirstOrDefault(),
             _seriesPosition,
@@ -530,7 +589,8 @@
         _detail = null;
         _action = LogAction.Start;
         _genres = [];
-        _moods.Clear();
+        _tags = [];
+        _newTags.Clear();
         _universe = [];
         _series = [];
         _seriesPosition = null;

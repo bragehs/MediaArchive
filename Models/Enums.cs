@@ -35,24 +35,6 @@ public enum CreditRole
     Studio
 }
 
-public enum Mood
-{
-    Dark,
-    Adventurous,
-    Tense,
-    Funny,
-    Emotional,
-    Challenging,
-    Mysterious,
-    Sad,
-    Reflective,
-    Hopeful,
-    Lighthearted,
-    Relaxing,
-    Inspiring,
-    Informative
-}
-
 public enum DiscoverySource
 {
     Friend,

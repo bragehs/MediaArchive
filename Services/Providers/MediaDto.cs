@@ -28,6 +28,8 @@ public record MediaItemDto(
     List<string> Genres,
     double? ExternalRating,
     int? ExternalRatingCount,
+    // A provider with no tag feed passes an empty list, never null.
+    List<string> Tags,
     int? EpisodeRuntime = null)
 {
     public int? ReleaseYear => ReleaseDate?.Year;

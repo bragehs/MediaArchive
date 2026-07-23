@@ -44,8 +44,6 @@ public static class UiHelpers
 
     public static string TypeColorVar(MediaType t) => $"var(--{TypeKey(t)})";
 
-    public static string MoodLabel(Mood m) => m.ToString();
-
     public static string DiscoveryLabel(DiscoverySource d) => d switch
     {
         DiscoverySource.Friend => "Friend recommended",

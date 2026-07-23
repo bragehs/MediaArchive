@@ -2,10 +2,14 @@ using MediaArchive.Models;
 
 namespace MediaArchive.Services;
 
+// Facet and AppliesTo only apply when the tag doesn't exist yet — an existing row
+// keeps the classification it was created with.
+public record TagInput(string Name, TagFacet? Facet, MediaType? AppliesTo);
+
 // Describes the WORK and my standing relationship to it — not any single pass.
 public record WorkDetails(
     List<string> Genres,
-    List<Mood> Moods,
+    List<TagInput> Tags,
     string? Universe,
     string? Series,
     int? SeriesPosition,

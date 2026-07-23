@@ -46,7 +46,7 @@ public partial class GoogleBooksProvider(HttpClient httpClient, IOptions<GoogleB
         CancellationToken cancellationToken = default)
     {
         var encodedQuery = Uri.EscapeDataString(query);
-        var url = $"{BaseUrl}?q=intitle:{encodedQuery}&maxResults=5";
+        var url = $"{BaseUrl}?q={encodedQuery}&maxResults=5";
 
         if (!string.IsNullOrWhiteSpace(_apiKey))
             url += $"&key={_apiKey}";
@@ -91,7 +91,8 @@ public partial class GoogleBooksProvider(HttpClient httpClient, IOptions<GoogleB
             [.. authors.Select(a => new CreditDto(a, CreditRole.PrimaryCreator))],
             info?.Categories ?? [],
             RatingScale.FromFive(info?.AverageRating),
-            info?.RatingsCount);
+            info?.RatingsCount,
+            []); // Google Books has no keyword feed — books get vocabulary suggestions only.
     }
 
     // Google Books serves covers over http, which the browser blocks as mixed content

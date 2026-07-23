@@ -35,7 +35,7 @@ public abstract class MediaItem
 
     public List<MediaItemGenre> Genres { get; set; } = [];
 
-    public List<MediaItemMood> Moods { get; set; } = [];
+    public List<MediaItemTag> Tags { get; set; } = [];
 
     public List<MediaItemCredit> Credits { get; set; } = [];
 

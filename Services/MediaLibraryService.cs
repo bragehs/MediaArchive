@@ -7,7 +7,11 @@ using Microsoft.EntityFrameworkCore;
 namespace MediaArchive.Services;
 
 // The controlled vocabulary as it currently exists, for pick-or-create inputs.
-public record Vocabulary(List<string> Genres, List<string> Universes, List<string> Series);
+public record Vocabulary(
+    List<string> Genres,
+    List<string> Tags,
+    List<string> Universes,
+    List<string> Series);
 
 public class MediaLibraryService(IDbContextFactory<AppDbContext> dbContextFactory)
 {
@@ -17,10 +21,11 @@ public class MediaLibraryService(IDbContextFactory<AppDbContext> dbContextFactor
 
         // Single-user archive: these lists stay small enough to load whole.
         var genres = await db.Genres.OrderBy(g => g.Name).Select(g => g.Name).ToListAsync(ct);
+        var tags = await db.Tags.OrderBy(t => t.Name).Select(t => t.Name).ToListAsync(ct);
         var universes = await db.Universes.OrderBy(u => u.Name).Select(u => u.Name).ToListAsync(ct);
         var series = await db.Series.OrderBy(s => s.Name).Select(s => s.Name).ToListAsync(ct);
 
-        return new Vocabulary(genres, universes, series);
+        return new Vocabulary(genres, tags, universes, series);
     }
 
     public async Task<int> AddToLibraryAsync(MediaItemDto item, WorkDetails details,
@@ -41,7 +46,7 @@ public class MediaLibraryService(IDbContextFactory<AppDbContext> dbContextFactor
         mediaItem.SeriesPosition = series.Id == Series.StandaloneId ? null : details.SeriesPosition;
 
         await ApplyGenresAsync(db, mediaItem, details.Genres, ct);
-        await ApplyMoodsAsync(db, mediaItem, details.Moods, ct);
+        await ApplyTagsAsync(db, mediaItem, details.Tags, ct);
         await ApplyCreditsAsync(db, mediaItem, item.Credits, ct);
 
         var userItem = await ResolveUserMediaItemAsync(db, mediaItem, ct);
@@ -136,18 +141,31 @@ public class MediaLibraryService(IDbContextFactory<AppDbContext> dbContextFactor
         }
     }
 
-    private static async Task ApplyMoodsAsync(AppDbContext db, MediaItem mediaItem,
-        List<Mood> moods, CancellationToken ct)
+    private static async Task ApplyTagsAsync(AppDbContext db, MediaItem mediaItem,
+        List<TagInput> inputs, CancellationToken ct)
     {
-        if (moods.Count == 0)
+        var classification = inputs
+            .Where(i => !string.IsNullOrWhiteSpace(i.Name))
+            .GroupBy(i => i.Name.Trim(), StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+
+        var tags = await ResolveNamedAsync(db, inputs.Select(i => i.Name),
+            name => new Tag
+            {
+                Name = name,
+                Facet = classification[name].Facet,
+                AppliesTo = classification[name].AppliesTo
+            }, ct);
+
+        if (tags.Count == 0)
             return;
 
-        await LoadIfPersistedAsync(db, mediaItem, m => m.Moods, ct);
+        await LoadIfPersistedAsync(db, mediaItem, m => m.Tags, ct);
 
-        var linked = mediaItem.Moods.Select(mm => mm.Mood).ToHashSet();
+        var linked = mediaItem.Tags.Select(mt => mt.TagId).ToHashSet();
 
-        foreach (var mood in moods.Distinct().Where(m => !linked.Contains(m)))
-            mediaItem.Moods.Add(new MediaItemMood { Mood = mood });
+        foreach (var tag in tags.Where(t => t.Id == 0 || !linked.Contains(t.Id)))
+            mediaItem.Tags.Add(new MediaItemTag { Tag = tag });
     }
 
     // A brand-new entity has nothing in the DB to load; an existing one needs its
