@@ -110,7 +110,7 @@ public partial class OpenLibraryProvider(HttpClient httpClient) : IMediaProvider
             NormaliseWorkId(doc.Key),
             MediaType.Book,
             doc.Title ?? "Untitled",
-            CoverUrl(doc.CoverI, 'M'),
+            CoverUrl(doc.CoverI, 'L'),
             ParseYear(doc.FirstPublishYear));
     }
 

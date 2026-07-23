@@ -1,0 +1,66 @@
+using System.Text.Json.Serialization;
+using Microsoft.Extensions.Options;
+
+namespace MediaArchive.Services.Providers;
+
+// IGDB has no API key of its own: every call carries a Twitch app access token.
+// Registered as a singleton so the token is fetched once and reused until it nears
+// expiry, instead of round-tripping to Twitch on every game lookup.
+public sealed class IgdbAuthenticator(IHttpClientFactory httpClientFactory, IOptions<IgdbOptions> options)
+{
+    private const string TokenUrl = "https://id.twitch.tv/oauth2/token";
+
+    private readonly IHttpClientFactory _httpClientFactory = httpClientFactory;
+    private readonly IgdbOptions _options = options.Value;
+
+    // Guards the refresh so concurrent requests don't all hit Twitch at once.
+    private readonly SemaphoreSlim _gate = new(1, 1);
+
+    private string? _token;
+    private DateTimeOffset _expiresAt;
+
+    public async Task<string> GetTokenAsync(CancellationToken cancellationToken = default)
+    {
+        if (IsValid())
+            return _token!;
+
+        await _gate.WaitAsync(cancellationToken);
+        try
+        {
+            // Another caller may have refreshed while we waited on the gate.
+            if (IsValid())
+                return _token!;
+
+            var url = $"{TokenUrl}?client_id={_options.ClientId}"
+                    + $"&client_secret={_options.ClientSecret}"
+                    + "&grant_type=client_credentials";
+
+            using var client = _httpClientFactory.CreateClient();
+            var response = await client.PostAsync(url, null, cancellationToken);
+            response.EnsureSuccessStatusCode();
+
+            var token = await response.Content
+                .ReadFromJsonAsync<TwitchToken>(cancellationToken)
+                ?? throw new InvalidOperationException("Twitch returned an empty token response.");
+
+            _token = token.AccessToken;
+            // Refresh a minute early to dodge clock skew and in-flight expiry.
+            _expiresAt = DateTimeOffset.UtcNow.AddSeconds(token.ExpiresIn - 60);
+
+            return _token;
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
+    private bool IsValid()
+    {
+        return _token is not null && DateTimeOffset.UtcNow < _expiresAt;
+    }
+
+    private sealed record TwitchToken(
+        [property: JsonPropertyName("access_token")] string AccessToken,
+        [property: JsonPropertyName("expires_in")] int ExpiresIn);
+}

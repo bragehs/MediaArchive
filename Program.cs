@@ -37,6 +37,20 @@ builder.Services.AddHttpClient<TmdbProvider>((sp, client) =>
 });
 builder.Services.AddTransient<IMediaProvider>(sp => sp.GetRequiredService<TmdbProvider>());
 
+builder.Services.Configure<IgdbOptions>(
+    builder.Configuration.GetSection(IgdbOptions.SectionName));
+// Singleton: it caches the Twitch access token shared by every IGDB request.
+builder.Services.AddSingleton<IgdbAuthenticator>();
+builder.Services.AddHttpClient<IgdbProvider>((sp, client) =>
+{
+    var igdb = sp.GetRequiredService<IOptions<IgdbOptions>>().Value;
+
+    client.BaseAddress = new Uri("https://api.igdb.com/v4/");
+    // Client-ID is static; the per-request bearer token is added by the provider.
+    client.DefaultRequestHeaders.Add("Client-ID", igdb.ClientId);
+});
+builder.Services.AddTransient<IMediaProvider>(sp => sp.GetRequiredService<IgdbProvider>());
+
 builder.Services.AddScoped<MediaSearchService>();
 builder.Services.AddScoped<MediaLogService>();
 builder.Services.AddScoped<MediaLibraryService>();

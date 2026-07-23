@@ -42,7 +42,7 @@ public class TmdbProvider(HttpClient httpClient) : IMediaProvider
         return mediaType switch
         {
             MediaType.Movie => GetByIdMoviesAsync(id, cancellationToken),
-            //MediaType.Show => GetByIdShowsAsync(query, cancellationToken),
+            MediaType.Show => GetByIdShowsAsync(id, cancellationToken),
             _ => throw new ArgumentOutOfRangeException(nameof(mediaType), mediaType, null)
         };
     }
@@ -153,6 +153,60 @@ public class TmdbProvider(HttpClient httpClient) : IMediaProvider
         );
     }
 
+    public async Task<MediaItemDto?> GetByIdShowsAsync(string id, CancellationToken cancellationToken = default)
+    {
+        var url = $"tv/{id}?append_to_response=credits,keywords";
+
+        var response = await _httpClient.GetAsync(url, cancellationToken);
+
+        if (response.StatusCode == HttpStatusCode.NotFound)
+            return null;
+
+        response.EnsureSuccessStatusCode();
+
+        var show = await response.Content
+            .ReadFromJsonAsync<TmdbTvDetail>(JsonOptions, cancellationToken);
+
+        return show is null ? null : MapToItem(show);
+    }
+
+    private static MediaItemDto MapToItem(TmdbTvDetail show)
+    {
+        return new MediaItemDto(
+            SourceName,
+            show.Id.ToString(),
+            show.Name ?? "Untitled",
+            show.PosterPath is not null ? $"{ImageBaseUrl}{show.PosterPath}" : null,
+            ParseDate(show.FirstAirDate),
+            MediaType.Show,
+            show.NumberOfEpisodes,
+            show.Overview,
+            ShowCredits(show).ToList(),
+            show.Genres?.Select(g => g.Name).ToList() ?? [],
+            RatingScale.FromTen(show.VoteAverage),
+            show.VoteCount,
+            [.. show.Keywords?.Results?.Select(k => k.Name).OfType<string>() ?? []],
+            // Series-level runtime is empty on many newer shows; fall back to the latest episode.
+            show.EpisodeRunTime?.FirstOrDefault(r => r > 0) ?? show.LastEpisodeToAir?.Runtime
+        );
+    }
+
+    // Shows have no series-level director; TMDB's created_by is the headline credit.
+    private static IEnumerable<CreditDto> ShowCredits(TmdbTvDetail show)
+    {
+        var creators = show.CreatedBy?
+            .Select(c => c.Name)
+            .OfType<string>()
+            .Select(name => new CreditDto(name, CreditRole.Director)) ?? [];
+
+        var networks = show.Networks?
+            .Select(n => n.Name)
+            .OfType<string>()
+            .Select(name => new CreditDto(name, CreditRole.Studio)) ?? [];
+
+        return creators.Concat(networks).DistinctBy(c => (c.Name, c.Role));
+    }
+
     // Full ISO date, but "" for unreleased titles.
     private static DateOnly? ParseDate(string? date)
     {
@@ -195,12 +249,16 @@ public class TmdbProvider(HttpClient httpClient) : IMediaProvider
         string? PosterPath,
         int? NumberOfEpisodes,
         List<TmdbGenre>? Genres,
+        List<TmdbCreatedBy>? CreatedBy,
+        TmdbTvKeywords? Keywords,
         double? VoteAverage,
         int? VoteCount,
         List<TmdbCompany>? Networks,
         // Often empty on newer shows — fall back to LastEpisodeToAir.Runtime.
         List<int>? EpisodeRunTime,
         TmdbEpisode? LastEpisodeToAir);
+
+    private sealed record TmdbCreatedBy(string? Name);
 
     private sealed record TmdbEpisode(int? Runtime);
 
@@ -209,6 +267,9 @@ public class TmdbProvider(HttpClient httpClient) : IMediaProvider
     private sealed record TmdbKeyword(int Id, string? Name);
 
     private sealed record TmdbMovieKeywords(List<TmdbKeyword>? Keywords);
+
+    // TV nests keywords under "results", movies under "keywords".
+    private sealed record TmdbTvKeywords(List<TmdbKeyword>? Results);
 
     private sealed record TmdbCompany(int Id, string? Name);
 
