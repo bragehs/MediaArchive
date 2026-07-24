@@ -36,12 +36,13 @@ public class IgdbProvider(HttpClient httpClient, IgdbAuthenticator authenticator
                    + "fields name,first_release_date,cover.image_id; "
                    + $"limit {SearchLimit};";
 
-        var games = await QueryGamesAsync(body, cancellationToken);
+        var games = await QueryAsync<IgdbGame>("games", body, cancellationToken);
 
         return games.Select(MapToSearchResult).ToList();
     }
 
-    // Unlike TMDB, one POST /games selects every field at once, so no second endpoint is needed.
+    // /games fills most of the DTO, but time-to-beat lives on its own endpoint, so
+    // fire both at once and merge (same shape as OpenLibrary's two parallel fetches).
     public async Task<MediaItemDto?> GetByIdAsync(string id,
         MediaType _,
         CancellationToken cancellationToken = default)
@@ -54,19 +55,38 @@ public class IgdbProvider(HttpClient httpClient, IgdbAuthenticator authenticator
                    + "genres.name,themes.name,keywords.name,total_rating,total_rating_count; "
                    + $"where id = {gameId};";
 
-        var games = await QueryGamesAsync(body, cancellationToken);
+        var gameTask = QueryAsync<IgdbGame>("games", body, cancellationToken);
+        var hoursTask = QueryHoursToBeatAsync(gameId, cancellationToken);
 
-        var game = games.FirstOrDefault();
+        await Task.WhenAll(gameTask, hoursTask);
 
+        var game = (await gameTask).FirstOrDefault();
 
-        return game is null ? null : MapToItem(game);
+        return game is null ? null : MapToItem(game, await hoursTask);
     }
 
-    private async Task<List<IgdbGame>> QueryGamesAsync(string body, CancellationToken cancellationToken)
+    // Suggested main-story length in hours; falls back to the other tiers if absent.
+    private async Task<int?> QueryHoursToBeatAsync(long gameId, CancellationToken cancellationToken)
+    {
+        var body = "fields normally,hastily,completely; "
+                 + $"where game_id = {gameId};";
+
+        var times = await QueryAsync<IgdbTimeToBeat>("game_time_to_beats", body, cancellationToken);
+
+        var beat = times.FirstOrDefault();
+        if (beat is null)
+            return null;
+
+        var seconds = beat.Normally ?? beat.Hastily ?? beat.Completely;
+
+        return seconds is > 0 ? (int)Math.Round(seconds.Value / 3600.0) : null;
+    }
+
+    private async Task<List<T>> QueryAsync<T>(string endpoint, string body, CancellationToken cancellationToken)
     {
         var token = await _authenticator.GetTokenAsync(cancellationToken);
 
-        using var request = new HttpRequestMessage(HttpMethod.Post, "games")
+        using var request = new HttpRequestMessage(HttpMethod.Post, endpoint)
         {
             Content = new StringContent(body, Encoding.UTF8, "text/plain")
         };
@@ -77,7 +97,7 @@ public class IgdbProvider(HttpClient httpClient, IgdbAuthenticator authenticator
         response.EnsureSuccessStatusCode();
 
         return await response.Content
-            .ReadFromJsonAsync<List<IgdbGame>>(JsonOptions, cancellationToken) ?? [];
+            .ReadFromJsonAsync<List<T>>(JsonOptions, cancellationToken) ?? [];
     }
 
     private static MediaSearchResultDto MapToSearchResult(IgdbGame game)
@@ -91,7 +111,7 @@ public class IgdbProvider(HttpClient httpClient, IgdbAuthenticator authenticator
             ParseDate(game.FirstReleaseDate));
     }
 
-    private static MediaItemDto MapToItem(IgdbGame game)
+    private static MediaItemDto MapToItem(IgdbGame game, int? hoursToBeat)
     {
         return new MediaItemDto(
             SourceName,
@@ -100,7 +120,7 @@ public class IgdbProvider(HttpClient httpClient, IgdbAuthenticator authenticator
             CoverUrl(game.Cover?.ImageId, "t_cover_big"),
             ParseDate(game.FirstReleaseDate),
             MediaType.Game,
-            null, // Games have no runtime/length.
+            hoursToBeat,
             game.Summary,
             Studios(game).ToList(),
             // Per the mapping choice: IGDB themes are our genres, IGDB genres become tags.
@@ -168,4 +188,7 @@ public class IgdbProvider(HttpClient httpClient, IgdbAuthenticator authenticator
     private sealed record IgdbCompany(string? Name);
 
     private sealed record IgdbNamed(string? Name);
+
+    // Times are in seconds; each tier is a separate submission average.
+    private sealed record IgdbTimeToBeat(long? Hastily, long? Normally, long? Completely);
 }
