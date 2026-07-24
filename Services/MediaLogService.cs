@@ -7,7 +7,7 @@ namespace MediaArchive.Services;
 
 public class MediaLogService(
     IDbContextFactory<AppDbContext> dbContextFactory,
-    MediaImportService library)
+    MediaImportService importService)
 {
     public async Task<int> StartPassAsync(int userMediaItemId, PassStart start,
         bool allowConcurrent = false, CancellationToken ct = default)
@@ -101,7 +101,7 @@ public class MediaLogService(
     public async Task<int> LogCompletedAsync(MediaItemDto item, WorkDetails details,
         PassStart start, PassFinish finish, CancellationToken ct = default)
     {
-        var userMediaItemId = await library.AddToLibraryAsync(item, details, ct);
+        var userMediaItemId = await importService.AddItemAsync(item, details, ct);
         var entryId = await StartPassAsync(userMediaItemId, start, true, ct);
         await FinishPassAsync(entryId, finish, ct);
 

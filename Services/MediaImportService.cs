@@ -28,7 +28,7 @@ public class MediaImportService(IDbContextFactory<AppDbContext> dbContextFactory
         return new Vocabulary(genres, tags, universes, series);
     }
 
-    public async Task<int> AddToLibraryAsync(MediaItemDto item, WorkDetails details,
+    public async Task<int> AddItemAsync(MediaItemDto item, WorkDetails details,
         CancellationToken ct = default)
     {
         await using var db = await dbContextFactory.CreateDbContextAsync(ct);

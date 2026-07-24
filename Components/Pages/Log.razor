@@ -4,7 +4,7 @@
 @using MediaArchive.Services.Providers
 @rendermode InteractiveServer
 @inject MediaSearchService Search
-@inject MediaImportService Library
+@inject MediaImportService ImportService
 @inject MediaLogService LogService
 
 <PageTitle>Log · MediaArchive</PageTitle>
@@ -406,7 +406,7 @@
 
     private async Task RefreshVocabulary()
     {
-        _vocab = await Library.GetVocabularyAsync();
+        _vocab = await ImportService.GetVocabularyAsync();
     }
 
     // Only a live Start demands a note. Backfilling a finished pass is Profile data,
@@ -594,11 +594,11 @@
             switch (_action)
             {
                 case LogAction.Interested:
-                    await Library.AddToLibraryAsync(item, details);
+                    await ImportService.AddItemAsync(item, details);
                     break;
 
                 case LogAction.Start:
-                    var userMediaItemId = await Library.AddToLibraryAsync(item, details);
+                    var userMediaItemId = await ImportService.AddItemAsync(item, details);
                     await LogService.StartPassAsync(userMediaItemId, start);
                     break;
 
