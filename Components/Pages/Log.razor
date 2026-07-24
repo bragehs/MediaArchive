@@ -240,6 +240,16 @@
                     }
                 </select>
             </div>
+            <div>
+                <div class="fl">Release date</div>
+                <input class="in" type="date" @bind="_releaseDate" />
+                @if (_detail.ReleaseDate is { } imported && imported != _releaseDate)
+                {
+                    <button class="hintbtn" @onclick="() => _releaseDate = imported">
+                        revert to @imported.Year from @_detail.ExternalSource
+                    </button>
+                }
+            </div>
         </div>
 
         @* --- pass-specific fields --- *@
@@ -369,6 +379,7 @@
     private List<string> _series = [];
     private int? _seriesPosition;
     private DiscoverySource? _discovery;
+    private DateOnly? _releaseDate;
     private DateOnly? _startDate = DateOnly.FromDateTime(DateTime.Today);
     private DateOnly? _endDate = DateOnly.FromDateTime(DateTime.Today);
     private int? _effort;
@@ -510,6 +521,7 @@
         {
             _detail = await Search.GetByIdAsync(result.ExternalId, result.MediaType);
             _effort = _detail?.Length;
+            _releaseDate = _detail?.ReleaseDate;
         }
         catch (Exception ex)
         {
@@ -528,6 +540,10 @@
 
         _saving = true;
         _error = null;
+
+        // Option-1 override: the provider's release date is user-editable, so the
+        // corrected value rides the same import path as everything else.
+        var item = _detail with { ReleaseDate = _releaseDate };
 
         var details = new WorkDetails(
             _genres,
@@ -551,11 +567,11 @@
             switch (_action)
             {
                 case LogAction.Interested:
-                    await Library.AddToLibraryAsync(_detail, details);
+                    await Library.AddToLibraryAsync(item, details);
                     break;
 
                 case LogAction.Start:
-                    var userMediaItemId = await Library.AddToLibraryAsync(_detail, details);
+                    var userMediaItemId = await Library.AddToLibraryAsync(item, details);
                     await LogService.StartPassAsync(userMediaItemId, start);
                     break;
 
@@ -565,7 +581,7 @@
                         _rating == 0 ? null : _rating,
                         _effort,
                         note);
-                    await LogService.LogCompletedAsync(_detail, details, start, finish);
+                    await LogService.LogCompletedAsync(item, details, start, finish);
                     break;
             }
 
@@ -595,6 +611,7 @@
         _series = [];
         _seriesPosition = null;
         _discovery = null;
+        _releaseDate = null;
         _startDate = DateOnly.FromDateTime(DateTime.Today);
         _endDate = DateOnly.FromDateTime(DateTime.Today);
         _effort = null;
