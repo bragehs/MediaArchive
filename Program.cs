@@ -53,7 +53,7 @@ builder.Services.AddTransient<IMediaProvider>(sp => sp.GetRequiredService<IgdbPr
 
 builder.Services.AddScoped<MediaSearchService>();
 builder.Services.AddScoped<MediaLogService>();
-builder.Services.AddScoped<MediaLibraryService>();
+builder.Services.AddScoped<MediaImportService>();
 
 
 var app = builder.Build();

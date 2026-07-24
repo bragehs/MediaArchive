@@ -13,7 +13,7 @@ public record Vocabulary(
     List<string> Universes,
     List<string> Series);
 
-public class MediaLibraryService(IDbContextFactory<AppDbContext> dbContextFactory)
+public class MediaImportService(IDbContextFactory<AppDbContext> dbContextFactory)
 {
     public async Task<Vocabulary> GetVocabularyAsync(CancellationToken ct = default)
     {

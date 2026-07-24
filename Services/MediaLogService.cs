@@ -7,7 +7,7 @@ namespace MediaArchive.Services;
 
 public class MediaLogService(
     IDbContextFactory<AppDbContext> dbContextFactory,
-    MediaLibraryService library)
+    MediaImportService library)
 {
     public async Task<int> StartPassAsync(int userMediaItemId, PassStart start,
         bool allowConcurrent = false, CancellationToken ct = default)

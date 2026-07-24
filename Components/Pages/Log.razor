@@ -1,10 +1,10 @@
 @page "/"
 @page "/log"
-@rendermode InteractiveServer
 @using MediaArchive.Services
 @using MediaArchive.Services.Providers
+@rendermode InteractiveServer
 @inject MediaSearchService Search
-@inject MediaLibraryService Library
+@inject MediaImportService Library
 @inject MediaLogService LogService
 
 <PageTitle>Log · MediaArchive</PageTitle>
@@ -13,7 +13,7 @@
     <div>
         <div class="searchbar">
             <input class="bigsearch" placeholder="Search a title or author…"
-                   @bind="_query" @bind:event="oninput" @onkeydown="OnSearchKey" />
+                   @bind="_query" @bind:event="oninput" @onkeydown="OnSearchKey"/>
             <button class="btn" @onclick="RunSearch" disabled="@(_searching || _query.Trim().Length == 0)">
                 @(_searching ? "…" : "Search")
             </button>
@@ -48,7 +48,7 @@
                 <button class="result @(IsSelected(result) ? "on" : "")" @onclick="() => Select(result)">
                     @if (result.ImageUrl is { } cover)
                     {
-                        <img class="rcov" src="@cover" alt="" loading="lazy" />
+                        <img class="rcov" src="@cover" alt="" loading="lazy"/>
                     }
                     else
                     {
@@ -85,7 +85,7 @@
                 <div class="dcover">
                     @if (!string.IsNullOrWhiteSpace(_detail.ImageUrl))
                     {
-                        <img src="@_detail.ImageUrl" alt="Cover of @_detail.Title" />
+                        <img src="@_detail.ImageUrl" alt="Cover of @_detail.Title"/>
                     }
                     else
                     {
@@ -97,267 +97,274 @@
                 </div>
 
                 <div>
-                <div class="dt">@_detail.Title</div>
-                <div class="dm">
-                    @UiHelpers.TypeLabel(_detail.MediaType)@(_detail.Creator is null ? "" : " · " + _detail.Creator)@(_detail.ReleaseYear is null ? "" : " · " + _detail.ReleaseYear)
-                </div>
+                    <div class="dt">@_detail.Title</div>
+                    <div class="dm">
+                        @UiHelpers.TypeLabel(_detail.MediaType)@(_detail.Creator is null ? "" : " · " + _detail.Creator)@(_detail.ReleaseYear is null ? "" : " · " + _detail.ReleaseYear)
+                    </div>
 
-                @if (!string.IsNullOrWhiteSpace(_detail.Description))
-                {
-                    <div class="dd">@_detail.Description</div>
-                }
+                    @if (!string.IsNullOrWhiteSpace(_detail.Description))
+                    {
+                        <div class="dd">@_detail.Description</div>
+                    }
 
-                <div class="dfacts">
-                    @if (_detail.Length is { } length)
-                    {
-                        <div class="dfact">
-                            <div class="n">@length</div>
-                            <div class="l">@UiHelpers.LengthUnit(_detail.MediaType)</div>
-                        </div>
-                    }
-                    @if (_detail.ExternalRating is { } rating)
-                    {
-                        <div class="dfact">
-                            <div class="n">@rating.ToString("0.0")</div>
-                            <div class="l">@_detail.ExternalSource@(_detail.ExternalRatingCount is { } count ? $" · {count}" : "")</div>
-                        </div>
-                    }
-                    @if (_detail.Genres.Count > 0)
-                    {
-                        <div class="dfact" style="flex-basis:100%">
-                            <div class="n sm">@string.Join(" · ", _detail.Genres)</div>
-                            <div class="l">Genres per @_detail.ExternalSource</div>
-                        </div>
-                    }
-                    @if (_detail.Tags.Count > 0)
-                    {
-                        <div class="dfact" style="flex-basis:100%">
-                            <div class="n sm">@string.Join(" · ", _detail.Tags)</div>
-                            <div class="l">Tags per @_detail.ExternalSource</div>
-                        </div>
-                    }
-                </div>
+                    <div class="dfacts">
+                        @if (_detail.Length is { } length)
+                        {
+                            <div class="dfact">
+                                <div class="n">@length</div>
+                                <div class="l">@UiHelpers.LengthUnit(_detail.MediaType)</div>
+                            </div>
+                        }
+                        @if (_detail.ExternalRating is { } rating)
+                        {
+                            <div class="dfact">
+                                <div class="n">@rating.ToString("0.0")</div>
+                                <div
+                                    class="l">@_detail.ExternalSource@(_detail.ExternalRatingCount is { } count ? $" · {count}" : "")</div>
+                            </div>
+                        }
+                        @if (_detail.Genres.Count > 0)
+                        {
+                            <div class="dfact" style="flex-basis:100%">
+                                <div class="n sm">@string.Join(" · ", _detail.Genres)</div>
+                                <div class="l">Genres per @_detail.ExternalSource</div>
+                            </div>
+                        }
+                        @if (_detail.Tags.Count > 0)
+                        {
+                            <div class="dfact" style="flex-basis:100%">
+                                <div class="n sm">@string.Join(" · ", _detail.Tags)</div>
+                                <div class="l">Tags per @_detail.ExternalSource</div>
+                            </div>
+                        }
+                    </div>
                 </div>
             </div>
 
             <div class="capture">
-        <div class="cap-head">
-            <span class="label">Logging</span>
-            <span class="cap-sel">
+                <div class="cap-head">
+                    <span class="label">Logging</span>
+                    <span class="cap-sel">
                 @_detail.Title · @UiHelpers.TypeLabel(_detail.MediaType)@(_detail.Creator is null ? "" : " · " + _detail.Creator)
             </span>
-        </div>
-
-        <div class="cap-block">
-            <div class="fl">What are you recording?</div>
-            <div class="segs">
-                @foreach (var action in Enum.GetValues<LogAction>())
-                {
-                    <button class="seg @(action == _action ? "on" : "")" @onclick="() => _action = action">
-                        @ActionLabel(action)
-                    </button>
-                }
-            </div>
-        </div>
-
-        @* --- the work itself: same for every action --- *@
-        <div class="cap-row">
-            <div>
-                <div class="fl">Genres</div>
-                <VocabularyPicker @bind-Selected="_genres" Suggestions="_vocab.Genres"
-                                  Placeholder="pick or create…" />
-            </div>
-        </div>
-
-        <div class="cap-row">
-            <div>
-                <div class="fl">Tags</div>
-                <VocabularyPicker @bind-Selected="_tags" Suggestions="_vocab.Tags"
-                                  Placeholder="pick or create…" />
-            </div>
-        </div>
-
-        @if (NewTags.Count > 0)
-        {
-            <div class="cap-block newtags">
-                <div class="fl">
-                    New tag@(NewTags.Count == 1 ? "" : "s") — classify once<b>*</b>
-                    <span class="opt">picked again later, this is remembered</span>
                 </div>
-                @foreach (var tag in NewTags)
-                {
-                    <div class="newtag">
-                        <span class="vp-chip">@tag</span>
-                        <select class="in" value="@FacetOf(tag)"
-                                @onchange="e => SetFacet(tag, e.Value?.ToString())">
-                            <option value="">facet…</option>
-                            @foreach (var facet in Enum.GetValues<TagFacet>())
-                            {
-                                <option value="@facet">@facet</option>
-                            }
-                        </select>
-                        <select class="in" value="@AppliesToOf(tag)"
-                                @onchange="e => SetAppliesTo(tag, e.Value?.ToString())">
-                            <option value="">All media</option>
-                            @foreach (var type in Enum.GetValues<MediaType>())
-                            {
-                                <option value="@type">@UiHelpers.TypeLabel(type) only</option>
-                            }
-                        </select>
-                    </div>
-                }
-            </div>
-        }
 
-        <div class="cap-row">
-            <div>
-                <div class="fl">Universe</div>
-                <VocabularyPicker @bind-Selected="_universe" Suggestions="_vocab.Universes"
-                                  Max="1" Placeholder="e.g. Cosmere…" />
-            </div>
-            <div>
-                <div class="fl">Series</div>
-                <VocabularyPicker @bind-Selected="_series" Suggestions="_vocab.Series"
-                                  Max="1" Placeholder="e.g. Mistborn Era 1…" />
-            </div>
-            @if (_series.Count > 0)
-            {
-                <div style="flex:0 0 90px">
-                    <div class="fl">Position</div>
-                    <input class="in" type="number" min="1" @bind="_seriesPosition" />
-                </div>
-            }
-        </div>
-
-        <div class="cap-row">
-            <div>
-                <div class="fl">Discovery</div>
-                <select class="in" @bind="_discovery">
-                    <option value="">—</option>
-                    @foreach (var source in Enum.GetValues<DiscoverySource>())
-                    {
-                        <option value="@source">@UiHelpers.DiscoveryLabel(source)</option>
-                    }
-                </select>
-            </div>
-            <div>
-                <div class="fl">Release date</div>
-                <input class="in" type="date" @bind="_releaseDate" />
-                @if (_detail.ReleaseDate is { } imported && imported != _releaseDate)
-                {
-                    <button class="hintbtn" @onclick="() => _releaseDate = imported">
-                        revert to @imported.Year from @_detail.ExternalSource
-                    </button>
-                }
-            </div>
-        </div>
-
-        @* --- pass-specific fields --- *@
-        @if (_action is not LogAction.Interested)
-        {
-            <div class="cap-row">
-                <div>
-                    <div class="fl">Start</div>
-                    <input class="in" type="date" @bind="_startDate" />
-                </div>
-                @if (_action is LogAction.Completed)
-                {
-                    <div>
-                        <div class="fl">End</div>
-                        <input class="in" type="date" @bind="_endDate" />
-                    </div>
-                    <div>
-                        <div class="fl">Effort (@UiHelpers.LengthUnit(_detail.MediaType))</div>
-                        <input class="in" type="number" min="0" @bind="_effort"
-                               placeholder="@(_detail.Length?.ToString() ?? "")" />
-                        @if (_detail.Length is { } suggested && _effort != suggested)
+                <div class="cap-block">
+                    <div class="fl">What are you recording?</div>
+                    <div class="segs">
+                        @foreach (var action in Enum.GetValues<LogAction>())
                         {
-                            <button class="hintbtn" @onclick="() => _effort = suggested">
-                                use @suggested @UiHelpers.LengthUnit(_detail.MediaType) from @_detail.ExternalSource
+                            <button class="seg @(action == _action ? "on" : "")" @onclick="() => _action = action">
+                                @ActionLabel(action)
                             </button>
                         }
                     </div>
-                }
-            </div>
-
-            <div class="cap-row">
-                <div>
-                    <div class="fl">Context</div>
-                    <select class="in" @bind="_context">
-                        <option value="">—</option>
-                        @foreach (var context in UiHelpers.ContextsFor(_detail.MediaType))
-                        {
-                            <option value="@context">@UiHelpers.ContextLabel(context)</option>
-                        }
-                    </select>
                 </div>
-                @if (_action is LogAction.Completed)
-                {
+
+                @* --- the work itself: same for every action --- *@
+                <div class="cap-row">
                     <div>
-                        <div class="fl">Rating</div>
-                        <div class="stars">
-                            <span class="track">★★★★★</span>
-                            <span class="fill" style="width:@(_rating * 10)%">★★★★★</span>
-                            @for (var half = 1; half <= 10; half++)
-                            {
-                                var value = half;
-                                <button class="hit" style="left:@((half - 1) * 10)%"
-                                        title="@(value / 2.0)" @onclick="() => _rating = value"></button>
-                            }
+                        <div class="fl">Genres</div>
+                        <VocabularyPicker @bind-Selected="_genres" Suggestions="_vocab.Genres"
+                                          Placeholder="pick or create…"/>
+                    </div>
+                </div>
+
+                <div class="cap-row">
+                    <div>
+                        <div class="fl">Tags</div>
+                        <VocabularyPicker @bind-Selected="_tags" Suggestions="_vocab.Tags"
+                                          Placeholder="pick or create…"/>
+                    </div>
+                </div>
+
+                @if (NewTags.Count > 0)
+                {
+                    <div class="cap-block newtags">
+                        <div class="fl">
+                            New tag@(NewTags.Count == 1 ? "" : "s") — classify once<b>*</b>
+                            <span class="opt">picked again later, this is remembered</span>
                         </div>
-                        @if (_rating > 0)
+                        @foreach (var tag in NewTags)
                         {
-                            <button class="starclear" @onclick="() => _rating = 0">clear</button>
+                            <div class="newtag">
+                                <span class="vp-chip">@tag</span>
+                                <select class="in" value="@FacetOf(tag)"
+                                        @onchange="e => SetFacet(tag, e.Value?.ToString())">
+                                    <option value="">facet…</option>
+                                    @foreach (var facet in Enum.GetValues<TagFacet>())
+                                    {
+                                        <option value="@facet">@facet</option>
+                                    }
+                                </select>
+                                <select class="in" value="@AppliesToOf(tag)"
+                                        @onchange="e => SetAppliesTo(tag, e.Value?.ToString())">
+                                    <option value="">All media</option>
+                                    @foreach (var type in Enum.GetValues<MediaType>())
+                                    {
+                                        <option value="@type">@UiHelpers.TypeLabel(type) only</option>
+                                    }
+                                </select>
+                            </div>
                         }
                     </div>
                 }
-            </div>
 
-            @if (_action is LogAction.Completed)
-            {
-                @* Backfill writes both ends of the pass, so both notes are offered
+                <div class="cap-row">
+                    <div>
+                        <div class="fl">Universe</div>
+                        <VocabularyPicker @bind-Selected="_universe" Suggestions="_vocab.Universes"
+                                          Max="1" Placeholder="e.g. Cosmere…"/>
+                    </div>
+                    <div>
+                        <div class="fl">Series</div>
+                        <VocabularyPicker @bind-Selected="_series" Suggestions="_vocab.Series"
+                                          Max="1" Placeholder="e.g. Mistborn Era 1…"/>
+                    </div>
+                    @if (_series.Count > 0)
+                    {
+                        <div style="flex:0 0 90px">
+                            <div class="fl">Position</div>
+                            <input class="in" type="number" min="1" @bind="_seriesPosition"/>
+                        </div>
+                    }
+                </div>
+
+                <div class="cap-row">
+                    <div>
+                        <div class="fl">Discovery</div>
+                        <select class="in" @bind="_discovery">
+                            <option value="">—</option>
+                            @foreach (var source in Enum.GetValues<DiscoverySource>())
+                            {
+                                <option value="@source">@UiHelpers.DiscoveryLabel(source)</option>
+                            }
+                        </select>
+                    </div>
+                    <div>
+                        <div class="fl">Release date</div>
+                        <input class="in" type="date" @bind="_releaseDate"/>
+                        @if (_detail.ReleaseDate is { } imported && imported != _releaseDate)
+                        {
+                            <button class="hintbtn" @onclick="() => _releaseDate = imported">
+                                revert to @imported.Year from @_detail.ExternalSource
+                            </button>
+                        }
+                    </div>
+                </div>
+
+                @* --- pass-specific fields --- *@
+                @if (_action is not LogAction.Interested)
+                {
+                    <div class="cap-row">
+                        <div>
+                            <div class="fl">Start</div>
+                            <input class="in" type="date" @bind="_startDate"/>
+                        </div>
+                        @if (_action is LogAction.Completed)
+                        {
+                            <div>
+                                <div class="fl">End</div>
+                                <input class="in" type="date" @bind="_endDate"/>
+                            </div>
+                            <div>
+                                <div class="fl">Effort (@UiHelpers.LengthUnit(_detail.MediaType))</div>
+                                <input class="in" type="number" min="0" @bind="_effort"
+                                       placeholder="@(_detail.Length?.ToString() ?? "")"/>
+                                @if (_detail.Length is { } suggested && _effort != suggested)
+                                {
+                                    <button class="hintbtn" @onclick="() => _effort = suggested">
+                                        use @suggested @UiHelpers.LengthUnit(_detail.MediaType) from @_detail.ExternalSource
+                                    </button>
+                                }
+                            </div>
+                        }
+                    </div>
+
+                    <div class="cap-row">
+                        <div>
+                            <div class="fl">Context</div>
+                            <select class="in" @bind="_context">
+                                <option value="">—</option>
+                                @foreach (var context in UiHelpers.ContextsFor(_detail.MediaType))
+                                {
+                                    <option value="@context">@UiHelpers.ContextLabel(context)</option>
+                                }
+                            </select>
+                        </div>
+                        @if (_action is LogAction.Completed)
+                        {
+                            <div>
+                                <div class="fl">Rating</div>
+                                <div class="stars">
+                                    <span class="track">★★★★★</span>
+                                    <span class="fill" style="width:@(_rating * 10)%">★★★★★</span>
+                                    @for (var half = 1; half <= 10; half++)
+                                    {
+                                        var value = half;
+                                        <button class="hit" style="left:@((half - 1) * 10)%"
+                                                title="@(value / 2.0)" @onclick="() => _rating = value"></button>
+                                    }
+                                </div>
+                                @if (_rating > 0)
+                                {
+                                    <button class="starclear" @onclick="() => _rating = 0">clear</button>
+                                }
+                            </div>
+                        }
+                    </div>
+
+                    @if (_action is LogAction.Completed)
+                    {
+                        @* Backfill writes both ends of the pass, so both notes are offered
                    explicitly — the start one is optional because you often can't
                    remember what you expected going in. *@
-                <div class="cap-block">
-                    <div class="fl">Start note <span class="opt">optional</span></div>
-                    <textarea class="area dim" @bind="_startNote" @bind:event="oninput"
-                              placeholder="What you expected going in — leave blank if you don't recall."></textarea>
-                </div>
-            }
-
-            <div class="cap-block">
-                <div class="fl">
-                    @NoteLabel
-                    @if (NoteRequired)
-                    {
-                        <b>required</b>
+                        <div class="cap-block">
+                            <div class="fl">Start note <span class="opt">optional</span></div>
+                            <textarea class="area dim" @bind="_startNote" @bind:event="oninput"
+                                      placeholder="What you expected going in — leave blank if you don't recall."></textarea>
+                        </div>
                     }
-                    else
-                    {
-                        <span class="opt">optional</span>
-                    }
-                </div>
-                <textarea class="area @(NoteRequired ? "" : "dim")" @bind="_note" @bind:event="oninput"
-                          placeholder="@NotePlaceholder"></textarea>
-            </div>
-        }
 
-        <div class="cap-foot">
-            <span class="req">@FootHint</span>
-            <button class="btn ghost" @onclick="Reset">Cancel</button>
-            <button class="btn" @onclick="Submit" disabled="@(_saving || !CanSubmit)">
-                @(_saving ? "…" : ActionButton(_action))
-            </button>
-        </div>
+                    <div class="cap-block">
+                        <div class="fl">
+                            @NoteLabel
+                            @if (NoteRequired)
+                            {
+                                <b>required</b>
+                            }
+                            else
+                            {
+                                <span class="opt">optional</span>
+                            }
+                        </div>
+                        <textarea class="area @(NoteRequired ? "" : "dim")" @bind="_note" @bind:event="oninput"
+                                  placeholder="@NotePlaceholder"></textarea>
+                    </div>
+                }
+
+                <div class="cap-foot">
+                    <span class="req">@FootHint</span>
+                    <button class="btn ghost" @onclick="Reset">Cancel</button>
+                    <button class="btn" @onclick="Submit" disabled="@(_saving || !CanSubmit)">
+                        @(_saving ? "…" : ActionButton(_action))
+                    </button>
+                </div>
             </div>
         }
     </div>
 </div>
 
 @code {
+
     // The three write actions from the vault's Log-and-capture note. Dropped is
     // deliberately absent — you can't drop something you never started.
-    private enum LogAction { Start, Completed, Interested }
+    private enum LogAction
+    {
+        Start,
+        Completed,
+        Interested
+    }
 
     private string _query = "";
     private MediaType _mediaType = MediaType.Book;
@@ -392,9 +399,15 @@
     private string? _error;
     private string? _savedMessage;
 
-    protected override Task OnInitializedAsync() => RefreshVocabulary();
+    protected override Task OnInitializedAsync()
+    {
+        return RefreshVocabulary();
+    }
 
-    private async Task RefreshVocabulary() => _vocab = await Library.GetVocabularyAsync();
+    private async Task RefreshVocabulary()
+    {
+        _vocab = await Library.GetVocabularyAsync();
+    }
 
     // Only a live Start demands a note. Backfilling a finished pass is Profile data,
     // not a diary entry — forcing prose onto 200 half-remembered items would just
@@ -408,11 +421,15 @@
     private List<string> NewTags =>
         [.. _tags.Where(t => !_vocab.Tags.Contains(t, StringComparer.OrdinalIgnoreCase))];
 
-    private string FacetOf(string tag) =>
-        _newTags.TryGetValue(tag, out var input) && input.Facet is { } facet ? facet.ToString() : "";
+    private string FacetOf(string tag)
+    {
+        return _newTags.TryGetValue(tag, out var input) && input.Facet is { } facet ? facet.ToString() : "";
+    }
 
-    private string AppliesToOf(string tag) =>
-        _newTags.TryGetValue(tag, out var input) && input.AppliesTo is { } type ? type.ToString() : "";
+    private string AppliesToOf(string tag)
+    {
+        return _newTags.TryGetValue(tag, out var input) && input.AppliesTo is { } type ? type.ToString() : "";
+    }
 
     private void SetFacet(string tag, string? value)
     {
@@ -426,8 +443,10 @@
         _newTags[tag] = Existing(tag) with { AppliesTo = type };
     }
 
-    private TagInput Existing(string tag) =>
-        _newTags.TryGetValue(tag, out var input) ? input : new TagInput(tag, null, null);
+    private TagInput Existing(string tag)
+    {
+        return _newTags.TryGetValue(tag, out var input) ? input : new TagInput(tag, null, null);
+    }
 
     private string NoteLabel => _action is LogAction.Start ? "Start note" : "Finish note";
 
@@ -440,30 +459,38 @@
     private string FootHint => NewTags.Any(t => FacetOf(t).Length == 0)
         ? "Give every new tag a facet — it's only asked once, then it's just a pick."
         : _action switch
-    {
-        LogAction.Interested => "Goes to the library unstarted. No note needed.",
-        LogAction.Start => "A start note is required — this is what the Diary shows.",
-        _ => "Backfilling? Rating, genres and moods are what Profile reads. Notes optional."
-    };
+        {
+            LogAction.Interested => "Goes to the library unstarted. No note needed.",
+            LogAction.Start => "A start note is required — this is what the Diary shows.",
+            _ => "Backfilling? Rating, genres and moods are what Profile reads. Notes optional."
+        };
 
-    private static string ActionLabel(LogAction action) => action switch
+    private static string ActionLabel(LogAction action)
     {
-        LogAction.Start => "Start a pass",
-        LogAction.Completed => "Already finished",
-        _ => "Just interested"
-    };
+        return action switch
+        {
+            LogAction.Start => "Start a pass",
+            LogAction.Completed => "Already finished",
+            _ => "Just interested"
+        };
+    }
 
-    private static string ActionButton(LogAction action) => action switch
+    private static string ActionButton(LogAction action)
     {
-        LogAction.Start => "Start it",
-        LogAction.Completed => "Log it",
-        _ => "Save to library"
-    };
+        return action switch
+        {
+            LogAction.Start => "Start it",
+            LogAction.Completed => "Log it",
+            _ => "Save to library"
+        };
+    }
 
-    private bool IsSelected(MediaSearchResultDto result) =>
-        _selected is not null &&
-        _selected.ExternalId == result.ExternalId &&
-        _selected.ExternalSource == result.ExternalSource;
+    private bool IsSelected(MediaSearchResultDto result)
+    {
+        return _selected is not null &&
+               _selected.ExternalId == result.ExternalId &&
+               _selected.ExternalSource == result.ExternalSource;
+    }
 
 
     private async Task SetType(MediaType type)
@@ -620,4 +647,5 @@
         _note = "";
         _startNote = "";
     }
+
 }
