@@ -1,0 +1,113 @@
+@page "/"
+@using MediaArchive.Services
+@rendermode InteractiveServer
+@inject CollectionService Collection
+@inject ConsumptionService Consumption
+
+<PageTitle>Home · MediaArchive</PageTitle>
+
+<div class="eyebrow label">The front page</div>
+<h1 class="h-lg">What you've left open.</h1>
+<p class="sub">The vertical cut through today — what's lined up, what's live, and what just closed.</p>
+
+@if (_loading)
+{
+    <p class="hint">Loading…</p>
+}
+else
+{
+    <section class="homesec">
+        <div class="sechead"><span class="label">On deck</span><span class="rt">What's next</span></div>
+        @if (_onDeck.Count == 0)
+        {
+            <p class="homeempty">Nothing lined up — mark something as interested.</p>
+        }
+        else
+        {
+            <div class="odrow">
+                @foreach (var item in _onDeck)
+                {
+                    <div class="odcard">
+                        <div class="odp"><div class="fb"><span>@item.Title</span></div></div>
+                        <div class="odt">@item.Title</div>
+                    </div>
+                }
+            </div>
+        }
+    </section>
+
+    <section class="homesec">
+        <div class="sechead">
+            <span class="label">Open now</span>
+            <span class="rt">@_openNow.Count open</span>
+        </div>
+        @if (_openNow.Count == 0)
+        {
+            <p class="homeempty">Nothing in progress right now.</p>
+        }
+        else
+        {
+            @foreach (var item in _openNow)
+            {
+                <div class="open">
+                    <div class="ocov">
+                        @if (!string.IsNullOrWhiteSpace(item.ImageUrl))
+                        {
+                            <img src="@item.ImageUrl" alt="Cover of @item.Title"/>
+                        }
+                        else
+                        {
+                            <div class="fb"><span>@item.Title</span></div>
+                        }
+                    </div>
+                    <div>
+                        <div class="ohead"><div class="ot">@item.Title</div></div>
+                        <div class="ometa">
+                            touched @Ago(item.DaysSinceTouched)@(item.Progress is { } p ? $" · {p:0}%" : "")
+                        </div>
+                        @if (item.Progress is { } pct)
+                        {
+                            <div class="oprog"><i style="width:@(pct.ToString("0"))%"></i></div>
+                        }
+                        <div class="ofoot">open <b>@item.DaysOpen</b> @Plural(item.DaysOpen, "day")</div>
+                    </div>
+                    <div class="oact"><a class="btn" href="log">Log →</a></div>
+                </div>
+            }
+        }
+    </section>
+
+    @if (_justClosed.Count > 0)
+    {
+        <section class="homesec">
+            <div class="sechead"><span class="label">Just closed</span></div>
+            @foreach (var item in _justClosed)
+            {
+                <div class="justclosed">
+                    <span class="ji">@item.Title</span>
+                    <span class="jm">closed @Ago(item.DaysSinceClosed)</span>
+                </div>
+            }
+        </section>
+    }
+}
+
+@code {
+    private bool _loading = true;
+    private IReadOnlyList<OnDeckItem> _onDeck = [];
+    private IReadOnlyList<OpenNowItem> _openNow = [];
+    private IReadOnlyList<JustClosedItem> _justClosed = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        _onDeck = await Collection.GetOnDeckAsync();
+        _openNow = await Consumption.GetOpenNowAsync();
+        _justClosed = await Consumption.GetJustClosedAsync();
+        _loading = false;
+    }
+
+    private static string Ago(int days) =>
+        days <= 0 ? "today" : days == 1 ? "yesterday" : $"{days} days ago";
+
+    private static string Plural(int n, string word) => n == 1 ? word : word + "s";
+}

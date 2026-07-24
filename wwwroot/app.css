@@ -518,3 +518,155 @@ select.in { background: var(--panel2); }
     .h-lg { font-size: 30px; }
     .top { gap: 12px; flex-wrap: wrap; }
 }
+
+/* ── HOME: the open interval — on deck · open now · just closed ── */
+.homesec { margin-bottom: 38px; }
+
+.sechead {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin: 0 0 18px;
+    padding-bottom: 9px;
+    border-bottom: 2px solid var(--line);
+}
+.sechead .label { color: var(--muted); }
+.sechead .rt {
+    margin-left: auto;
+    font-family: "Futura", sans-serif;
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    font-size: 9.5px;
+    color: var(--dim);
+}
+.homeempty {
+    color: var(--dim);
+    font-family: "Avenir Next", Georgia, serif;
+    font-style: italic;
+    font-size: 14px;
+    padding: 4px 0;
+}
+
+/* on deck — the Interested rail */
+.odrow { display: flex; gap: 15px; flex-wrap: wrap; align-items: flex-start; }
+.odcard { width: 76px; cursor: pointer; }
+.odp {
+    position: relative;
+    width: 76px;
+    aspect-ratio: 2/3;
+    border: 1px solid var(--line);
+    overflow: hidden;
+    background: var(--panel2);
+    transition: transform .16s;
+}
+.odcard:hover .odp { transform: translateY(-4px); outline: 2px solid var(--ac); }
+.odp img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.odp .fb {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: flex-end;
+    padding: 6px;
+    background: linear-gradient(155deg, var(--panel), #20231e);
+}
+.odp .fb span {
+    font-family: "Futura", sans-serif;
+    font-weight: 600;
+    font-size: 8.5px;
+    line-height: 1.12;
+    color: #fff;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, .6);
+}
+.odt {
+    font-family: "Futura", "Avenir Next", sans-serif;
+    font-weight: 600;
+    font-size: 10.5px;
+    line-height: 1.15;
+    margin-top: 8px;
+    color: var(--muted);
+}
+
+/* open now — the hero rows */
+.open {
+    display: grid;
+    grid-template-columns: 80px 1fr auto;
+    gap: 22px;
+    align-items: start;
+    padding: 20px 0;
+    border-bottom: 1px solid var(--line);
+}
+.open:first-of-type { border-top: 2px solid var(--ink); }
+.ocov {
+    position: relative;
+    width: 80px;
+    aspect-ratio: 2/3;
+    border: 1px solid var(--line);
+    overflow: hidden;
+    background: var(--panel2);
+}
+.ocov img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.ocov .fb {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: flex-end;
+    padding: 7px;
+    background: linear-gradient(155deg, var(--panel), #20231e);
+}
+.ocov .fb span {
+    font-family: "Futura", sans-serif;
+    font-weight: 600;
+    font-size: 9px;
+    line-height: 1.12;
+    color: #fff;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, .6);
+}
+.ohead { display: flex; align-items: baseline; gap: 14px; }
+.ot { font-family: "Futura", "Avenir Next", sans-serif; font-weight: 600; font-size: 19px; line-height: 1.1; }
+.ometa {
+    font-family: "Futura", sans-serif;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 10px;
+}
+.oprog { height: 4px; background: rgba(0, 0, 0, .32); margin-top: 11px; max-width: 360px; }
+.oprog i { display: block; height: 100%; background: var(--ac); }
+.ofoot {
+    font-family: "Avenir Next", Georgia, serif;
+    font-style: italic;
+    font-size: 13.5px;
+    color: var(--dim);
+    margin-top: 11px;
+    line-height: 1.5;
+}
+.ofoot b { font-style: normal; color: var(--muted); font-weight: 600; }
+.oact { display: flex; gap: 9px; align-items: center; padding-top: 4px; white-space: nowrap; }
+.oact a { text-decoration: none; }
+
+/* just closed — the bookend */
+.justclosed {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    flex-wrap: wrap;
+    border-top: 2px solid var(--ink);
+    padding-top: 16px;
+    margin-bottom: 12px;
+}
+.justclosed .ji { font-family: "Futura", "Avenir Next", sans-serif; font-weight: 600; font-size: 16px; }
+.justclosed .jm {
+    font-family: "Futura", sans-serif;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    font-size: 9.5px;
+    color: var(--dim);
+    margin-left: auto;
+}
+
+@media (max-width: 860px) {
+    .open { grid-template-columns: 64px 1fr; gap: 16px; }
+    .ocov { width: 64px; }
+    .oact { grid-column: 1 / -1; justify-content: flex-start; }
+}
