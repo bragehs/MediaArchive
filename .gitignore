@@ -8,6 +8,9 @@ riderModule.iml
 # Note: appsettings*.json are tracked (non-secret config). Real secrets go in
 # .NET User Secrets, never in appsettings — so they can't be committed here.
 
+# Cached cover images (re-downloaded from the providers on import)
+covers/
+
 # SQLite database (created + seeded on first run)
 *.db
 *.db-shm

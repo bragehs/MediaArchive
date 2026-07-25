@@ -10,6 +10,8 @@ public abstract class MediaItem
 
     public string? ImageUrl { get; set; }
 
+    public string? LocalImagePath { get; set; }
+
     // Partial provider dates are stored as Jan 1.
     public DateOnly? ReleaseDate { get; set; }
 

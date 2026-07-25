@@ -54,7 +54,7 @@ public class ConsumptionService(IDbContextFactory<AppDbContext> dbContextFactory
 
                 return new OpenNowItem(
                     u.Id, media.Title, media.MediaType, media.Creator,
-                    media.ImageUrl, progress, daysOpen, daysSinceTouched,
+                    media.LocalImagePath ?? media.ImageUrl, progress, daysOpen, daysSinceTouched,
                     entry?.Id ?? 0
                 );
             })

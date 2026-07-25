@@ -4,6 +4,7 @@ using MediaArchive.Data;
 using MediaArchive.Services;
 using MediaArchive.Services.Providers;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -51,6 +52,12 @@ builder.Services.AddHttpClient<IgdbProvider>((sp, client) =>
 });
 builder.Services.AddTransient<IMediaProvider>(sp => sp.GetRequiredService<IgdbProvider>());
 
+builder.Services.AddHttpClient<CoverCacheService>(client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(8);
+    client.DefaultRequestHeaders.UserAgent.ParseAdd(OpenLibraryProvider.UserAgent);
+});
+
 builder.Services.AddScoped<MediaSearchService>();
 builder.Services.AddScoped<MediaLogService>();
 builder.Services.AddScoped<MediaImportService>();
@@ -72,6 +79,15 @@ app.UseHttpsRedirection();
 app.UseAntiforgery();
 
 app.MapStaticAssets();
+
+var coversRoot = Path.Combine(builder.Environment.ContentRootPath, CoverCacheService.FolderName);
+Directory.CreateDirectory(coversRoot);
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(coversRoot),
+    RequestPath = CoverCacheService.RequestPath
+});
+
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 

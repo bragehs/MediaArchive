@@ -13,7 +13,9 @@ public record Vocabulary(
     List<string> Universes,
     List<string> Series);
 
-public class MediaImportService(IDbContextFactory<AppDbContext> dbContextFactory)
+public class MediaImportService(
+    IDbContextFactory<AppDbContext> dbContextFactory,
+    CoverCacheService coverCache)
 {
     public async Task<Vocabulary> GetVocabularyAsync(CancellationToken ct = default)
     {
@@ -34,6 +36,10 @@ public class MediaImportService(IDbContextFactory<AppDbContext> dbContextFactory
         await using var db = await dbContextFactory.CreateDbContextAsync(ct);
 
         var mediaItem = await ResolveMediaItemAsync(db, item, ct);
+
+        if (mediaItem.LocalImagePath is null)
+            mediaItem.LocalImagePath = await coverCache.TryCacheAsync(
+                mediaItem.ImageUrl, mediaItem.ExternalSource, mediaItem.ExternalId, ct);
 
         var universes = await ResolveNamedAsync(db, [details.Universe],
             name => new Universe { Name = name }, ct);
