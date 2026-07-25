@@ -10,6 +10,7 @@ public record OpenNowItem(
     MediaType MediaType,
     string Creator,
     string? ImageUrl,
+    double? Progress,
     int DaysOpen,
     int DaysSinceTouched,
     int OpenEntryId);
