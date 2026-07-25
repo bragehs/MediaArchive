@@ -48,44 +48,112 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
 
 .app { max-width: 1180px; margin: 0 auto; padding: 0 26px 90px; }
 
-/* masthead — thick persimmon rule */
-.top {
-    display: flex;
-    align-items: center;
-    gap: 22px;
-    padding: 20px 0;
-    margin-bottom: 24px;
+/* ── masthead: wordmark is Home, nav is a printed contents index ── */
+.masthead {
     position: sticky;
     top: 0;
-    z-index: 20;
+    z-index: 30;
     background: var(--bg);
-    border-bottom: 3px solid var(--ac);
+    margin-bottom: 30px;
 }
+.mast-top { display: flex; align-items: center; gap: 20px; padding: 20px 0 14px; }
 
 .brand {
     font-family: "Futura", "Century Gothic", sans-serif;
     font-weight: 700;
-    font-size: 20px;
+    font-size: 23px;
     text-transform: uppercase;
     letter-spacing: .04em;
+    white-space: nowrap;
 }
-
 .brand b { color: var(--ac); }
-.tabs { display: flex; gap: 22px; margin-left: auto; }
 
-.tabs a {
-    color: var(--dim);
-    font-family: "Futura", "Avenir Next", sans-serif;
-    text-transform: uppercase;
-    letter-spacing: .14em;
-    font-size: 11px;
-    font-weight: 600;
+.index { display: grid; grid-template-columns: repeat(4, 1fr); border-bottom: 3px solid var(--ac); }
+.ix {
+    padding: 11px 14px 13px;
+    border-top: 3px solid var(--line);
+    border-right: 1px solid var(--line2);
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
     transition: .15s;
 }
+.ix:last-child { border-right: 0; }
+.ix .ixn { font-family: "Futura", "Century Gothic", sans-serif; font-weight: 700; font-size: 11px; color: var(--dim); letter-spacing: .04em; }
+.ix .ixl { font-family: "Futura", "Avenir Next", sans-serif; font-weight: 700; text-transform: uppercase; letter-spacing: .13em; font-size: 12.5px; color: var(--muted); }
+.ix .ixh { margin-left: auto; font-family: "Futura", sans-serif; text-transform: uppercase; letter-spacing: .1em; font-size: 9px; color: var(--dim); white-space: nowrap; }
+a.ix:hover { background: var(--panel); }
+.ix.active { border-top-color: var(--ac); background: var(--panel); }
+.ix.active .ixn { color: var(--ac); }
+.ix.active .ixl { color: var(--ink); }
+.ix.soon { opacity: .5; cursor: default; }
 
-.tabs a:hover { color: var(--ink); }
-.tabs a.active { color: var(--ac); }
-.tabs .soon { color: var(--dim); opacity: .4; cursor: default; }
+/* ── global search: bar → non-blocking panel → blocking capture modal ── */
+.gsearch { position: relative; flex: 1; display: flex; align-items: center; gap: 10px; }
+.gsearch-input {
+    flex: 1;
+    background: transparent;
+    border: 1px solid var(--line);
+    padding: 10px 14px;
+    color: var(--ink);
+    font: 14px/1 inherit;
+}
+.gsearch-input::placeholder { color: var(--dim); }
+.gsearch-input:focus { outline: none; border-color: var(--ac); }
+.gsearch-esc {
+    font-family: "Futura", sans-serif;
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    font-size: 9px;
+    font-weight: 700;
+    color: var(--dim);
+    border: 1px solid var(--line);
+    padding: 6px 9px;
+    cursor: pointer;
+}
+.gsearch-esc:hover { color: var(--ink); border-color: var(--ink); }
+
+/* the panel drops under the masthead and leaves the page interactable */
+.searchpanel {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    z-index: 40;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-top: 3px solid var(--ac);
+    padding: 16px 18px 20px;
+    max-height: 70vh;
+    overflow-y: auto;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, .45);
+}
+.searchpanel .segs { margin-bottom: 12px; }
+.searchpanel .colhead { margin: 14px 0 8px; }
+
+/* the modal freezes the page */
+.modal-scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    background: rgba(12, 14, 10, .66);
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 48px 20px;
+    overflow-y: auto;
+}
+.modal {
+    width: 100%;
+    max-width: 720px;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-top: 3px solid var(--ac);
+    padding: 26px;
+    box-shadow: 0 30px 80px rgba(0, 0, 0, .55);
+}
+.modal .detail { margin-bottom: 22px; }
+.modal .capture { margin-top: 0; }
 
 .eyebrow { color: var(--sage); }
 .h-lg { font-size: 40px; margin: 8px 0 4px; letter-spacing: -.02em; }
@@ -411,7 +479,7 @@ select.in { background: var(--panel2); }
     left: 0;
     overflow: hidden;
     white-space: nowrap;
-    color: var(--ac);
+    color: var(--ac2);
     pointer-events: none;
 }
 

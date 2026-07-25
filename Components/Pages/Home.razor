@@ -6,10 +6,6 @@
 
 <PageTitle>Home · MediaArchive</PageTitle>
 
-<div class="eyebrow label">The front page</div>
-<h1 class="h-lg">What you've left open.</h1>
-<p class="sub">The vertical cut through today — what's lined up, what's live, and what just closed.</p>
-
 @if (_loading)
 {
     <p class="hint">Loading…</p>
@@ -28,7 +24,16 @@ else
                 @foreach (var item in _onDeck)
                 {
                     <div class="odcard">
-                        <div class="odp"><div class="fb"><span>@item.Title</span></div></div>
+                        <div class="odp">
+                            @if (!string.IsNullOrWhiteSpace(item.ImageUrl))
+                            {
+                                <img src="@item.ImageUrl" alt="Cover of @item.Title"/>
+                            }
+                            else
+                            {
+                                <div class="fb"><span>@item.Title</span></div>
+                            }
+                        </div>
                         <div class="odt">@item.Title</div>
                     </div>
                 }
@@ -71,39 +76,58 @@ else
                         }
                         <div class="ofoot">open <b>@item.DaysOpen</b> @Plural(item.DaysOpen, "day")</div>
                     </div>
-                    <div class="oact"><a class="btn" href="log">Log →</a></div>
+                    <div class="oact"><button class="btn" @onclick="() => _logTarget = item">Log →</button></div>
                 </div>
             }
         }
     </section>
 
-    @if (_justClosed.Count > 0)
+    @if (_justClosed is { } jc)
     {
         <section class="homesec">
             <div class="sechead"><span class="label">Just closed</span></div>
-            @foreach (var item in _justClosed)
-            {
-                <div class="justclosed">
-                    <span class="ji">@item.Title</span>
-                    <span class="jm">closed @Ago(item.DaysSinceClosed)</span>
-                </div>
-            }
+            <div class="justclosed">
+                <span class="ji">@jc.Title</span>
+                @if (jc.Rating is { } r)
+                {
+                    <span class="stars">
+                        <span class="track">★★★★★</span>
+                        <span class="fill" style="width:@(r * 10)%">★★★★★</span>
+                    </span>
+                }
+                <span class="jm">@jc.Creator · closed @Ago(jc.DaysSinceClosed)</span>
+            </div>
         </section>
     }
+}
+
+@if (_logTarget is { } target)
+{
+    <LogProgressDialog Item="target" OnClose="() => _logTarget = null" OnLogged="OnLogged"/>
 }
 
 @code {
     private bool _loading = true;
     private IReadOnlyList<OnDeckItem> _onDeck = [];
     private IReadOnlyList<OpenNowItem> _openNow = [];
-    private IReadOnlyList<JustClosedItem> _justClosed = [];
+    private JustClosedItem? _justClosed;
+    private OpenNowItem? _logTarget;
 
-    protected override async Task OnInitializedAsync()
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
     {
         _onDeck = await Collection.GetOnDeckAsync();
         _openNow = await Consumption.GetOpenNowAsync();
         _justClosed = await Consumption.GetJustClosedAsync();
         _loading = false;
+    }
+
+    // A logged pass changes open-now (and possibly just-closed), so reload.
+    private async Task OnLogged()
+    {
+        _logTarget = null;
+        await LoadAsync();
     }
 
     private static string Ago(int days) =>

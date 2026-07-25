@@ -1,13 +1,25 @@
-@* The five surfaces from the vault's IA. Only Log exists yet; the rest are
-   inert placeholders so the masthead reads correctly. *@
+@* The vault's IA as a printed contents index. The wordmark is Home; the search
+   bar is the global intake (was the Log tab). Library/Diary/Profile are inert
+   until their surfaces exist. *@
 
-<div class="top">
-    <div class="brand">Media<b>Archive</b></div>
-    <nav class="tabs">
-        <NavLink href="" Match="NavLinkMatch.All">Home</NavLink>
-        <NavLink href="log">Log</NavLink>
-        <span class="soon label">Library</span>
-        <span class="soon label">Diary</span>
-        <span class="soon label">Profile</span>
+<header class="masthead">
+    <div class="mast-top">
+        <NavLink class="brand" href="" Match="NavLinkMatch.All">Media<b>Archive</b></NavLink>
+        <GlobalSearch/>
+    </div>
+
+    <nav class="index">
+        <span class="ix soon">
+            <span class="ixn">01</span><span class="ixl">Explore</span><span class="ixh">Soon</span>
+        </span>
+        <span class="ix soon">
+            <span class="ixn">02</span><span class="ixl">Library</span><span class="ixh">Soon</span>
+        </span>
+        <span class="ix soon">
+            <span class="ixn">03</span><span class="ixl">Diary</span><span class="ixh">Soon</span>
+        </span>
+        <span class="ix soon">
+            <span class="ixn">04</span><span class="ixl">Profile</span><span class="ixh">Soon</span>
+        </span>
     </nav>
-</div>
+</header>

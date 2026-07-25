@@ -1,0 +1,162 @@
+@using MediaArchive.Services
+@inject MediaLogService LogService
+
+@* Blocking modal for an already-open pass: log progress (AddNote) or finish it
+   (FinishPass). Invoked from Home's open-now rows. *@
+
+<div class="modal-scrim" @onclick="Close">
+    <div class="modal" @onclick:stopPropagation="true">
+        <div class="cap-head">
+            <span class="label">Log</span>
+            <span class="cap-sel">@Item.Title · @UiHelpers.TypeLabel(Item.MediaType)</span>
+        </div>
+
+        <div class="cap-block">
+            <div class="fl">What are you logging?</div>
+            <div class="segs">
+                <button class="seg @(_mode == Mode.Progress ? "on" : "")" @onclick="() => _mode = Mode.Progress">
+                    Progress
+                </button>
+                <button class="seg @(_mode == Mode.Finish ? "on" : "")" @onclick="() => _mode = Mode.Finish">
+                    Finish
+                </button>
+            </div>
+        </div>
+
+        @if (_mode == Mode.Progress)
+        {
+            <div class="cap-row">
+                <div>
+                    <div class="fl">Effort so far (@UiHelpers.LengthUnit(Item.MediaType)) <span class="opt">optional</span></div>
+                    <input class="in" type="number" min="0" @bind="_progressEffort"/>
+                </div>
+            </div>
+            <div class="cap-block">
+                <div class="fl">Progress note <b>required</b></div>
+                <textarea class="area" @bind="_progressNote" @bind:event="oninput"
+                          placeholder="Where you got to, how it's landing…"></textarea>
+            </div>
+        }
+        else
+        {
+            <div class="cap-row">
+                <div>
+                    <div class="fl">End</div>
+                    <input class="in" type="date" @bind="_endDate"/>
+                </div>
+                <div>
+                    <div class="fl">Effort (@UiHelpers.LengthUnit(Item.MediaType)) <span class="opt">optional</span></div>
+                    <input class="in" type="number" min="0" @bind="_finishEffort"/>
+                </div>
+            </div>
+
+            <div class="cap-row">
+                <div>
+                    <div class="fl">Outcome</div>
+                    <div class="segs">
+                        <button class="seg @(!_dropped ? "on" : "")" @onclick="() => _dropped = false">Completed</button>
+                        <button class="seg @(_dropped ? "on" : "")" @onclick="() => _dropped = true">Dropped</button>
+                    </div>
+                </div>
+                @if (!_dropped)
+                {
+                    <div>
+                        <div class="fl">Rating</div>
+                        <div class="stars">
+                            <span class="track">★★★★★</span>
+                            <span class="fill" style="width:@(_rating * 10)%">★★★★★</span>
+                            @for (var half = 1; half <= 10; half++)
+                            {
+                                var value = half;
+                                <button class="hit" style="left:@((half - 1) * 10)%"
+                                        title="@(value / 2.0)" @onclick="() => _rating = value"></button>
+                            }
+                        </div>
+                        @if (_rating > 0)
+                        {
+                            <button class="starclear" @onclick="() => _rating = 0">clear</button>
+                        }
+                    </div>
+                }
+            </div>
+
+            <div class="cap-block">
+                <div class="fl">@(_dropped ? "Why you dropped it" : "Finish note") <span class="opt">optional</span></div>
+                <textarea class="area dim" @bind="_finishNote" @bind:event="oninput"
+                          placeholder="How it landed — this is what the Diary shows."></textarea>
+            </div>
+        }
+
+        @if (_error is not null)
+        {
+            <div class="notice bad">@_error</div>
+        }
+
+        <div class="cap-foot">
+            <span class="req"></span>
+            <button class="btn ghost" @onclick="Close">Cancel</button>
+            <button class="btn" @onclick="Submit" disabled="@(_saving || !CanSubmit)">
+                @(_saving ? "…" : _mode == Mode.Progress ? "Save progress" : "Finish it")
+            </button>
+        </div>
+    </div>
+</div>
+
+@code {
+    private enum Mode { Progress, Finish }
+
+    [Parameter, EditorRequired] public OpenNowItem Item { get; set; } = default!;
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public EventCallback OnLogged { get; set; }
+
+    private Mode _mode = Mode.Progress;
+
+    private int? _progressEffort;
+    private string _progressNote = "";
+
+    private DateOnly? _endDate = DateOnly.FromDateTime(DateTime.Today);
+    private int? _finishEffort;
+    private int _rating;
+    private string _finishNote = "";
+    private bool _dropped;
+
+    private bool _saving;
+    private string? _error;
+
+    private bool CanSubmit => _mode switch
+    {
+        Mode.Progress => _progressNote.Trim().Length > 0,
+        _ => _endDate is not null
+    };
+
+    private async Task Submit()
+    {
+        _saving = true;
+        _error = null;
+
+        try
+        {
+            if (_mode == Mode.Progress)
+            {
+                await LogService.AddNoteAsync(Item.OpenEntryId,
+                    new NoteInput(_progressNote.Trim(), _progressEffort));
+            }
+            else
+            {
+                var note = _finishNote.Trim().Length == 0 ? null : _finishNote.Trim();
+                await LogService.FinishPassAsync(Item.OpenEntryId,
+                    new PassFinish(_endDate!.Value, _rating == 0 ? null : _rating,
+                        _finishEffort, note, _dropped));
+            }
+
+            await OnLogged.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+            _saving = false;
+        }
+    }
+
+    private Task Close() => OnClose.InvokeAsync();
+}
