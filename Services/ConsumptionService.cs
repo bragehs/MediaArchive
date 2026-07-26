@@ -99,8 +99,6 @@ public class ConsumptionService(
             entry.UserMediaItem.Rating, daysSinceClosed);
     }
 
-    // Fetched separately from the item detail: two collection Includes on one query
-    // multiply their rows together, and note threads are the collection that grows.
     public async Task<List<PassSummary>> GetPassHistoryAsync(int userMediaItemId,
         CancellationToken ct = default)
     {

@@ -6,13 +6,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace MediaArchive.Services;
 
-// Pick-or-create against the name-keyed lookup tables. Shared by import (additive:
-// a re-import must not wipe vocabulary I added by hand) and by editing (replace:
-// what the form shows is what the item has).
-//
-// Every method takes the caller's DbContext rather than owning a factory — the
-// entities it resolves have to land in the caller's change tracker so one
-// SaveChangesAsync commits the whole graph.
 public static class VocabularyResolver
 {
     public static async Task ApplyWorkDetailsAsync(AppDbContext db, MediaItem mediaItem,

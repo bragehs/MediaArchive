@@ -6,12 +6,8 @@ namespace MediaArchive.Services;
 
 public record OnDeckItem(int UserMediaItemId, string Title, string? ImageUrl);
 
-// The open pass, if there is one — enough to show progress without pulling the
-// whole note thread.
 public record OpenPassSummary(int EntryId, DateOnly? StartDate, int? Effort, double? Progress);
 
-// One item as the detail modal needs it: the work, my relationship to it, and
-// whether a pass is open. Spans three aggregates because it is a read model.
 public record ItemDetail(
     int UserMediaItemId,
     int MediaItemId,
@@ -37,7 +33,6 @@ public record ItemDetail(
     OpenPassSummary? OpenPass,
     int PassCount);
 
-// Owns MediaItem and UserMediaItem: what the work is, and where it sits with me.
 public class CollectionService(IDbContextFactory<AppDbContext> dbContextFactory)
 {
     public async Task<List<OnDeckItem>> GetOnDeckAsync(CancellationToken ct = default)
@@ -57,8 +52,6 @@ public class CollectionService(IDbContextFactory<AppDbContext> dbContextFactory)
     {
         await using var db = await dbContextFactory.CreateDbContextAsync(ct);
 
-        // Several collection Includes on one query would multiply their rows
-        // together; AsSplitQuery issues one SELECT per collection instead.
         var item = await db.UserMediaItems
             .Where(u => u.Id == userMediaItemId)
             .Include(u => u.MediaItem).ThenInclude(m => m!.Genres).ThenInclude(mg => mg.Genre)
@@ -138,12 +131,16 @@ public class CollectionService(IDbContextFactory<AppDbContext> dbContextFactory)
         await db.SaveChangesAsync(ct);
     }
 
-    public Task SetRatingAsync(int userMediaItemId, int? rating, CancellationToken ct = default) =>
-        UpdateUserItemAsync(userMediaItemId, u => u.Rating = rating, ct);
+    public Task SetRatingAsync(int userMediaItemId, int? rating, CancellationToken ct = default)
+    {
+        return UpdateUserItemAsync(userMediaItemId, u => u.Rating = rating, ct);
+    }
 
     public Task SetFavoriteAsync(int userMediaItemId, bool isFavorite,
-        CancellationToken ct = default) =>
-        UpdateUserItemAsync(userMediaItemId, u => u.IsFavorite = isFavorite, ct);
+        CancellationToken ct = default)
+    {
+        return UpdateUserItemAsync(userMediaItemId, u => u.IsFavorite = isFavorite, ct);
+    }
 
     private async Task UpdateUserItemAsync(int userMediaItemId, Action<UserMediaItem> change,
         CancellationToken ct)
