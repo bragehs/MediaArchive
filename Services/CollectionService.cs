@@ -51,7 +51,7 @@ public class CollectionService(IDbContextFactory<AppDbContext> dbContextFactory)
         CancellationToken ct = default)
     {
         await using var db = await dbContextFactory.CreateDbContextAsync(ct);
-
+        
         var item = await db.UserMediaItems
             .Where(u => u.Id == userMediaItemId)
             .Include(u => u.MediaItem).ThenInclude(m => m!.Genres).ThenInclude(mg => mg.Genre)

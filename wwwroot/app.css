@@ -1,23 +1,46 @@
-/* Vitrine — settled 2026-07-11. Flat, printed, editorial. No blur, no glow,
-   near-zero radius. Warm sage-grey with one persimmon spot colour. */
+/* Hobbiton · Green Door — sampled from the vitrine draft as it actually renders.
+   Deep forest ground and panels, near-white ink on top, one bright leaf-green
+   accent with marigold beside it. Cinzel Decorative for titles, Cinzel for
+   general text, EB Garamond for long prose. Round corners, light grain. */
 :root {
-    --bg: #283127;
-    --panel: #333831;
-    --panel2: #3b4038;
-    --line: rgba(242, 239, 230, .16);
-    --line2: rgba(242, 239, 230, .08);
-    --ink: #f3f0e7;
-    --muted: #aab0a1;
-    --dim: #787e6f;
-    --ac: #4f9053;
-    --ac2: #e7a83f;
-    --sage: #9db08c;
+    --bg: #1c301c;
+    --panel: #253b23;
+    --panel2: #2e4a2b;
+    --line: rgba(242, 239, 230, .18);
+    --line2: rgba(242, 239, 230, .09);
+    --ink: #fafcf8;
+    --muted: #cfd6ca;
+    --dim: #959f90;
+    --ac: #8bbe5a;
+    --ac2: #d6a74a;
+    --sage: #a9c68e;
+    --on-ac: #132011;
 
-    /* fallback-tile colours, keyed to media type — in-palette, per the vault */
-    --book: #4f9053;
-    --game: #e7a83f;
-    --movie: #9db08c;
+    --f-title: "Cinzel Decorative", "Cinzel", Baskerville, serif;
+    --f-display: "Cinzel", "Trajan Pro", Optima, Baskerville, serif;
+    --f-body: "Cinzel", "Trajan Pro", Optima, Baskerville, serif;
+    --f-serif: "EB Garamond", Baskerville, "Hoefler Text", Georgia, serif;
+
+    --r: 14px;
+    --r-sm: 10px;
+    --grain: .08;
+    --rule: 2px;
+
+    /* fallback-tile colours, keyed to media type — in-palette, bright on forest */
+    --book: #8bbe5a;
+    --game: #d6a74a;
+    --movie: #a9c68e;
     --show: #8a7f6a;
+}
+
+/* radius tokens — framed blocks round, small controls round less */
+.modal, .searchpanel, .odp, .ocov, .idcover, .idpass, .notice, .in, .area,
+.gsearch-input, .result, .result .rcov, .capture, .dcover, .oprog, .oprog i {
+    border-radius: var(--r);
+}
+
+.btn, .seg, .vp-chip, .vp-suggestion, .vp-create, .gsearch-esc, .idfav {
+    border-radius: var(--r-sm);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -25,12 +48,12 @@
 body {
     background: var(--bg);
     color: var(--ink);
-    font: 15px/1.5 "Avenir Next", "Segoe UI", system-ui, sans-serif;
+    font: 15px/1.5 var(--f-body);
     -webkit-font-smoothing: antialiased;
 }
 
 h1, h2, h3 {
-    font-family: "Futura", "Avenir Next", "Century Gothic", sans-serif;
+    font-family: var(--f-title);
     font-weight: 600;
     letter-spacing: -.01em;
 }
@@ -39,11 +62,25 @@ a { color: inherit; text-decoration: none; }
 button { font: inherit; color: inherit; background: none; border: none; cursor: pointer; }
 
 .label {
-    font-family: "Futura", "Avenir Next", sans-serif;
+    font-family: var(--f-display);
     text-transform: uppercase;
     letter-spacing: .22em;
     font-size: 10.5px;
     font-weight: 600;
+}
+
+body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    pointer-events: none;
+    mix-blend-mode: multiply;
+    opacity: var(--grain);
+    background:
+        repeating-linear-gradient(94deg, rgba(120, 92, 52, .05) 0 1px, transparent 1px 3px),
+        repeating-linear-gradient(3deg, rgba(120, 92, 52, .04) 0 1px, transparent 1px 5px),
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23f)' opacity='.42'/%3E%3C/svg%3E");
 }
 
 .app { max-width: 1180px; margin: 0 auto; padding: 0 26px 90px; }
@@ -59,7 +96,7 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
 .mast-top { display: flex; align-items: center; gap: 20px; padding: 20px 0 14px; }
 
 .brand {
-    font-family: "Futura", "Century Gothic", sans-serif;
+    font-family: var(--f-title);
     font-weight: 700;
     font-size: 23px;
     text-transform: uppercase;
@@ -79,9 +116,9 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
     transition: .15s;
 }
 .ix:last-child { border-right: 0; }
-.ix .ixn { font-family: "Futura", "Century Gothic", sans-serif; font-weight: 700; font-size: 11px; color: var(--dim); letter-spacing: .04em; }
-.ix .ixl { font-family: "Futura", "Avenir Next", sans-serif; font-weight: 700; text-transform: uppercase; letter-spacing: .13em; font-size: 12.5px; color: var(--muted); }
-.ix .ixh { margin-left: auto; font-family: "Futura", sans-serif; text-transform: uppercase; letter-spacing: .1em; font-size: 9px; color: var(--dim); white-space: nowrap; }
+.ix .ixn { font-family: var(--f-display); font-weight: 700; font-size: 11px; color: var(--dim); letter-spacing: .04em; }
+.ix .ixl { font-family: var(--f-display); font-weight: 700; text-transform: uppercase; letter-spacing: .13em; font-size: 12.5px; color: var(--muted); }
+.ix .ixh { margin-left: auto; font-family: var(--f-display); text-transform: uppercase; letter-spacing: .1em; font-size: 9px; color: var(--dim); white-space: nowrap; }
 a.ix:hover { background: var(--panel); }
 .ix.active { border-top-color: var(--ac); background: var(--panel); }
 .ix.active .ixn { color: var(--ac); }
@@ -101,7 +138,7 @@ a.ix:hover { background: var(--panel); }
 .gsearch-input::placeholder { color: var(--dim); }
 .gsearch-input:focus { outline: none; border-color: var(--ac); }
 .gsearch-esc {
-    font-family: "Futura", sans-serif;
+    font-family: var(--f-display);
     text-transform: uppercase;
     letter-spacing: .12em;
     font-size: 9px;
@@ -156,7 +193,7 @@ a.ix:hover { background: var(--panel); }
 .modal .capture { margin-top: 0; }
 
 .eyebrow { color: var(--sage); }
-.h-lg { font-size: 40px; margin: 8px 0 4px; letter-spacing: -.02em; }
+.h-lg { font-family: var(--f-title); color: var(--ac); font-size: 40px; margin: 8px 0 4px; letter-spacing: -.02em; }
 .sub { color: var(--muted); margin-bottom: 26px; max-width: 60ch; }
 
 /* search */
@@ -231,11 +268,11 @@ a.ix:hover { background: var(--panel); }
     display: flex;
     align-items: flex-end;
     padding: 12px;
-    background: linear-gradient(155deg, var(--tint), #20231e);
+    background: linear-gradient(155deg, var(--tint), #16240f);
 }
 
 .dcover .fb span {
-    font-family: "Futura", sans-serif;
+    font-family: var(--f-display);
     font-weight: 600;
     font-size: 14px;
     line-height: 1.15;
@@ -248,17 +285,17 @@ a.ix:hover { background: var(--panel); }
     inset: auto 0 0 0;
     padding: 6px 8px;
     background: rgba(0, 0, 0, .55);
-    font-family: "Futura", sans-serif;
+    font-family: var(--f-display);
     text-transform: uppercase;
     letter-spacing: .12em;
     font-size: 8.5px;
     color: var(--ac2);
 }
 
-.detail .dt { font-family: "Futura", "Avenir Next", sans-serif; font-weight: 600; font-size: 21px; line-height: 1.15; }
+.detail .dt { font-family: var(--f-display); font-weight: 600; font-size: 21px; line-height: 1.15; }
 
 .detail .dm {
-    font-family: "Futura", sans-serif;
+    font-family: var(--f-display);
     text-transform: uppercase;
     letter-spacing: .1em;
     font-size: 10px;
@@ -267,7 +304,7 @@ a.ix:hover { background: var(--panel); }
 }
 
 .detail .dd {
-    font-family: "Avenir Next", Georgia, serif;
+    font-family: var(--f-serif);
     font-size: 13.5px;
     line-height: 1.55;
     color: var(--muted);
@@ -285,11 +322,11 @@ a.ix:hover { background: var(--panel); }
 
 .dfacts { display: flex; flex-wrap: wrap; gap: 0; margin-top: 16px; border-top: 1px solid var(--line); }
 .dfact { flex: 1; min-width: 90px; padding: 12px 14px 0 0; }
-.dfact .n { font-family: "Futura", "Century Gothic", sans-serif; font-weight: 700; font-size: 20px; line-height: 1; }
+.dfact .n { font-family: var(--f-title); color: var(--ac); font-weight: 700; font-size: 20px; line-height: 1; }
 .dfact .n.sm { font-size: 13px; font-weight: 600; padding-top: 5px; }
 
 .dfact .l {
-    font-family: "Futura", sans-serif;
+    font-family: var(--f-display);
     text-transform: uppercase;
     letter-spacing: .14em;
     font-size: 9px;
@@ -311,7 +348,7 @@ a.ix:hover { background: var(--panel); }
 
 .result:last-of-type { border-bottom: 1px solid var(--line); }
 .result:hover, .result.on { background: var(--panel); border-left: 3px solid var(--ac); padding-left: 15px; }
-.result .rt2 { font-family: "Futura", "Avenir Next", sans-serif; font-weight: 600; font-size: 15.5px; }
+.result .rt2 { font-family: var(--f-display); font-weight: 600; font-size: 15.5px; }
 
 /* min-width:0 lets a long title wrap instead of forcing the row wider. */
 .result .rmeta { min-width: 0; overflow-wrap: anywhere; }
@@ -333,7 +370,7 @@ a.ix:hover { background: var(--panel); }
 }
 
 .result .ra {
-    font-family: "Futura", sans-serif;
+    font-family: var(--f-display);
     text-transform: uppercase;
     letter-spacing: .1em;
     font-size: 10px;
@@ -343,7 +380,7 @@ a.ix:hover { background: var(--panel); }
 
 .result .yr {
     margin-left: auto;
-    font-family: "Futura", "Century Gothic", sans-serif;
+    font-family: var(--f-display);
     font-weight: 700;
     font-size: 13px;
     color: var(--dim);
@@ -368,13 +405,13 @@ a.ix:hover { background: var(--panel); }
 }
 
 .cap-head .label { color: var(--muted); }
-.cap-sel { font-family: "Futura", "Avenir Next", sans-serif; font-weight: 600; font-size: 14px; }
+.cap-sel { font-family: var(--f-display); font-weight: 600; font-size: 14px; }
 .cap-row { display: flex; gap: 22px; flex-wrap: wrap; margin-bottom: 18px; }
 .cap-row > div { flex: 1; min-width: 120px; }
 .cap-block { margin-bottom: 18px; }
 
 .fl {
-    font-family: "Futura", sans-serif;
+    font-family: var(--f-display);
     text-transform: uppercase;
     letter-spacing: .12em;
     font-size: 9.5px;
@@ -395,7 +432,7 @@ a.ix:hover { background: var(--panel); }
     padding: 7px 11px;
     border: 1px solid var(--line);
     border-left: 0;
-    font-family: "Futura", sans-serif;
+    font-family: var(--f-display);
     text-transform: uppercase;
     letter-spacing: .08em;
     font-size: 9.5px;
@@ -406,7 +443,7 @@ a.ix:hover { background: var(--panel); }
 
 .seg:first-child { border-left: 1px solid var(--line); }
 .seg:hover:not(:disabled) { color: var(--ink); }
-.seg.on { background: var(--ac); color: #fff; border-color: var(--ac); }
+.seg.on { background: var(--ac); color: var(--on-ac); border-color: var(--ac); }
 .seg:disabled { opacity: .3; cursor: not-allowed; }
 
 /* moods wrap as loose chips rather than one welded bar */
@@ -457,7 +494,7 @@ select.in { background: var(--panel2); }
     background: transparent;
     border: 1px solid var(--ac);
     padding: 11px 12px;
-    font-family: "Avenir Next", Georgia, serif;
+    font-family: var(--f-serif);
     font-style: italic;
     font-size: 14px;
     line-height: 1.5;
@@ -491,12 +528,12 @@ select.in { background: var(--panel2); }
 .cap-foot .req { margin-right: auto; font-size: 11.5px; color: var(--dim); }
 
 .btn {
-    font-family: "Futura", sans-serif;
+    font-family: var(--f-display);
     text-transform: uppercase;
     letter-spacing: .14em;
     font-size: 10.5px;
     font-weight: 700;
-    color: #fff;
+    color: var(--on-ac);
     background: var(--ac);
     padding: 10px 18px;
 }
@@ -529,8 +566,8 @@ select.in { background: var(--panel2); }
     gap: 7px;
     padding: 4px 9px;
     background: var(--ac);
-    color: #fff;
-    font-family: "Futura", sans-serif;
+    color: var(--on-ac);
+    font-family: var(--f-display);
     text-transform: uppercase;
     letter-spacing: .08em;
     font-size: 9.5px;
@@ -546,7 +583,7 @@ select.in { background: var(--panel2); }
     padding: 4px 9px;
     border: 1px solid var(--line);
     color: var(--muted);
-    font-family: "Futura", sans-serif;
+    font-family: var(--f-display);
     text-transform: uppercase;
     letter-spacing: .08em;
     font-size: 9.5px;
@@ -574,7 +611,7 @@ select.in { background: var(--panel2); }
     z-index: 1000;
     padding: 14px 26px;
     background: var(--ac);
-    color: #fff;
+    color: var(--on-ac);
     font-size: 13px;
 }
 
@@ -601,7 +638,7 @@ select.in { background: var(--panel2); }
 .sechead .label { color: var(--muted); }
 .sechead .rt {
     margin-left: auto;
-    font-family: "Futura", sans-serif;
+    font-family: var(--f-display);
     text-transform: uppercase;
     letter-spacing: .12em;
     font-size: 9.5px;
@@ -609,7 +646,7 @@ select.in { background: var(--panel2); }
 }
 .homeempty {
     color: var(--dim);
-    font-family: "Avenir Next", Georgia, serif;
+    font-family: var(--f-serif);
     font-style: italic;
     font-size: 14px;
     padding: 4px 0;
@@ -635,10 +672,10 @@ select.in { background: var(--panel2); }
     display: flex;
     align-items: flex-end;
     padding: 6px;
-    background: linear-gradient(155deg, var(--panel), #20231e);
+    background: linear-gradient(155deg, var(--panel), #16240f);
 }
 .odp .fb span {
-    font-family: "Futura", sans-serif;
+    font-family: var(--f-display);
     font-weight: 600;
     font-size: 8.5px;
     line-height: 1.12;
@@ -646,7 +683,7 @@ select.in { background: var(--panel2); }
     text-shadow: 0 1px 4px rgba(0, 0, 0, .6);
 }
 .odt {
-    font-family: "Futura", "Avenir Next", sans-serif;
+    font-family: var(--f-display);
     font-weight: 600;
     font-size: 10.5px;
     line-height: 1.15;
@@ -679,10 +716,10 @@ select.in { background: var(--panel2); }
     display: flex;
     align-items: flex-end;
     padding: 7px;
-    background: linear-gradient(155deg, var(--panel), #20231e);
+    background: linear-gradient(155deg, var(--panel), #16240f);
 }
 .ocov .fb span {
-    font-family: "Futura", sans-serif;
+    font-family: var(--f-display);
     font-weight: 600;
     font-size: 9px;
     line-height: 1.12;
@@ -690,9 +727,9 @@ select.in { background: var(--panel2); }
     text-shadow: 0 1px 4px rgba(0, 0, 0, .6);
 }
 .ohead { display: flex; align-items: baseline; gap: 14px; }
-.ot { font-family: "Futura", "Avenir Next", sans-serif; font-weight: 600; font-size: 19px; line-height: 1.1; }
+.ot { font-family: var(--f-title); font-weight: 600; font-size: 19px; line-height: 1.1; }
 .ometa {
-    font-family: "Futura", sans-serif;
+    font-family: var(--f-display);
     text-transform: uppercase;
     letter-spacing: .1em;
     font-size: 10px;
@@ -702,7 +739,7 @@ select.in { background: var(--panel2); }
 .oprog { height: 4px; background: rgba(0, 0, 0, .32); margin-top: 11px; max-width: 360px; }
 .oprog i { display: block; height: 100%; background: var(--ac); }
 .ofoot {
-    font-family: "Avenir Next", Georgia, serif;
+    font-family: var(--f-serif);
     font-style: italic;
     font-size: 13.5px;
     color: var(--dim);
@@ -723,9 +760,9 @@ select.in { background: var(--panel2); }
     padding-top: 16px;
     margin-bottom: 12px;
 }
-.justclosed .ji { font-family: "Futura", "Avenir Next", sans-serif; font-weight: 600; font-size: 16px; }
+.justclosed .ji { font-family: var(--f-display); font-weight: 600; font-size: 16px; }
 .justclosed .jm {
-    font-family: "Futura", sans-serif;
+    font-family: var(--f-display);
     text-transform: uppercase;
     letter-spacing: .1em;
     font-size: 9.5px;
@@ -739,18 +776,71 @@ select.in { background: var(--panel2); }
     .oact { grid-column: 1 / -1; justify-content: flex-start; }
 }
 
-/* ── item detail modal — the universal item view ── */
-.modal.wide { max-width: 780px; }
+/* ── item page — the universal item view ── */
 .clickable { cursor: pointer; }
-.ot.clickable:hover { color: var(--ac); }
-.ji.clickable:hover { color: var(--ac); }
+.ot.clickable:hover, .ji.clickable:hover { color: var(--ac); }
 .ocov.clickable:hover { outline: 2px solid var(--ac); }
 
-.idhead { display: grid; grid-template-columns: 140px 1fr; gap: 24px; margin-bottom: 22px; }
+.itemhead { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
+
+.backlink {
+    font-family: var(--f-display);
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    font-size: 9.5px;
+    font-weight: 700;
+    color: var(--muted);
+    text-decoration: none;
+}
+.backlink:hover { color: var(--ac); }
+
+.idtype, .idstatus {
+    font-family: var(--f-display);
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    font-size: 9.5px;
+    font-weight: 700;
+}
+.idstatus { color: var(--muted); }
+.idfav { margin-left: auto; font-size: 19px; color: var(--dim); line-height: 1; }
+.idfav.on, .idfav:hover { color: var(--ac2); }
+
+.itemtitle {
+    font-family: var(--f-title);
+    color: var(--ac);
+    font-weight: 600;
+    font-size: 34px;
+    line-height: 1.08;
+    letter-spacing: -.02em;
+    margin: 0;
+}
+.idcreator {
+    font-family: var(--f-display);
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 8px;
+}
+
+/* two tracks: the work + its diary on the left, classification alongside.
+   The diary's rule follows the description, not the taller aside. */
+.itemgrid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    gap: 34px;
+    align-items: start;
+    margin-top: 28px;
+    padding-top: 24px;
+    border-top: var(--rule) solid var(--ink);
+}
+.itemmain { min-width: 0; }
+.workrow { display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 30px; align-items: start; }
+.itemcol { min-width: 0; }
 
 .idcover {
     position: relative;
-    width: 140px;
+    width: 100%;
     aspect-ratio: 2/3;
     border: 1px solid var(--line);
     overflow: hidden;
@@ -762,95 +852,77 @@ select.in { background: var(--panel2); }
     inset: 0;
     display: flex;
     align-items: flex-end;
-    padding: 9px;
-    background: linear-gradient(155deg, var(--panel), #20231e);
+    padding: 11px;
+    background: linear-gradient(155deg, var(--panel), #16240f);
 }
 .idcover .fb span {
-    font-family: "Futura", sans-serif;
+    font-family: var(--f-display);
     font-weight: 600;
-    font-size: 11px;
+    font-size: 12px;
     line-height: 1.15;
     color: #fff;
 }
 
-.idmeta { min-width: 0; }
-.idtop { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
-
-.idtype, .idstatus {
-    font-family: "Futura", sans-serif;
-    text-transform: uppercase;
-    letter-spacing: .12em;
-    font-size: 9.5px;
-    font-weight: 700;
-}
-.idstatus { color: var(--muted); }
-.idfav { margin-left: auto; font-size: 17px; color: var(--dim); line-height: 1; }
-.idfav.on, .idfav:hover { color: var(--ac2); }
-.idclose { font-size: 14px; color: var(--dim); line-height: 1; }
-.idclose:hover { color: var(--ink); }
-
-.idtitle {
-    font-family: "Futura", "Avenir Next", sans-serif;
-    font-weight: 600;
-    font-size: 26px;
-    line-height: 1.1;
-    letter-spacing: -.01em;
-    margin: 0;
-}
-.idcreator {
-    font-family: "Futura", sans-serif;
-    text-transform: uppercase;
-    letter-spacing: .1em;
-    font-size: 10px;
-    color: var(--muted);
-    margin-top: 7px;
-}
-.idrating { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
+.idrating { display: flex; align-items: center; gap: 10px; }
 .idratingn {
-    font-family: "Futura", "Century Gothic", sans-serif;
+    font-family: var(--f-display);
     font-weight: 700;
     font-size: 13px;
     color: var(--ac2);
 }
 
 .iddesc {
-    font-family: "Avenir Next", Georgia, serif;
+    font-family: var(--f-serif);
     font-size: 14px;
-    line-height: 1.62;
+    line-height: 1.65;
     color: var(--muted);
-    max-height: 190px;
-    overflow-y: auto;
-    padding: 16px 0;
+    margin-top: 18px;
+    padding-top: 16px;
     border-top: 1px solid var(--line);
 }
-.iddesc::-webkit-scrollbar { width: 5px; }
-.iddesc::-webkit-scrollbar-thumb { background: var(--line); }
 
 .idaction {
     display: flex;
     align-items: center;
     gap: 18px;
     flex-wrap: wrap;
-    padding: 18px 0;
-    border-top: 2px solid var(--ink);
-    border-bottom: 1px solid var(--line);
+    padding-bottom: 22px;
     margin-bottom: 22px;
+    border-bottom: 1px solid var(--line);
 }
-.idprogress { flex: 1; min-width: 200px; }
+.idprogress { flex: 1; min-width: 180px; }
 .idstart { flex: 1 1 100%; }
 
-.idedit { margin-bottom: 26px; }
-.idedit .cap-head { margin-bottom: 16px; }
+/* the diary — passes flow left to right and wrap onto the next row */
+.itemdiary { margin-top: 30px; padding-top: 22px; border-top: var(--rule) solid var(--ink); }
 
-.idhistory { border-top: 2px solid var(--ink); padding-top: 16px; }
-.idpass { padding: 12px 0; border-bottom: 1px solid var(--line); }
-.idpass:last-child { border-bottom: 0; }
+.passgrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    gap: 22px;
+    align-items: start;
+}
+
+.idpass {
+    padding: 16px 18px;
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--ac);
+    background: var(--panel);
+}
+
+.idpassrating {
+    font-family: var(--f-display);
+    font-weight: 700;
+    font-size: 11px;
+    color: var(--ac2);
+    margin-top: 8px;
+}
 .idpasshead {
     display: flex;
     align-items: baseline;
     gap: 10px;
     flex-wrap: wrap;
-    font-family: "Futura", sans-serif;
+    font-family: var(--f-display);
     text-transform: uppercase;
     letter-spacing: .09em;
     font-size: 9.5px;
@@ -862,7 +934,7 @@ select.in { background: var(--panel2); }
 .idctx { margin-left: auto; }
 
 .idnote {
-    font-family: "Avenir Next", Georgia, serif;
+    font-family: var(--f-serif);
     font-style: italic;
     font-size: 13.5px;
     line-height: 1.55;
@@ -873,7 +945,7 @@ select.in { background: var(--panel2); }
 }
 .idnotekind {
     display: block;
-    font-family: "Futura", sans-serif;
+    font-family: var(--f-display);
     font-style: normal;
     text-transform: uppercase;
     letter-spacing: .1em;
@@ -882,7 +954,13 @@ select.in { background: var(--panel2); }
     margin-bottom: 3px;
 }
 
+@media (max-width: 1040px) {
+    .itemgrid { grid-template-columns: 1fr; gap: 26px; }
+    .itemgrid > .itemcol { border-top: 1px solid var(--line); padding-top: 20px; }
+}
+
 @media (max-width: 640px) {
-    .idhead { grid-template-columns: 1fr; }
-    .idcover { width: 110px; }
+    .workrow { grid-template-columns: 1fr; }
+    .itemtitle { font-size: 26px; }
+    .idcover { width: 150px; }
 }

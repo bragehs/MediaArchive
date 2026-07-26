@@ -3,6 +3,7 @@
 @rendermode InteractiveServer
 @inject CollectionService Collection
 @inject ConsumptionService Consumption
+@inject NavigationManager Nav
 
 <PageTitle>Home · MediaArchive</PageTitle>
 
@@ -23,7 +24,7 @@ else
             <div class="odrow">
                 @foreach (var item in _onDeck)
                 {
-                    <div class="odcard" @onclick="() => _detailTarget = item.UserMediaItemId">
+                    <div class="odcard" @onclick="() => OpenItem(item.UserMediaItemId)">
                         <div class="odp">
                             @if (!string.IsNullOrWhiteSpace(item.ImageUrl))
                             {
@@ -55,7 +56,7 @@ else
             @foreach (var item in _openNow)
             {
                 <div class="open">
-                    <div class="ocov clickable" @onclick="() => _detailTarget = item.UserMediaItemId">
+                    <div class="ocov clickable" @onclick="() => OpenItem(item.UserMediaItemId)">
                         @if (!string.IsNullOrWhiteSpace(item.ImageUrl))
                         {
                             <img src="@item.ImageUrl" alt="Cover of @item.Title"/>
@@ -67,7 +68,7 @@ else
                     </div>
                     <div>
                         <div class="ohead">
-                            <div class="ot clickable" @onclick="() => _detailTarget = item.UserMediaItemId">
+                            <div class="ot clickable" @onclick="() => OpenItem(item.UserMediaItemId)">
                                 @item.Title
                             </div>
                         </div>
@@ -91,7 +92,7 @@ else
         <section class="homesec">
             <div class="sechead"><span class="label">Just closed</span></div>
             <div class="justclosed">
-                <span class="ji clickable" @onclick="() => _detailTarget = jc.UserMediaItemId">@jc.Title</span>
+                <span class="ji clickable" @onclick="() => OpenItem(jc.UserMediaItemId)">@jc.Title</span>
                 @if (jc.Rating is { } r)
                 {
                     <span class="stars">
@@ -111,21 +112,16 @@ else
                        OnClose="() => _logTarget = null" OnLogged="OnLogged"/>
 }
 
-@if (_detailTarget is { } detailId)
-{
-    <ItemDetailModal UserMediaItemId="@detailId" OnClose="() => _detailTarget = null"
-                     OnChanged="LoadAsync"/>
-}
-
 @code {
     private bool _loading = true;
     private IReadOnlyList<OnDeckItem> _onDeck = [];
     private IReadOnlyList<OpenNowItem> _openNow = [];
     private JustClosedItem? _justClosed;
     private OpenNowItem? _logTarget;
-    private int? _detailTarget;
 
     protected override Task OnInitializedAsync() => LoadAsync();
+
+    private void OpenItem(int userMediaItemId) => Nav.NavigateTo($"/item/{userMediaItemId}");
 
     private async Task LoadAsync()
     {
