@@ -1,4 +1,3 @@
-using System.Linq.Expressions;
 using MediaArchive.Data;
 using MediaArchive.Models;
 using MediaArchive.Services.Providers;
@@ -41,19 +40,9 @@ public class MediaImportService(
             mediaItem.LocalImagePath = await coverCache.TryCacheAsync(
                 mediaItem.ImageUrl, mediaItem.ExternalSource, mediaItem.ExternalId, ct);
 
-        var universes = await ResolveNamedAsync(db, [details.Universe],
-            name => new Universe { Name = name }, ct);
-        if (universes.Count > 0)
-            mediaItem.Universe = universes[0];
-
-        var series = await ResolveSeriesAsync(db, details.Series, ct);
-        mediaItem.Series = series;
-        // Position is meaningless without a real series.
-        mediaItem.SeriesPosition = series.Id == Series.StandaloneId ? null : details.SeriesPosition;
-
-        await ApplyGenresAsync(db, mediaItem, details.Genres, ct);
-        await ApplyTagsAsync(db, mediaItem, details.Tags, ct);
-        await ApplyCreditsAsync(db, mediaItem, item.Credits, ct);
+        // Additive: re-importing something must not drop vocabulary I added by hand.
+        await VocabularyResolver.ApplyWorkDetailsAsync(db, mediaItem, details, false, ct);
+        await VocabularyResolver.ApplyCreditsAsync(db, mediaItem, item.Credits, ct);
 
         var userItem = await ResolveUserMediaItemAsync(db, mediaItem, ct);
         userItem.Discovery = details.Discovery ?? userItem.Discovery;
@@ -94,143 +83,5 @@ public class MediaImportService(
         var created = new UserMediaItem { MediaItem = mediaItem };
         db.UserMediaItems.Add(created);
         return created;
-    }
-
-    private static async Task ApplyGenresAsync(AppDbContext db, MediaItem mediaItem,
-        List<string> names, CancellationToken ct)
-    {
-        var genres = await ResolveNamedAsync(db, names, name => new Genre { Name = name }, ct);
-        if (genres.Count == 0)
-            return;
-
-        await LoadIfPersistedAsync(db, mediaItem, m => m.Genres, ct);
-
-        var linked = mediaItem.Genres.Select(mg => mg.GenreId).ToHashSet();
-
-        foreach (var genre in genres.Where(g => g.Id == 0 || !linked.Contains(g.Id)))
-            mediaItem.Genres.Add(new MediaItemGenre { Genre = genre });
-    }
-
-    private static async Task ApplyCreditsAsync(AppDbContext db, MediaItem mediaItem,
-        List<CreditDto> credits, CancellationToken ct)
-    {
-        // (Person, Role) is the composite key, so a repeated pair would collide.
-        credits = credits
-            .Where(c => !string.IsNullOrWhiteSpace(c.Name))
-            .DistinctBy(c => (c.Name.Trim().ToLowerInvariant(), c.Role))
-            .ToList();
-
-        if (credits.Count == 0)
-            return;
-
-        var people = await ResolveNamedAsync(db, credits.Select(c => c.Name),
-            name => new Person { Name = name }, ct);
-
-        if (people.Count == 0)
-            return;
-
-        var byName = people.ToDictionary(p => p.Name, StringComparer.OrdinalIgnoreCase);
-
-        await LoadIfPersistedAsync(db, mediaItem, m => m.Credits, ct);
-
-        var linked = mediaItem.Credits.Select(mc => (mc.PersonId, mc.Role)).ToHashSet();
-
-        foreach (var credit in credits)
-        {
-            if (!byName.TryGetValue(credit.Name.Trim(), out var person))
-                continue;
-
-            if (person.Id != 0 && !linked.Add((person.Id, credit.Role)))
-                continue;
-
-            mediaItem.Credits.Add(new MediaItemCredit { Person = person, Role = credit.Role });
-        }
-    }
-
-    private static async Task ApplyTagsAsync(AppDbContext db, MediaItem mediaItem,
-        List<TagInput> inputs, CancellationToken ct)
-    {
-        var classification = inputs
-            .Where(i => !string.IsNullOrWhiteSpace(i.Name))
-            .GroupBy(i => i.Name.Trim(), StringComparer.OrdinalIgnoreCase)
-            .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
-
-        var tags = await ResolveNamedAsync(db, inputs.Select(i => i.Name),
-            name => new Tag
-            {
-                Name = name,
-                Facet = classification[name].Facet,
-                AppliesTo = classification[name].AppliesTo
-            }, ct);
-
-        if (tags.Count == 0)
-            return;
-
-        await LoadIfPersistedAsync(db, mediaItem, m => m.Tags, ct);
-
-        var linked = mediaItem.Tags.Select(mt => mt.TagId).ToHashSet();
-
-        foreach (var tag in tags.Where(t => t.Id == 0 || !linked.Contains(t.Id)))
-            mediaItem.Tags.Add(new MediaItemTag { Tag = tag });
-    }
-
-    // A brand-new entity has nothing in the DB to load; an existing one needs its
-    // join rows pulled in before we can diff against them.
-    private static async Task LoadIfPersistedAsync<TProp>(AppDbContext db, MediaItem mediaItem,
-        Expression<Func<MediaItem, IEnumerable<TProp>>> collection, CancellationToken ct)
-        where TProp : class
-    {
-        if (mediaItem.Id != 0)
-            await db.Entry(mediaItem).Collection(collection).LoadAsync(ct);
-    }
-
-    private static async Task<Series> ResolveSeriesAsync(AppDbContext db, string? name,
-        CancellationToken ct)
-    {
-        if (string.IsNullOrWhiteSpace(name) ||
-            name.Trim().Equals(Series.StandaloneName, StringComparison.OrdinalIgnoreCase))
-            return await db.Series.FirstAsync(s => s.Id == Series.StandaloneId, ct);
-
-        var resolved = await ResolveNamedAsync(db, [name], n => new Series { Name = n }, ct);
-        return resolved[0];
-    }
-
-    private static async Task<List<T>> ResolveNamedAsync<T>(AppDbContext db,
-        IEnumerable<string?> names, Func<string, T> create, CancellationToken ct)
-        where T : class, INamed
-    {
-        var wanted = names
-            .Where(n => !string.IsNullOrWhiteSpace(n))
-            .Select(n => n!.Trim())
-            .GroupBy(n => n.ToLowerInvariant())
-            .ToDictionary(g => g.Key, g => g.First());
-
-        if (wanted.Count == 0)
-            return [];
-
-        var set = db.Set<T>();
-        var keys = wanted.Keys.ToList();
-
-        // EF.Property keeps this translatable: T is generic here, so the provider
-        // can't see through the INamed member access on its own.
-        var existing = await set
-            .Where(e => keys.Contains(EF.Property<string>(e, nameof(INamed.Name)).ToLower()))
-            .ToListAsync(ct);
-
-        var byKey = existing.ToDictionary(e => e.Name.ToLowerInvariant());
-        var result = new List<T>(wanted.Count);
-
-        foreach (var (key, display) in wanted)
-        {
-            if (!byKey.TryGetValue(key, out var match))
-            {
-                match = create(display);
-                set.Add(match);
-            }
-
-            result.Add(match);
-        }
-
-        return result;
     }
 }

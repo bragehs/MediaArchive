@@ -23,7 +23,7 @@ else
             <div class="odrow">
                 @foreach (var item in _onDeck)
                 {
-                    <div class="odcard">
+                    <div class="odcard" @onclick="() => _detailTarget = item.UserMediaItemId">
                         <div class="odp">
                             @if (!string.IsNullOrWhiteSpace(item.ImageUrl))
                             {
@@ -55,7 +55,7 @@ else
             @foreach (var item in _openNow)
             {
                 <div class="open">
-                    <div class="ocov">
+                    <div class="ocov clickable" @onclick="() => _detailTarget = item.UserMediaItemId">
                         @if (!string.IsNullOrWhiteSpace(item.ImageUrl))
                         {
                             <img src="@item.ImageUrl" alt="Cover of @item.Title"/>
@@ -66,7 +66,11 @@ else
                         }
                     </div>
                     <div>
-                        <div class="ohead"><div class="ot">@item.Title</div></div>
+                        <div class="ohead">
+                            <div class="ot clickable" @onclick="() => _detailTarget = item.UserMediaItemId">
+                                @item.Title
+                            </div>
+                        </div>
                         <div class="ometa">
                             touched @Ago(item.DaysSinceTouched)@(item.Progress is { } p ? $" · {p:0}%" : "")
                         </div>
@@ -87,7 +91,7 @@ else
         <section class="homesec">
             <div class="sechead"><span class="label">Just closed</span></div>
             <div class="justclosed">
-                <span class="ji">@jc.Title</span>
+                <span class="ji clickable" @onclick="() => _detailTarget = jc.UserMediaItemId">@jc.Title</span>
                 @if (jc.Rating is { } r)
                 {
                     <span class="stars">
@@ -103,7 +107,14 @@ else
 
 @if (_logTarget is { } target)
 {
-    <LogProgressDialog Item="target" OnClose="() => _logTarget = null" OnLogged="OnLogged"/>
+    <LogProgressDialog EntryId="@target.OpenEntryId" Title="@target.Title" MediaType="@target.MediaType"
+                       OnClose="() => _logTarget = null" OnLogged="OnLogged"/>
+}
+
+@if (_detailTarget is { } detailId)
+{
+    <ItemDetailModal UserMediaItemId="@detailId" OnClose="() => _detailTarget = null"
+                     OnChanged="LoadAsync"/>
 }
 
 @code {
@@ -112,6 +123,7 @@ else
     private IReadOnlyList<OpenNowItem> _openNow = [];
     private JustClosedItem? _justClosed;
     private OpenNowItem? _logTarget;
+    private int? _detailTarget;
 
     protected override Task OnInitializedAsync() => LoadAsync();
 

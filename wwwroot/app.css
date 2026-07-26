@@ -738,3 +738,151 @@ select.in { background: var(--panel2); }
     .ocov { width: 64px; }
     .oact { grid-column: 1 / -1; justify-content: flex-start; }
 }
+
+/* ── item detail modal — the universal item view ── */
+.modal.wide { max-width: 780px; }
+.clickable { cursor: pointer; }
+.ot.clickable:hover { color: var(--ac); }
+.ji.clickable:hover { color: var(--ac); }
+.ocov.clickable:hover { outline: 2px solid var(--ac); }
+
+.idhead { display: grid; grid-template-columns: 140px 1fr; gap: 24px; margin-bottom: 22px; }
+
+.idcover {
+    position: relative;
+    width: 140px;
+    aspect-ratio: 2/3;
+    border: 1px solid var(--line);
+    overflow: hidden;
+    background: var(--panel2);
+}
+.idcover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.idcover .fb {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: flex-end;
+    padding: 9px;
+    background: linear-gradient(155deg, var(--panel), #20231e);
+}
+.idcover .fb span {
+    font-family: "Futura", sans-serif;
+    font-weight: 600;
+    font-size: 11px;
+    line-height: 1.15;
+    color: #fff;
+}
+
+.idmeta { min-width: 0; }
+.idtop { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+
+.idtype, .idstatus {
+    font-family: "Futura", sans-serif;
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    font-size: 9.5px;
+    font-weight: 700;
+}
+.idstatus { color: var(--muted); }
+.idfav { margin-left: auto; font-size: 17px; color: var(--dim); line-height: 1; }
+.idfav.on, .idfav:hover { color: var(--ac2); }
+.idclose { font-size: 14px; color: var(--dim); line-height: 1; }
+.idclose:hover { color: var(--ink); }
+
+.idtitle {
+    font-family: "Futura", "Avenir Next", sans-serif;
+    font-weight: 600;
+    font-size: 26px;
+    line-height: 1.1;
+    letter-spacing: -.01em;
+    margin: 0;
+}
+.idcreator {
+    font-family: "Futura", sans-serif;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 7px;
+}
+.idrating { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
+.idratingn {
+    font-family: "Futura", "Century Gothic", sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    color: var(--ac2);
+}
+
+.iddesc {
+    font-family: "Avenir Next", Georgia, serif;
+    font-size: 14px;
+    line-height: 1.62;
+    color: var(--muted);
+    max-height: 190px;
+    overflow-y: auto;
+    padding: 16px 0;
+    border-top: 1px solid var(--line);
+}
+.iddesc::-webkit-scrollbar { width: 5px; }
+.iddesc::-webkit-scrollbar-thumb { background: var(--line); }
+
+.idaction {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    flex-wrap: wrap;
+    padding: 18px 0;
+    border-top: 2px solid var(--ink);
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 22px;
+}
+.idprogress { flex: 1; min-width: 200px; }
+.idstart { flex: 1 1 100%; }
+
+.idedit { margin-bottom: 26px; }
+.idedit .cap-head { margin-bottom: 16px; }
+
+.idhistory { border-top: 2px solid var(--ink); padding-top: 16px; }
+.idpass { padding: 12px 0; border-bottom: 1px solid var(--line); }
+.idpass:last-child { border-bottom: 0; }
+.idpasshead {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    flex-wrap: wrap;
+    font-family: "Futura", sans-serif;
+    text-transform: uppercase;
+    letter-spacing: .09em;
+    font-size: 9.5px;
+    color: var(--dim);
+}
+.idpasshead b { color: var(--ink); font-weight: 700; }
+.idoutcome { color: var(--sage); }
+.idoutcome.open { color: var(--ac); }
+.idctx { margin-left: auto; }
+
+.idnote {
+    font-family: "Avenir Next", Georgia, serif;
+    font-style: italic;
+    font-size: 13.5px;
+    line-height: 1.55;
+    color: var(--muted);
+    margin-top: 9px;
+    padding-left: 12px;
+    border-left: 2px solid var(--line);
+}
+.idnotekind {
+    display: block;
+    font-family: "Futura", sans-serif;
+    font-style: normal;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    font-size: 8.5px;
+    color: var(--dim);
+    margin-bottom: 3px;
+}
+
+@media (max-width: 640px) {
+    .idhead { grid-template-columns: 1fr; }
+    .idcover { width: 110px; }
+}

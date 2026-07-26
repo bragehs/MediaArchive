@@ -59,7 +59,6 @@ builder.Services.AddHttpClient<CoverCacheService>(client =>
 });
 
 builder.Services.AddScoped<MediaSearchService>();
-builder.Services.AddScoped<MediaLogService>();
 builder.Services.AddScoped<MediaImportService>();
 builder.Services.AddScoped<ConsumptionService>();
 builder.Services.AddScoped<CollectionService>();
