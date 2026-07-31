@@ -22,24 +22,34 @@ with controller APIs**, so the transferable skills — the C# language, EF Core,
 the service layer, async, LINQ, architecture — matter to me far more than the Blazor
 UI. Optimize our collaboration for *me learning*, not for you shipping fast.
 
+**Now that I've started the job, I get plenty of hands-on C# typing every day at
+work.** So this project's role has shifted: the learning I want from it is the
+*design reasoning* and the *code review* reps, not the keyboard time. Optimize for
+energy-to-learning ratio — I'm doing this in addition to a full workday.
+
 ### The learning split — this is the important part
 
 Treat these two zones of the codebase differently:
 
-**Zone A — the C# I want to own (teach, don't write):**
+**Zone A — the C# I care about (design together, you implement, I review):**
 `Services/`, `Models/`, `Data/` (EF Core config, `DbContext`, migrations), business
 logic, LINQ queries, DI wiring in `Program.cs`, and any external-API import clients.
 For this code:
 
-- **Do NOT write it for me unless I explicitly ask.** Default to explaining the
-  *approach*, the trade-offs, and the relevant C#/.NET idiom — then let me write it.
-- Prefer Socratic hints and small examples over finished solutions.
-- After I write something, review it and push on it: naming, correctness, idiomatic
-  C#, EF Core pitfalls (N+1, context lifetime, tracking).
-- When a design decision comes up (where a responsibility lives, service boundaries,
-  how to model data, sync vs async, how to structure an import service), **stop and
-  discuss the options and trade-offs with me** before any code. This architectural
-  thinking is a primary goal, not overhead.
+- **Discuss the design first.** When a decision comes up (where a responsibility
+  lives, service boundaries, how to model data, sync vs async, how to structure an
+  import service), **stop and lay out the options and trade-offs with a
+  recommendation** before any code. This architectural thinking is the primary
+  learning goal, not overhead.
+- **Once we've agreed on the approach, you write the implementation.** Keep it in
+  small, readable slices (see Small diffs) so I can review each one.
+- **Explain as you go.** Name the C#/.NET concepts in play so I build the mental
+  model from reading your code (see Explain the C#).
+- **Expect me to review and push back.** Treat my review comments as the main event:
+  answer them, and flag anything in your own diff worth a second look — naming,
+  correctness, idiomatic C#, EF Core pitfalls (N+1, context lifetime, tracking).
+- If something is a genuinely new concept I say I want in my fingers, I'll ask to
+  hand-write that piece — offer to guide me instead of writing it then.
 
 **Zone B — the Blazor front-end (lower priority, you can drive):**
 `Components/`, `.razor` files, `wwwroot/`, CSS, `UiHelpers.cs`. Learning the Razor
@@ -49,15 +59,14 @@ UI and services.
 
 ### Working rules
 
-- **Explain the C#.** When you do write or review Zone-A code, name the language/
+- **Explain the C#.** When you write or review Zone-A code, name the language/
   framework concepts in play (async/await, LINQ, generics, DI lifetimes, EF Core
   relationships, nullable reference types) so I build the mental model.
 - **Small diffs.** Never drop a large feature in one go. Work in slices I can read
-  and explain back.
-- **Make me participate.** If I ask you to "just build" a Zone-A feature, offer to
-  guide me through writing it instead, unless I clearly want it done for me.
-- **Surface design choices, don't bury them.** Call out architectural forks
-  explicitly and give me a recommendation *with* the reasoning.
+  and explain back — this is what keeps the review valuable now that you write it.
+- **Design before code.** Surface architectural forks explicitly with a
+  recommendation *and* the reasoning, and settle the approach with me before
+  implementing a Zone-A feature.
 - **Design choices**. Look at desktop/vault/Personal Projects/Mediaarchive and look for relevant design choices before
   implementing a task.
 - Dont write to much comments in the code, only when necessary.
