@@ -652,6 +652,163 @@ select.in { background: var(--panel2); }
     padding: 4px 0;
 }
 
+/* this week — three volume tiles: gaming · viewing · reading */
+.weekstats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    border-top: var(--rule) solid var(--ink);
+}
+.wstat {
+    padding: 20px 22px 20px 0;
+    border-right: 1px solid var(--line);
+}
+.wstat:last-child { border-right: 0; }
+.wval {
+    font-family: var(--f-title);
+    font-weight: 700;
+    color: var(--ac);
+    font-size: 40px;
+    line-height: .9;
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+}
+.wunit {
+    font-family: var(--f-display);
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    font-size: 12px;
+    color: var(--dim);
+}
+.wlabel {
+    font-family: var(--f-display);
+    text-transform: uppercase;
+    letter-spacing: .14em;
+    font-size: 9.5px;
+    color: var(--dim);
+    margin-top: 11px;
+}
+.witems {
+    font-family: var(--f-serif);
+    font-style: italic;
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 4px;
+}
+@media (max-width: 640px) {
+    .weekstats { grid-template-columns: 1fr 1fr; }
+    .wstat:nth-child(2) { border-right: 0; }
+    .wstat { padding-right: 16px; }
+}
+
+/* home spread — Open now leads; a sticky rail carries the glanceable state */
+.homespread {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    gap: 44px;
+    align-items: start;
+}
+.homelead { min-width: 0; }
+.homerail {
+    position: sticky;
+    top: 135px;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+}
+.railcard .sechead { margin-bottom: 14px; }
+.railcard .homeempty { padding: 0; }
+
+/* weekstats, compacted for the narrower rail */
+.homerail .weekstats { border-top-width: 1px; }
+.homerail .wstat { padding: 12px 12px 12px 0; }
+.homerail .wval { font-size: 27px; }
+.homerail .wunit { font-size: 10px; }
+.homerail .wlabel { margin-top: 8px; }
+.homerail .witems { font-size: 12px; }
+
+/* "+N more" tile closing the On deck rail */
+.odmore {
+    width: 76px;
+    aspect-ratio: 2/3;
+    display: grid;
+    place-items: center;
+    border: 1px dashed var(--line);
+    font-family: var(--f-display);
+    font-weight: 700;
+    font-size: 13px;
+    color: var(--dim);
+}
+
+@media (max-width: 900px) {
+    .homespread { grid-template-columns: 1fr; gap: 4px; }
+    .homerail { position: static; }
+}
+
+/* archive-search result: status glyph on the right */
+.rstatus {
+    margin-left: auto;
+    flex: none;
+    font-family: var(--f-display);
+    font-size: 13px;
+    color: var(--dim);
+}
+.rstatus.st-completed { color: var(--ac); }
+.rstatus.st-inprogress { color: var(--ac2); }
+.rstatus.st-interested { color: var(--sage); }
+
+/* Explore add-search: the results panel floats over the recs below it */
+.explore-search { position: relative; }
+
+/* ── Explore: recommendation rails (skeleton — dimmed until the engine exists) ── */
+.recrail { margin-bottom: 30px; }
+.recrail-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 14px; }
+.recrail-t {
+    font-family: var(--f-display);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .13em;
+    font-size: 12px;
+    color: var(--muted);
+}
+.recrail-why { font-family: var(--f-serif); font-style: italic; font-size: 13px; color: var(--dim); }
+.recrow { display: flex; gap: 16px; overflow-x: auto; padding-bottom: 8px; scrollbar-width: thin; }
+.reccard { width: 118px; flex: none; opacity: .5; }
+.recposter {
+    position: relative;
+    width: 118px;
+    aspect-ratio: 2/3;
+    border: 1px solid var(--line);
+    border-top: 3px solid var(--tint);
+    background: linear-gradient(155deg, var(--panel), #16240f);
+    display: flex;
+    align-items: flex-end;
+    padding: 10px;
+    overflow: hidden;
+}
+.recposter span {
+    font-family: var(--f-display);
+    font-weight: 600;
+    font-size: 12px;
+    line-height: 1.15;
+    color: var(--ink);
+    text-shadow: 0 1px 4px rgba(0, 0, 0, .5);
+}
+.recct { font-family: var(--f-display); font-weight: 600; font-size: 12px; margin-top: 8px; line-height: 1.2; }
+.reccc { font-size: 10.5px; color: var(--dim); margin-top: 2px; }
+.recmore {
+    flex: none;
+    width: 66px;
+    display: grid;
+    place-items: center;
+    border: 1px dashed var(--line);
+    font-family: var(--f-display);
+    text-transform: uppercase;
+    letter-spacing: .14em;
+    font-size: 9px;
+    color: var(--dim);
+}
+
 /* on deck — the Interested rail */
 .odrow { display: flex; gap: 15px; flex-wrap: wrap; align-items: flex-start; }
 .odcard { width: 76px; cursor: pointer; }

@@ -23,6 +23,15 @@ public record JustClosedItem(
     int? Rating,
     int DaysSinceClosed);
 
+public enum MediaBucket { Gaming, Viewing, Reading }
+
+// One home-page tile: how much of this bucket happened this week, and across how
+// many distinct items. Value is hours for Gaming/Viewing, pages for Reading.
+public record WeeklyBucketStat(MediaBucket Bucket, double Value, string Unit, int ItemsTouched);
+
+public record WeeklyActivity(DateOnly WeekStart, DateOnly WeekEnd,
+    IReadOnlyList<WeeklyBucketStat> Buckets);
+
 public record PassNote(DateTime CreatedAt, NoteKind Kind, int? EffortAtTime, string? Text);
 
 public record PassSummary(
@@ -97,6 +106,83 @@ public class ConsumptionService(
         return new JustClosedItem(
             entry.UserMediaItem.Id, media.Title, media.Creator ?? "",
             entry.UserMediaItem.Rating, daysSinceClosed);
+    }
+
+    // Time/volume logged in the current calendar week (Mon–Sun, UTC to match how
+    // note timestamps are stored). Effort is cumulative, so we slice each pass by
+    // walking its note timeline and counting only the increments dated this week.
+    public async Task<WeeklyActivity> GetWeeklyActivityAsync(CancellationToken ct = default)
+    {
+        await using var db = await dbContextFactory.CreateDbContextAsync(ct);
+
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var weekStart = today.AddDays(-(((int)today.DayOfWeek + 6) % 7)); // back to Monday
+        var weekEnd = weekStart.AddDays(6);
+        var from = weekStart.ToDateTime(TimeOnly.MinValue);
+        var toExclusive = weekStart.AddDays(7).ToDateTime(TimeOnly.MinValue);
+
+        // Only passes with a note this week can contribute; load each one's full
+        // note history so the cumulative-effort walk has its running baseline.
+        var entries = await db.ConsumptionEntries
+            .Where(e => e.Notes.Any(n => n.CreatedAt >= from && n.CreatedAt < toExclusive))
+            .Include(e => e.Notes)
+            .Include(e => e.UserMediaItem!).ThenInclude(u => u.MediaItem)
+            .AsNoTracking()
+            .ToListAsync(ct);
+
+        double gamingMinutes = 0, viewingMinutes = 0, readingPages = 0;
+        var gamingItems = new HashSet<int>();
+        var viewingItems = new HashSet<int>();
+        var readingItems = new HashSet<int>();
+
+        foreach (var entry in entries)
+        {
+            var media = entry.UserMediaItem!.MediaItem!;
+            var units = UnitsLoggedInWeek(entry, from, toExclusive);
+            var minutes = media.MinutesPerUnit is { } perUnit ? units * perUnit : 0;
+
+            switch (media.MediaType)
+            {
+                case MediaType.Game:
+                    gamingMinutes += minutes;
+                    gamingItems.Add(entry.UserMediaItemId);
+                    break;
+                case MediaType.Book:
+                    readingPages += units;
+                    readingItems.Add(entry.UserMediaItemId);
+                    break;
+                default: // Movie or Show → Viewing
+                    viewingMinutes += minutes;
+                    viewingItems.Add(entry.UserMediaItemId);
+                    break;
+            }
+        }
+
+        var buckets = new List<WeeklyBucketStat>
+        {
+            new(MediaBucket.Gaming, Math.Round(gamingMinutes / 60, 1), "h", gamingItems.Count),
+            new(MediaBucket.Viewing, Math.Round(viewingMinutes / 60, 1), "h", viewingItems.Count),
+            new(MediaBucket.Reading, Math.Round(readingPages), "pages", readingItems.Count)
+        };
+
+        return new WeeklyActivity(weekStart, weekEnd, buckets);
+    }
+
+    // Effort is a running total, so a note's contribution is its cumulative value
+    // minus the previous note's. Null EffortAtTime (a start note, or a comment with
+    // no progress) carries the baseline forward and adds nothing.
+    private static double UnitsLoggedInWeek(ConsumptionEntry entry, DateTime from, DateTime toExclusive)
+    {
+        double previous = 0, units = 0;
+        foreach (var note in entry.Notes.OrderBy(n => n.CreatedAt))
+        {
+            double cumulative = note.EffortAtTime ?? previous;
+            var increment = Math.Max(0, cumulative - previous);
+            if (note.CreatedAt >= from && note.CreatedAt < toExclusive)
+                units += increment;
+            previous = cumulative;
+        }
+        return units;
     }
 
     public async Task<List<PassSummary>> GetPassHistoryAsync(int userMediaItemId,
