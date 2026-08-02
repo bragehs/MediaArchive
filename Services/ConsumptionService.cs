@@ -178,12 +178,24 @@ public class ConsumptionService(
         {
             double cumulative = note.EffortAtTime ?? previous;
             var increment = Math.Max(0, cumulative - previous);
-            if (note.CreatedAt >= from && note.CreatedAt < toExclusive)
+            var when = ActivityDate(entry, note);
+            if (when >= from && when < toExclusive)
                 units += increment;
             previous = cumulative;
         }
         return units;
     }
+
+    // A note's effort belongs to when it actually happened, not when it was logged.
+    // A backdated Start/Finish (e.g. a book logged today but read Feb–April) belongs
+    // to the pass's own StartDate/EndDate; a live Progress note has no logical date
+    // of its own, so its CreatedAt stands.
+    private static DateTime ActivityDate(ConsumptionEntry entry, EntryNote note) => note.Kind switch
+    {
+        NoteKind.Finish => (entry.EndDate ?? DateOnly.FromDateTime(note.CreatedAt)).ToDateTime(TimeOnly.MinValue),
+        NoteKind.Start => (entry.StartDate ?? DateOnly.FromDateTime(note.CreatedAt)).ToDateTime(TimeOnly.MinValue),
+        _ => note.CreatedAt
+    };
 
     public async Task<List<PassSummary>> GetPassHistoryAsync(int userMediaItemId,
         CancellationToken ct = default)
