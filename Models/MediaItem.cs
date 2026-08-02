@@ -80,8 +80,22 @@ public class Book : MediaItem
 
     public int? PageCount { get; set; }
 
+    // Audiobook total length in hours — user-entered (no provider supplies it).
+    // Lets an audiobook pass be logged in hours and converted to the canonical
+    // page unit; null for a print-only book.
+    public double? AudioHours { get; set; }
+
     [NotMapped] public override int? Length => PageCount;
     [NotMapped] public override double? MinutesPerUnit => MinutesPerPage;
+
+    // Audiobook progress is entered in hours; store it as pages proportionally so
+    // print and audio share one unit. Null when we lack a denominator to convert.
+    // Static because the log surfaces have the scalars (from a DTO or parameters),
+    // not a Book entity.
+    public static int? PagesFromHours(double? hours, double? audioHours, int? pageCount) =>
+        hours is { } h && audioHours is > 0 && pageCount is > 0
+            ? (int)Math.Round(h / audioHours.Value * pageCount.Value)
+            : null;
 }
 
 public class Game : MediaItem

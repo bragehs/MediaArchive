@@ -14,7 +14,10 @@ public record OpenNowItem(
     double? Progress,
     int DaysOpen,
     int DaysSinceTouched,
-    int OpenEntryId);
+    int OpenEntryId,
+    bool IsAudiobook,
+    double? AudioHours,
+    int? PageCount);
 
 public record JustClosedItem(
     int UserMediaItemId,
@@ -76,10 +79,14 @@ public class ConsumptionService(
                     : startDate;
                 var daysSinceTouched = today.DayNumber - lastTouched.DayNumber;
 
+                var book = media as Book;
+                var isAudiobook = book is not null && entry?.Context == ConsumptionContext.Audiobook;
+
                 return new OpenNowItem(
                     u.Id, media.Title, media.MediaType, media.Creator ?? "",
                     media.LocalImagePath ?? media.ImageUrl, progress, daysOpen, daysSinceTouched,
-                    entry?.Id ?? 0
+                    entry?.Id ?? 0,
+                    isAudiobook, book?.AudioHours, book?.PageCount
                 );
             })
             .OrderByDescending(x => x.Progress)

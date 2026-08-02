@@ -279,17 +279,28 @@
                                     <div class="fl">End</div>
                                     <input class="in" type="date" @bind="_endDate"/>
                                 </div>
-                                <div>
-                                    <div class="fl">Effort (@UiHelpers.LengthUnit(_detail.MediaType))</div>
-                                    <input class="in" type="number" min="0" @bind="_effort"
-                                           placeholder="@(_detail.Length?.ToString() ?? "")"/>
-                                    @if (_detail.Length is { } suggested && _effort != suggested)
-                                    {
-                                        <button class="hintbtn" @onclick="() => _effort = suggested">
-                                            use @suggested @UiHelpers.LengthUnit(_detail.MediaType) from @_detail.ExternalSource
-                                        </button>
-                                    }
-                                </div>
+                                @if (IsAudiobook)
+                                {
+                                    <div>
+                                        <div class="fl">Hours listened</div>
+                                        <input class="in" type="number" min="0" step="0.1" @bind="_hoursListened"
+                                               placeholder="@(_audioHours?.ToString() ?? "")"/>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div>
+                                        <div class="fl">Effort (@UiHelpers.LengthUnit(_detail.MediaType))</div>
+                                        <input class="in" type="number" min="0" @bind="_effort"
+                                               placeholder="@(_detail.Length?.ToString() ?? "")"/>
+                                        @if (_detail.Length is { } suggested && _effort != suggested)
+                                        {
+                                            <button class="hintbtn" @onclick="() => _effort = suggested">
+                                                use @suggested @UiHelpers.LengthUnit(_detail.MediaType) from @_detail.ExternalSource
+                                            </button>
+                                        }
+                                    </div>
+                                }
                             }
                         </div>
 
@@ -304,6 +315,14 @@
                                     }
                                 </select>
                             </div>
+                            @if (IsAudiobook)
+                            {
+                                <div>
+                                    <div class="fl">Audiobook length (hrs)</div>
+                                    <input class="in" type="number" min="0" step="0.1" @bind="_audioHours"
+                                           placeholder="e.g. 24.5"/>
+                                </div>
+                            }
                             @if (_action is LogAction.Completed)
                             {
                                 <div>
@@ -435,6 +454,8 @@
     private DateOnly? _startDate = DateOnly.FromDateTime(DateTime.Today);
     private DateOnly? _endDate = DateOnly.FromDateTime(DateTime.Today);
     private int? _effort;
+    private double? _audioHours;      // audiobook total length, entered once
+    private double? _hoursListened;   // audiobook effort, entered in hours
     private ConsumptionContext? _context;
     private int _rating;
     private string _note = "";
@@ -450,6 +471,14 @@
     {
         _vocab = await ImportService.GetVocabularyAsync();
     }
+
+    // A Book consumed as an audiobook: effort is entered in hours, not pages.
+    private bool IsAudiobook => _detail?.MediaType == MediaType.Book
+                                && _context == ConsumptionContext.Audiobook;
+
+    // Convert audiobook hours to the canonical page unit; fall back to plain effort.
+    private int? EffortToStore() =>
+        IsAudiobook ? Book.PagesFromHours(_hoursListened, _audioHours, _detail?.Length) : _effort;
 
     private bool NoteRequired => _action is LogAction.Start;
 
@@ -594,7 +623,8 @@
             _universe.FirstOrDefault(),
             _series.FirstOrDefault(),
             _seriesPosition,
-            _discovery);
+            _discovery,
+            IsAudiobook ? _audioHours : null);
 
         var note = _note.Trim().Length == 0 ? null : _note.Trim();
         var startNote = _startNote.Trim().Length == 0 ? null : _startNote.Trim();
@@ -619,7 +649,7 @@
                     var finish = new PassFinish(
                         _endDate ?? DateOnly.FromDateTime(DateTime.Today),
                         _rating == 0 ? null : _rating,
-                        _effort,
+                        EffortToStore(),
                         note);
                     await LogService.LogCompletedAsync(item, details, start, finish);
                     break;
@@ -656,6 +686,8 @@
         _startDate = DateOnly.FromDateTime(DateTime.Today);
         _endDate = DateOnly.FromDateTime(DateTime.Today);
         _effort = null;
+        _audioHours = null;
+        _hoursListened = null;
         _context = null;
         _rating = 0;
         _note = "";

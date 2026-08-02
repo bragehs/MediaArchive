@@ -36,6 +36,10 @@ public class MediaImportService(
 
         var mediaItem = await ResolveMediaItemAsync(db, item, ct);
 
+        // Audiobook length is user-entered, not from the provider — set it when given.
+        if (mediaItem is Book book && details.AudioHours is { } audioHours)
+            book.AudioHours = audioHours;
+
         if (mediaItem.LocalImagePath is null)
             mediaItem.LocalImagePath = await coverCache.TryCacheAsync(
                 mediaItem.ImageUrl, mediaItem.ExternalSource, mediaItem.ExternalId, ct);

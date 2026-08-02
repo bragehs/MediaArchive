@@ -7,13 +7,16 @@ namespace MediaArchive.Services;
 public record TagInput(string Name, TagFacet? Facet, MediaType? AppliesTo);
 
 // Describes the WORK and my standing relationship to it — not any single pass.
+// AudioHours is user-entered (no provider supplies it) and only meaningful for a
+// Book consumed as an audiobook.
 public record WorkDetails(
     List<string> Genres,
     List<TagInput> Tags,
     string? Universe,
     string? Series,
     int? SeriesPosition,
-    DiscoverySource? Discovery);
+    DiscoverySource? Discovery,
+    double? AudioHours = null);
 
 // Opening a pass. No EndDate by design: you can't know it yet.
 public record PassStart(

@@ -27,8 +27,17 @@
         {
             <div class="cap-row">
                 <div>
-                    <div class="fl">Effort so far (@UiHelpers.LengthUnit(MediaType)) <span class="opt">optional</span></div>
-                    <input class="in" type="number" min="0" @bind="_progressEffort"/>
+                    @if (Audiobook)
+                    {
+                        <div class="fl">Hours listened so far <span class="opt">optional</span></div>
+                        <input class="in" type="number" min="0" step="0.1" @bind="_progressHours"
+                               placeholder="@(AudioHours?.ToString() ?? "")"/>
+                    }
+                    else
+                    {
+                        <div class="fl">Effort so far (@UiHelpers.LengthUnit(MediaType)) <span class="opt">optional</span></div>
+                        <input class="in" type="number" min="0" @bind="_progressEffort"/>
+                    }
                 </div>
             </div>
             <div class="cap-block">
@@ -45,8 +54,17 @@
                     <input class="in" type="date" @bind="_endDate"/>
                 </div>
                 <div>
-                    <div class="fl">Effort (@UiHelpers.LengthUnit(MediaType)) <span class="opt">optional</span></div>
-                    <input class="in" type="number" min="0" @bind="_finishEffort"/>
+                    @if (Audiobook)
+                    {
+                        <div class="fl">Hours listened <span class="opt">optional</span></div>
+                        <input class="in" type="number" min="0" step="0.1" @bind="_finishHours"
+                               placeholder="@(AudioHours?.ToString() ?? "")"/>
+                    }
+                    else
+                    {
+                        <div class="fl">Effort (@UiHelpers.LengthUnit(MediaType)) <span class="opt">optional</span></div>
+                        <input class="in" type="number" min="0" @bind="_finishEffort"/>
+                    }
                 </div>
             </div>
 
@@ -110,16 +128,22 @@
     [Parameter, EditorRequired] public int EntryId { get; set; }
     [Parameter, EditorRequired] public string Title { get; set; } = "";
     [Parameter, EditorRequired] public MediaType MediaType { get; set; }
+    // Audiobook: effort is entered in hours and converted to pages before saving.
+    [Parameter] public bool Audiobook { get; set; }
+    [Parameter] public double? AudioHours { get; set; }
+    [Parameter] public int? PageCount { get; set; }
     [Parameter] public EventCallback OnClose { get; set; }
     [Parameter] public EventCallback OnLogged { get; set; }
 
     private Mode _mode = Mode.Progress;
 
     private int? _progressEffort;
+    private double? _progressHours;
     private string _progressNote = "";
 
     private DateOnly? _endDate = DateOnly.FromDateTime(DateTime.Today);
     private int? _finishEffort;
+    private double? _finishHours;
     private int _rating;
     private string _finishNote = "";
     private bool _dropped;
@@ -133,6 +157,9 @@
         _ => _endDate is not null
     };
 
+    // Audiobook hours → canonical pages; falls through to the plain page effort.
+    private int? ToPages(double? hours) => Book.PagesFromHours(hours, AudioHours, PageCount);
+
     private async Task Submit()
     {
         _saving = true;
@@ -142,15 +169,17 @@
         {
             if (_mode == Mode.Progress)
             {
+                var effort = Audiobook ? ToPages(_progressHours) : _progressEffort;
                 await LogService.AddNoteAsync(EntryId,
-                    new NoteInput(_progressNote.Trim(), _progressEffort));
+                    new NoteInput(_progressNote.Trim(), effort));
             }
             else
             {
                 var note = _finishNote.Trim().Length == 0 ? null : _finishNote.Trim();
+                var effort = Audiobook ? ToPages(_finishHours) : _finishEffort;
                 await LogService.FinishPassAsync(EntryId,
                     new PassFinish(_endDate!.Value, _rating == 0 ? null : _rating,
-                        _finishEffort, note, _dropped));
+                        effort, note, _dropped));
             }
 
             await OnLogged.InvokeAsync();
