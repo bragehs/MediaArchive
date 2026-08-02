@@ -137,6 +137,18 @@ public class ConsumptionService(
 
         foreach (var entry in entries)
         {
+            // The query loads any pass with a note logged this week, but a note's
+            // effort belongs to when it *happened* (ActivityDate). Skip passes with
+            // no activity dated this week — e.g. a book logged now but read Feb–April
+            // — so they count toward neither the units nor the item tally.
+            var touchedThisWeek = entry.Notes.Any(n =>
+            {
+                var when = ActivityDate(entry, n);
+                return when >= from && when < toExclusive;
+            });
+            if (!touchedThisWeek)
+                continue;
+
             var media = entry.UserMediaItem!.MediaItem!;
             var units = UnitsLoggedInWeek(entry, from, toExclusive);
             var minutes = media.MinutesPerUnit is { } perUnit ? units * perUnit : 0;
