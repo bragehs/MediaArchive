@@ -96,6 +96,9 @@ body::before {
 .mast-top { display: flex; align-items: center; gap: 20px; padding: 20px 0 14px; }
 
 .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 11px;
     font-family: var(--f-title);
     font-weight: 700;
     font-size: 23px;
@@ -104,6 +107,28 @@ body::before {
     white-space: nowrap;
 }
 .brand b { color: var(--ac); }
+
+/* the illuminated-M emblem — the app icon distilled, as a logo lockup */
+.brandmark {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 31px;
+    height: 31px;
+    border-radius: 7px;
+    border: 1px solid var(--ac2);
+    background: linear-gradient(155deg, var(--panel), #16240f);
+    font-family: var(--f-title);
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: -.02em;
+    line-height: 1;
+    color: var(--ac);
+    text-transform: none;
+    box-shadow: inset 0 0 0 3px rgba(28, 48, 28, .6);
+}
+.brandmark > span { color: var(--ink); }
 
 .index { display: grid; grid-template-columns: repeat(4, 1fr); border-bottom: 3px solid var(--ac); }
 .ix {
