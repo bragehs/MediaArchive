@@ -287,7 +287,8 @@ public class ConsumptionService(
         {
             Kind = NoteKind.Progress,
             EffortAtTime = entry.Effort,
-            Text = note.Text.Trim()
+            // Progress notes are optional now — store null rather than "" when blank.
+            Text = string.IsNullOrWhiteSpace(note.Text) ? null : note.Text.Trim()
         });
 
         await db.SaveChangesAsync(ct);

@@ -29,21 +29,21 @@
                 <div>
                     @if (Audiobook)
                     {
-                        <div class="fl">Hours listened so far <span class="opt">optional</span></div>
+                        <div class="fl">Hours listened so far <b>required</b></div>
                         <input class="in" type="number" min="0" step="0.1" @bind="_progressHours"
                                placeholder="@(AudioHours?.ToString() ?? "")"/>
                     }
                     else
                     {
-                        <div class="fl">Effort so far (@UiHelpers.LengthUnit(MediaType)) <span class="opt">optional</span></div>
+                        <div class="fl">Effort so far (@UiHelpers.LengthUnit(MediaType)) <b>required</b></div>
                         <input class="in" type="number" min="0" @bind="_progressEffort"/>
                     }
                 </div>
             </div>
             <div class="cap-block">
-                <div class="fl">Progress note <b>required</b></div>
-                <textarea class="area" @bind="_progressNote" @bind:event="oninput"
-                          placeholder="Where you got to, how it's landing…"></textarea>
+                <div class="fl">Progress note <span class="opt">optional</span></div>
+                <textarea class="area dim" @bind="_progressNote" @bind:event="oninput"
+                          placeholder="Anything to say? (optional — the number is enough)"></textarea>
             </div>
         }
         else
@@ -153,7 +153,8 @@
 
     private bool CanSubmit => _mode switch
     {
-        Mode.Progress => _progressNote.Trim().Length > 0,
+        // Progress logs a data point for stats; the number is required, the note isn't.
+        Mode.Progress => Audiobook ? _progressHours is > 0 : _progressEffort is > 0,
         _ => _endDate is not null
     };
 
