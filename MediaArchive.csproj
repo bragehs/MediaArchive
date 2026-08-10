@@ -1,24 +1,31 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+<Project Sdk="Microsoft.NET.Sdk.Razor">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>MediaArchive</RootNamespace>
-    <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
-    <UserSecretsId>fc1ebf56-2252-4931-834d-592f98f089d8</UserSecretsId>
+    <AddRazorSupportForMvc>false</AddRazorSupportForMvc>
   </PropertyGroup>
 
-  <!-- The test project lives under this project's folder; keep the web SDK's
-       default globbing from compiling it into the app. -->
+  <!-- Global usings the Web SDK used to provide implicitly. -->
   <ItemGroup>
-    <Compile Remove="Tests/**" />
-    <Content Remove="Tests/**" />
-    <None Remove="Tests/**" />
-    <EmbeddedResource Remove="Tests/**" />
+    <Using Include="System.Net.Http.Json" />
+    <Using Include="Microsoft.Extensions.Logging" />
+  </ItemGroup>
+
+  <!-- The test and mobile-head projects live under this project's folder; keep
+       default globbing from compiling their files into the library. -->
+  <ItemGroup>
+    <Compile Remove="Tests/**;MediaArchive.Mobile/**" />
+    <Content Remove="Tests/**;MediaArchive.Mobile/**" />
+    <None Remove="Tests/**;MediaArchive.Mobile/**" />
+    <EmbeddedResource Remove="Tests/**;MediaArchive.Mobile/**" />
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.0">
       <PrivateAssets>all</PrivateAssets>

@@ -2,6 +2,35 @@
    Deep forest ground and panels, near-white ink on top, one bright leaf-green
    accent with marigold beside it. Cinzel Decorative for titles, Cinzel for
    general text, EB Garamond for long prose. Round corners, light grain. */
+
+/* Self-hosted so they render offline on device (no Google Fonts). */
+@font-face {
+    font-family: "Cinzel Decorative";
+    src: url("fonts/CinzelDecorative-Bold.ttf") format("truetype");
+    font-weight: 400 900;
+    font-display: swap;
+}
+@font-face {
+    font-family: "Cinzel";
+    src: url("fonts/Cinzel.ttf") format("truetype");
+    font-weight: 400 900;
+    font-display: swap;
+}
+@font-face {
+    font-family: "EB Garamond";
+    src: url("fonts/EBGaramond.ttf") format("truetype");
+    font-weight: 400 800;
+    font-style: normal;
+    font-display: swap;
+}
+@font-face {
+    font-family: "EB Garamond";
+    src: url("fonts/EBGaramond-Italic.ttf") format("truetype");
+    font-weight: 400 800;
+    font-style: italic;
+    font-display: swap;
+}
+
 :root {
     --bg: #1c301c;
     --panel: #253b23;

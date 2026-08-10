@@ -1,14 +1,15 @@
+using Microsoft.Extensions.Logging;
+
 namespace MediaArchive.Services;
 
 public class CoverCacheService(
     HttpClient httpClient,
-    IHostEnvironment environment,
-    ILogger<CoverCacheService> logger)
+    string storageRoot,
+    ILogger<CoverCacheService> logger) : ICoverCache
 {
-    public const string FolderName = "covers";
     public const string RequestPath = "/covers";
 
-    private readonly string _storageRoot = Path.Combine(environment.ContentRootPath, FolderName);
+    private readonly string _storageRoot = storageRoot;
 
     public async Task<string?> TryCacheAsync(string? imageUrl, string? externalSource,
         string? externalId, CancellationToken ct = default)

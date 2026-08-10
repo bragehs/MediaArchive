@@ -1,8 +1,6 @@
 using System.Net;
 using System.Net.Http.Headers;
 using MediaArchive.Services;
-using Microsoft.Extensions.FileProviders;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace MediaArchive.Tests;
@@ -41,16 +39,8 @@ public class CoverCacheServiceTests : IDisposable
         }
     }
 
-    private sealed class StubEnvironment(string root) : IHostEnvironment
-    {
-        public string ApplicationName { get; set; } = "Tests";
-        public IFileProvider ContentRootFileProvider { get; set; } = null!;
-        public string ContentRootPath { get; set; } = root;
-        public string EnvironmentName { get; set; } = "Test";
-    }
-
     private CoverCacheService ServiceWith(HttpMessageHandler handler) =>
-        new(new HttpClient(handler), new StubEnvironment(_root), NullLogger<CoverCacheService>.Instance);
+        new(new HttpClient(handler), Path.Combine(_root, "covers"), NullLogger<CoverCacheService>.Instance);
 
     [Fact]
     public async Task TryCacheAsync_WritesFile_AndReturnsServablePath()

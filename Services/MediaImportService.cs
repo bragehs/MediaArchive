@@ -14,7 +14,7 @@ public record Vocabulary(
 
 public class MediaImportService(
     IDbContextFactory<AppDbContext> dbContextFactory,
-    CoverCacheService coverCache)
+    ICoverCache coverCache)
 {
     public async Task<Vocabulary> GetVocabularyAsync(CancellationToken ct = default)
     {

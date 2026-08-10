@@ -5,8 +5,11 @@ riderModule.iml
 /_ReSharper.Caches/
 *.DotSettings.user
 
-# Note: appsettings*.json are tracked (non-secret config). Real secrets go in
-# .NET User Secrets, never in appsettings — so they can't be committed here.
+# Note: root appsettings*.json are tracked (non-secret config). Real secrets go
+# in .NET User Secrets, never in appsettings — so they can't be committed here.
+# The mobile head has no user-secrets store, so it bundles keys in its own
+# appsettings.json — keep that one OUT of git.
+MediaArchive.Mobile/appsettings.json
 
 # Cached cover images (re-downloaded from the providers on import)
 covers/

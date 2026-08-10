@@ -6,6 +6,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{0AB3BF05
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MediaArchive.Tests", "Tests\MediaArchive.Tests.csproj", "{C7F691B5-6D32-4D2B-A3E4-01F507609D65}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MediaArchive.Mobile", "MediaArchive.Mobile\MediaArchive.Mobile.csproj", "{7FFAEAAC-D0BF-4232-AB62-1D0CF7288405}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -40,6 +42,18 @@ Global
 		{C7F691B5-6D32-4D2B-A3E4-01F507609D65}.Release|x64.Build.0 = Release|Any CPU
 		{C7F691B5-6D32-4D2B-A3E4-01F507609D65}.Release|x86.ActiveCfg = Release|Any CPU
 		{C7F691B5-6D32-4D2B-A3E4-01F507609D65}.Release|x86.Build.0 = Release|Any CPU
+		{7FFAEAAC-D0BF-4232-AB62-1D0CF7288405}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7FFAEAAC-D0BF-4232-AB62-1D0CF7288405}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7FFAEAAC-D0BF-4232-AB62-1D0CF7288405}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{7FFAEAAC-D0BF-4232-AB62-1D0CF7288405}.Debug|x64.Build.0 = Debug|Any CPU
+		{7FFAEAAC-D0BF-4232-AB62-1D0CF7288405}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{7FFAEAAC-D0BF-4232-AB62-1D0CF7288405}.Debug|x86.Build.0 = Debug|Any CPU
+		{7FFAEAAC-D0BF-4232-AB62-1D0CF7288405}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7FFAEAAC-D0BF-4232-AB62-1D0CF7288405}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7FFAEAAC-D0BF-4232-AB62-1D0CF7288405}.Release|x64.ActiveCfg = Release|Any CPU
+		{7FFAEAAC-D0BF-4232-AB62-1D0CF7288405}.Release|x64.Build.0 = Release|Any CPU
+		{7FFAEAAC-D0BF-4232-AB62-1D0CF7288405}.Release|x86.ActiveCfg = Release|Any CPU
+		{7FFAEAAC-D0BF-4232-AB62-1D0CF7288405}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
