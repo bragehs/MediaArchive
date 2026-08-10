@@ -1175,3 +1175,80 @@ select.in { background: var(--panel2); }
     .itemtitle { font-size: 26px; }
     .idcover { width: 150px; }
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   MOBILE SHELL — fixed viewport: top wordmark bar, a scrolling content
+   region, and a bottom tab bar with a center +. Handles iOS safe-area
+   insets so nothing hides under the Dynamic Island or home indicator.
+   ══════════════════════════════════════════════════════════════════ */
+html, body { height: 100%; }
+body { overflow: hidden; overscroll-behavior: none; }
+
+.shell {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg);
+}
+
+.appbar {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: calc(env(safe-area-inset-top) + 10px) 16px 10px;
+    background: linear-gradient(var(--bg) 80%, transparent);
+}
+.appbar .brand { font-size: 17px; }
+.appbar .brandmark { width: 28px; height: 28px; font-size: 13px; }
+
+.viewport {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 2px 16px 24px;
+}
+.viewport::-webkit-scrollbar { display: none; }
+
+.tabbar {
+    flex: none;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-around;
+    padding: 8px 14px calc(env(safe-area-inset-bottom) + 8px);
+    background: rgba(10, 17, 10, .92);
+    border-top: 1px solid var(--line);
+    backdrop-filter: blur(8px);
+}
+.tab {
+    flex: 1;
+    text-align: center;
+    font-family: var(--f-display);
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    font-size: 8px;
+    font-weight: 600;
+    color: var(--dim);
+    padding-bottom: 2px;
+}
+.tab .ti { display: block; font-size: 17px; margin-bottom: 4px; line-height: 1; }
+.tab.active { color: var(--ac); }
+.tab.off { opacity: .5; }
+
+.fab {
+    flex: none;
+    width: 52px;
+    height: 52px;
+    margin: 0 6px;
+    border-radius: 16px;
+    background: var(--ac);
+    color: #132011;
+    display: grid;
+    place-items: center;
+    font-size: 26px;
+    font-weight: 700;
+    box-shadow: 0 8px 20px rgba(139, 190, 90, .4);
+    transform: translateY(-10px);
+}

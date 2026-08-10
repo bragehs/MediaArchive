@@ -1,0 +1,221 @@
+/* Mobile Home — weekstrip, open-now, on-deck rail, just-closed.
+   Scoped: these classes never touch the desktop app.css. */
+
+.mempty {
+    font-family: var(--f-serif);
+    font-style: italic;
+    color: var(--dim);
+    font-size: 13px;
+    padding: 10px 0;
+}
+
+/* ── weekstrip ── */
+.mweek {
+    display: flex;
+    border-top: 2px solid var(--ink);
+    border-bottom: 1px solid var(--line);
+    margin-top: 2px;
+}
+.mwcell {
+    flex: 1;
+    padding: 12px 8px 12px 0;
+    border-right: 1px solid var(--line);
+}
+.mwcell:last-child { border-right: 0; }
+.mwnum {
+    font-family: var(--f-title);
+    font-weight: 700;
+    color: var(--ac);
+    font-size: 26px;
+    line-height: .9;
+    display: flex;
+    align-items: baseline;
+    gap: 3px;
+}
+.mwnum i {
+    font-family: var(--f-display);
+    font-style: normal;
+    font-size: 10px;
+    color: var(--dim);
+    letter-spacing: .1em;
+}
+.mwlab {
+    font-family: var(--f-display);
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    font-size: 8.5px;
+    color: var(--dim);
+    margin-top: 7px;
+}
+.mwitems {
+    font-family: var(--f-serif);
+    font-style: italic;
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 2px;
+}
+.mrange {
+    font-family: var(--f-display);
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    font-size: 9px;
+    color: var(--dim);
+    margin: 12px 0 2px;
+}
+
+/* ── section head ── */
+.msec {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin: 22px 0 12px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--line);
+}
+.mk {
+    font-family: var(--f-display);
+    text-transform: uppercase;
+    letter-spacing: .18em;
+    font-size: 9.5px;
+    font-weight: 700;
+    color: var(--muted);
+}
+.mr {
+    margin-left: auto;
+    font-family: var(--f-display);
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    font-size: 9px;
+    color: var(--dim);
+}
+
+/* ── cover tile (shared by open-now + rail) ── */
+.mcov {
+    position: relative;
+    flex: none;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    border-top: 3px solid var(--t, var(--ac));
+    background: linear-gradient(155deg, var(--panel), #131f10);
+    overflow: hidden;
+    cursor: pointer;
+}
+.mcov img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.mfb {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: flex-end;
+    padding: 6px;
+    font-family: var(--f-display);
+    font-weight: 600;
+    font-size: 8.5px;
+    line-height: 1.1;
+    color: var(--ink);
+    text-shadow: 0 1px 4px rgba(0, 0, 0, .5);
+}
+
+/* ── open now ── */
+.mnow {
+    display: flex;
+    gap: 13px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--line);
+}
+.mnowcov { width: 62px; aspect-ratio: 2 / 3; }
+.mnowbody { flex: 1; min-width: 0; }
+.mnowt {
+    font-family: var(--f-title);
+    font-weight: 600;
+    font-size: 16px;
+    line-height: 1.05;
+    cursor: pointer;
+}
+.mnowmeta {
+    font-family: var(--f-display);
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    font-size: 9px;
+    color: var(--muted);
+    margin-top: 7px;
+}
+.mbar {
+    height: 4px;
+    background: rgba(0, 0, 0, .3);
+    border-radius: 3px;
+    margin-top: 9px;
+    overflow: hidden;
+}
+.mbar i { display: block; height: 100%; background: var(--ac); }
+.mnowfoot {
+    font-family: var(--f-serif);
+    font-style: italic;
+    font-size: 11px;
+    color: var(--dim);
+    margin-top: 8px;
+}
+.mnowfoot b { font-style: normal; color: var(--muted); }
+.mlog {
+    font-family: var(--f-display);
+    font-style: normal;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    font-size: 9px;
+    font-weight: 700;
+    color: var(--ac);
+    margin-left: 4px;
+}
+
+/* ── on-deck rail ── */
+.mrail {
+    display: flex;
+    gap: 11px;
+    overflow-x: auto;
+    padding-bottom: 6px;
+    scrollbar-width: none;
+}
+.mrail::-webkit-scrollbar { display: none; }
+.mrail .mcov { width: 82px; aspect-ratio: 2 / 3; }
+.mmore {
+    flex: none;
+    align-self: center;
+    font-family: var(--f-display);
+    font-weight: 700;
+    color: var(--ac);
+    font-size: 13px;
+    padding: 0 6px;
+}
+
+/* ── just closed ── */
+.mclosed {
+    display: flex;
+    align-items: baseline;
+    gap: 9px;
+    flex-wrap: wrap;
+    border-top: 2px solid var(--ink);
+    padding-top: 13px;
+    margin-top: 18px;
+}
+.mct {
+    font-family: var(--f-title);
+    font-weight: 600;
+    font-size: 15px;
+    cursor: pointer;
+}
+.mstars {
+    position: relative;
+    display: inline-block;
+    white-space: nowrap;
+    font-size: 12px;
+    letter-spacing: 1px;
+}
+.mstrack { color: rgba(242, 239, 230, .18); }
+.msfill { position: absolute; left: 0; top: 0; overflow: hidden; color: var(--ac2); }
+.mcmeta {
+    font-family: var(--f-display);
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    font-size: 8.5px;
+    color: var(--dim);
+    width: 100%;
+}

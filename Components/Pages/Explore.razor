@@ -7,79 +7,71 @@
 
 <PageTitle>Explore · MediaArchive</PageTitle>
 
-<div class="eyebrow label">Explore</div>
-<div class="h-lg">Find your next thing.</div>
-<div class="sub">Search any provider to add something new, or pick from what your taste suggests —
-    everything here is not yet in your archive.</div>
+<div class="ehead">
+    <div class="label ekick">Add anything</div>
+    <h1 class="etitle">Find your next thing.</h1>
+    <p class="esub">Search any provider to add something new — everything here is not yet in your archive.</p>
+</div>
 
-@* ── ADD: search external providers; results float over the page, capture is a modal ── *@
-<section class="homesec">
-    <div class="sechead"><span class="label">Add anything</span><span class="rt">Search a provider</span></div>
+@* ── ADD: search external providers; tapping a result opens the capture modal ── *@
+<div class="sfield">
+    <span class="sic">⌕</span>
+    <input class="sinput" placeholder="Title or author, then Enter…"
+           autocapitalize="none" autocomplete="off" autocorrect="off" spellcheck="false"
+           @bind="_query" @bind:event="oninput" @onkeydown="OnSearchKey"/>
+</div>
 
-    <div class="explore-search">
-        <div class="searchbar">
-            <input class="bigsearch" placeholder="Title or author, pick a type, hit Enter…"
-                   @bind="_query" @bind:event="oninput" @onkeydown="OnSearchKey"/>
-            <div class="segs">
-                @foreach (var type in Enum.GetValues<MediaType>())
-                {
-                    <button class="seg @(type == _mediaType ? "on" : "")" @onclick="() => SetType(type)">
-                        @UiHelpers.TypeLabel(type)
-                    </button>
-                }
-            </div>
-        </div>
+<div class="eseg">
+    @foreach (var type in Enum.GetValues<MediaType>())
+    {
+        <button class="eopt @(type == _mediaType ? "on" : "")" @onclick="() => SetType(type)">
+            @UiHelpers.TypeLabel(type)
+        </button>
+    }
+</div>
 
-        @* results drop over the recommendations below rather than pushing them down *@
-        @if (_selected is null && (_searching || _searched))
+@if (_savedMessage is not null)
+{
+    <div class="enote good">@_savedMessage</div>
+}
+
+@if (_selected is null && (_searching || _searched))
+{
+    <div class="eresults">
+        @if (_error is not null)
         {
-            <div class="searchpanel">
-                @if (_error is not null)
-                {
-                    <div class="notice bad">@_error</div>
-                }
-                @if (_searching)
-                {
-                    <p class="hint">Searching…</p>
-                }
-                else if (_results.Count > 0)
-                {
-                    <div class="label colhead">@_results.Count result@(_results.Count == 1 ? "" : "s")</div>
-                    @foreach (var result in _results)
-                    {
-                        <button class="result" @onclick="() => Select(result)">
-                            @if (result.ImageUrl is { } cover)
-                            {
-                                <img class="rcov" src="@cover" alt="" loading="lazy"/>
-                            }
-                            else
-                            {
-                                <div class="rcov rcov-none"></div>
-                            }
-                            <div class="rmeta">
-                                <div class="rt2">@result.Title</div>
-                                <div class="ra">@UiHelpers.TypeLabel(result.MediaType)</div>
-                            </div>
-                            @if (result.ReleaseYear is { } year)
-                            {
-                                <div class="yr">@year</div>
-                            }
-                        </button>
-                    }
-                }
-                else
-                {
-                    <p class="muted">Nothing found for “@_query”.</p>
-                }
-            </div>
+            <div class="enote bad">@_error</div>
+        }
+        @if (_searching)
+        {
+            <p class="ehint">Searching…</p>
+        }
+        else if (_results.Count > 0)
+        {
+            <div class="scount">@_results.Count result@(_results.Count == 1 ? "" : "s")</div>
+            @foreach (var result in _results)
+            {
+                <button class="presult" @onclick="() => Select(result)">
+                    <div class="pcov" style="--t:@UiHelpers.TypeColorVar(result.MediaType)">
+                        @if (result.ImageUrl is { } cover)
+                        {
+                            <img src="@cover" alt="" loading="lazy"/>
+                        }
+                    </div>
+                    <div class="pmeta">
+                        <div class="prt">@result.Title</div>
+                        <div class="pra">@UiHelpers.TypeLabel(result.MediaType)@(result.ReleaseYear is { } year ? " · " + year : "")</div>
+                    </div>
+                    <span class="pradd">+ Log</span>
+                </button>
+            }
+        }
+        else
+        {
+            <p class="ehint">Nothing found for “@_query”.</p>
         }
     </div>
-
-    @if (_savedMessage is not null)
-    {
-        <div class="notice good">@_savedMessage</div>
-    }
-</section>
+}
 
 @* capture modal — click the backdrop to dismiss ── *@
 @if (_selected is not null)

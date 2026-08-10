@@ -1,10 +1,23 @@
 @inherits LayoutComponentBase
 
-<div class="app">
-    <NavMenu />
-    <main>
+<div class="shell">
+    <header class="appbar">
+        <NavLink class="brand" href="" Match="NavLinkMatch.All">
+            <span class="brandmark"><span>M</span>A</span>Media<b>Archive</b>
+        </NavLink>
+    </header>
+
+    <main class="viewport">
         @Body
     </main>
+
+    <nav class="tabbar">
+        <NavLink class="tab" href="" Match="NavLinkMatch.All"><span class="ti">◈</span>Home</NavLink>
+        <span class="tab off"><span class="ti">▦</span>Library</span>
+        <NavLink class="fab" href="explore">+</NavLink>
+        <span class="tab off"><span class="ti">❯</span>Diary</span>
+        <span class="tab off"><span class="ti">◉</span>Profile</span>
+    </nav>
 </div>
 
 <div id="blazor-error-ui" data-nosnippet>

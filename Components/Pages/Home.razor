@@ -8,131 +8,101 @@
 
 @if (_loading)
 {
-    <p class="hint">Loading…</p>
+    <p class="mempty">Loading…</p>
 }
 else
 {
-    <div class="homespread">
-        <div class="homelead">
-            <section class="homesec">
-                <div class="sechead">
-                    <span class="label">Open now</span>
-                    <span class="rt">@_openNow.Count open</span>
+    @if (_weekly is { } week)
+    {
+        <div class="mweek">
+            @foreach (var b in week.Buckets)
+            {
+                <div class="mwcell">
+                    <div class="mwnum">@FormatValue(b)<i>@UnitShort(b.Unit)</i></div>
+                    <div class="mwlab">@b.Bucket</div>
+                    <div class="mwitems">@b.ItemsTouched @Plural(b.ItemsTouched, "item")</div>
                 </div>
-                @if (_openNow.Count == 0)
-                {
-                    <p class="homeempty">Nothing in progress right now.</p>
-                }
-                else
-                {
-                    @foreach (var item in _openNow)
-                    {
-                        <div class="open">
-                            <div class="ocov clickable" @onclick="() => OpenItem(item.UserMediaItemId)">
-                                @if (!string.IsNullOrWhiteSpace(item.ImageUrl))
-                                {
-                                    <img src="@item.ImageUrl" alt="Cover of @item.Title"/>
-                                }
-                                else
-                                {
-                                    <div class="fb"><span>@item.Title</span></div>
-                                }
-                            </div>
-                            <div>
-                                <div class="ohead">
-                                    <div class="ot clickable" @onclick="() => OpenItem(item.UserMediaItemId)">
-                                        @item.Title
-                                    </div>
-                                </div>
-                                <div class="ometa">
-                                    touched @Ago(item.DaysSinceTouched)@(item.Progress is { } p ? $" · {p:0}%" : "")
-                                </div>
-                                @if (item.Progress is { } pct)
-                                {
-                                    <div class="oprog"><i style="width:@(pct.ToString("0"))%"></i></div>
-                                }
-                                <div class="ofoot">open <b>@item.DaysOpen</b> @Plural(item.DaysOpen, "day")</div>
-                            </div>
-                            <div class="oact"><button class="btn" @onclick="() => _logTarget = item">Log →</button></div>
-                        </div>
-                    }
-                }
-            </section>
+            }
         </div>
+        <div class="mrange">This week · @week.WeekStart.ToString("MMM d") – @week.WeekEnd.ToString("MMM d")</div>
+    }
 
-        <aside class="homerail">
-            @if (_weekly is { } week)
-            {
-                <div class="railcard">
-                    <div class="sechead">
-                        <span class="label">This week</span>
-                        <span class="rt">@week.WeekStart.ToString("MMM d") – @week.WeekEnd.ToString("MMM d")</span>
-                    </div>
-                    <div class="weekstats">
-                        @foreach (var b in week.Buckets)
-                        {
-                            <div class="wstat">
-                                <div class="wval">@FormatValue(b)<span class="wunit">@b.Unit</span></div>
-                                <div class="wlabel">@b.Bucket</div>
-                                <div class="witems">@b.ItemsTouched @Plural(b.ItemsTouched, "item")</div>
-                            </div>
-                        }
+    <div class="msec"><span class="mk">Open now</span><span class="mr">@_openNow.Count open</span></div>
+    @if (_openNow.Count == 0)
+    {
+        <p class="mempty">Nothing in progress right now.</p>
+    }
+    else
+    {
+        @foreach (var item in _openNow)
+        {
+            <div class="mnow">
+                <div class="mcov mnowcov" style="--t:@UiHelpers.TypeColorVar(item.MediaType)"
+                     @onclick="() => OpenItem(item.UserMediaItemId)">
+                    @if (!string.IsNullOrWhiteSpace(item.ImageUrl))
+                    {
+                        <img src="@item.ImageUrl" alt="Cover of @item.Title"/>
+                    }
+                    else
+                    {
+                        <span class="mfb">@item.Title</span>
+                    }
+                </div>
+                <div class="mnowbody">
+                    <div class="mnowt" @onclick="() => OpenItem(item.UserMediaItemId)">@item.Title</div>
+                    <div class="mnowmeta">touched @Ago(item.DaysSinceTouched)@(item.Progress is { } p ? $" · {p:0}%" : "")</div>
+                    @if (item.Progress is { } pct)
+                    {
+                        <div class="mbar"><i style="width:@(pct.ToString("0"))%"></i></div>
+                    }
+                    <div class="mnowfoot">
+                        open <b>@item.DaysOpen</b> @Plural(item.DaysOpen, "day")
+                        <button class="mlog" @onclick="() => _logTarget = item">Log →</button>
                     </div>
                 </div>
-            }
-
-            <div class="railcard">
-                <div class="sechead"><span class="label">On deck</span><span class="rt">What's next</span></div>
-                @if (_onDeck.Count == 0)
-                {
-                    <p class="homeempty">Nothing lined up.</p>
-                }
-                else
-                {
-                    <div class="odrow">
-                        @foreach (var item in _onDeck.Take(OnDeckCap))
-                        {
-                            <div class="odcard" @onclick="() => OpenItem(item.UserMediaItemId)">
-                                <div class="odp">
-                                    @if (!string.IsNullOrWhiteSpace(item.ImageUrl))
-                                    {
-                                        <img src="@item.ImageUrl" alt="Cover of @item.Title"/>
-                                    }
-                                    else
-                                    {
-                                        <div class="fb"><span>@item.Title</span></div>
-                                    }
-                                </div>
-                                <div class="odt">@item.Title</div>
-                            </div>
-                        }
-                        @if (_onDeck.Count > OnDeckCap)
-                        {
-                            <div class="odmore">+@(_onDeck.Count - OnDeckCap)</div>
-                        }
-                    </div>
-                }
             </div>
+        }
+    }
 
-            @if (_justClosed is { } jc)
+    <div class="msec"><span class="mk">On deck</span><span class="mr">What's next</span></div>
+    @if (_onDeck.Count == 0)
+    {
+        <p class="mempty">Nothing lined up.</p>
+    }
+    else
+    {
+        <div class="mrail">
+            @foreach (var item in _onDeck.Take(OnDeckCap))
             {
-                <div class="railcard">
-                    <div class="sechead"><span class="label">Just closed</span></div>
-                    <div class="justclosed">
-                        <span class="ji clickable" @onclick="() => OpenItem(jc.UserMediaItemId)">@jc.Title</span>
-                        @if (jc.Rating is { } r)
-                        {
-                            <span class="stars">
-                                <span class="track">★★★★★</span>
-                                <span class="fill" style="width:@(r * 10)%">★★★★★</span>
-                            </span>
-                        }
-                        <span class="jm">@jc.Creator · closed @Ago(jc.DaysSinceClosed)</span>
-                    </div>
+                <div class="mcov" @onclick="() => OpenItem(item.UserMediaItemId)">
+                    @if (!string.IsNullOrWhiteSpace(item.ImageUrl))
+                    {
+                        <img src="@item.ImageUrl" alt="Cover of @item.Title"/>
+                    }
+                    else
+                    {
+                        <span class="mfb">@item.Title</span>
+                    }
                 </div>
             }
-        </aside>
-    </div>
+            @if (_onDeck.Count > OnDeckCap)
+            {
+                <div class="mmore">+@(_onDeck.Count - OnDeckCap)</div>
+            }
+        </div>
+    }
+
+    @if (_justClosed is { } jc)
+    {
+        <div class="mclosed">
+            <span class="mct" @onclick="() => OpenItem(jc.UserMediaItemId)">@jc.Title</span>
+            @if (jc.Rating is { } r)
+            {
+                <span class="mstars"><span class="mstrack">★★★★★</span><span class="msfill" style="width:@(r * 10)%">★★★★★</span></span>
+            }
+            <span class="mcmeta">@jc.Creator · closed @Ago(jc.DaysSinceClosed)</span>
+        </div>
+    }
 }
 
 @if (_logTarget is { } target)
@@ -143,7 +113,7 @@ else
 }
 
 @code {
-    private const int OnDeckCap = 6;
+    private const int OnDeckCap = 8;
 
     private bool _loading = true;
     private IReadOnlyList<OnDeckItem> _onDeck = [];
@@ -179,4 +149,12 @@ else
 
     private static string FormatValue(WeeklyBucketStat b) =>
         b.Unit == "pages" ? ((int)b.Value).ToString() : b.Value.ToString("0.#");
+
+    private static string UnitShort(string unit) => unit switch
+    {
+        "pages" => "P",
+        "hours" => "H",
+        "minutes" => "M",
+        _ => unit.Length > 0 ? char.ToUpperInvariant(unit[0]).ToString() : ""
+    };
 }
