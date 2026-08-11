@@ -1,0 +1,241 @@
+/* Mobile item detail — hero, facts, action, classification, pass log.
+   Scoped: i-prefixed classes never touch the desktop app.css. */
+
+.iempty {
+    font-family: var(--f-serif);
+    font-style: italic;
+    color: var(--dim);
+    font-size: 13px;
+    padding: 16px 0;
+}
+
+/* ── top nav ── */
+.itopnav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 2px 0 6px;
+}
+.iback {
+    font-family: var(--f-display);
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    font-size: 13px;
+    color: var(--ac);
+}
+.ifav { font-size: 19px; color: var(--dim); line-height: 1; }
+.ifav.on { color: var(--ac2); }
+
+/* ── hero ── */
+.ihero { display: flex; gap: 14px; margin-top: 6px; }
+.icov {
+    position: relative;
+    flex: none;
+    width: 104px;
+    aspect-ratio: 2 / 3;
+    border-radius: 10px;
+    border: 1px solid var(--line);
+    border-top: 3px solid var(--t, var(--ac));
+    background: linear-gradient(155deg, var(--panel), #131f10);
+    overflow: hidden;
+}
+.icov img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.ifb {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: flex-end;
+    padding: 9px;
+    font-family: var(--f-display);
+    font-weight: 600;
+    font-size: 11px;
+    line-height: 1.15;
+    color: var(--ink);
+    text-shadow: 0 1px 4px rgba(0, 0, 0, .5);
+}
+.iherometa { flex: 1; min-width: 0; }
+.ititle {
+    font-family: var(--f-title);
+    font-weight: 700;
+    font-size: 21px;
+    line-height: 1.05;
+    letter-spacing: -.01em;
+}
+.icreator { font-family: var(--f-display); font-size: 12px; color: var(--muted); margin-top: 4px; }
+.ibadge {
+    font-family: var(--f-display);
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    font-size: 9px;
+    margin-top: 10px;
+}
+
+/* interactive half-star rating */
+.istars {
+    position: relative;
+    display: inline-block;
+    white-space: nowrap;
+    font-size: 17px;
+    letter-spacing: 2px;
+    line-height: 1;
+    margin-top: 10px;
+}
+.istrack { color: rgba(242, 239, 230, .18); }
+.isfill {
+    position: absolute;
+    left: 0; top: 0;
+    overflow: hidden;
+    color: var(--ac);
+    pointer-events: none;
+}
+.ihit { position: absolute; top: 0; width: 10%; height: 100%; }
+.istarclear {
+    display: block;
+    font-family: var(--f-display);
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    font-size: 10px;
+    color: var(--dim);
+    margin-top: 8px;
+}
+
+/* ── facts ── */
+.ifacts {
+    display: flex;
+    margin-top: 18px;
+    border-top: 2px solid var(--ink);
+    border-bottom: 1px solid var(--line);
+}
+.ifact { flex: 1; padding: 11px 6px 11px 0; border-right: 1px solid var(--line); }
+.ifact:last-child { border-right: 0; }
+.ifn { font-family: var(--f-title); font-weight: 700; color: var(--ac); font-size: 17px; line-height: 1; }
+.ifn.sm { font-size: 12px; }
+.ifl {
+    font-family: var(--f-display);
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    font-size: 8px;
+    color: var(--dim);
+    margin-top: 6px;
+}
+
+/* ── action ── */
+.iopen { font-family: var(--f-serif); font-style: italic; font-size: 12px; color: var(--dim); margin-top: 16px; }
+.ibar { height: 5px; background: rgba(0, 0, 0, .3); border-radius: 3px; margin-top: 8px; overflow: hidden; }
+.ibar i { display: block; height: 100%; background: var(--ac); }
+.ibtn {
+    display: block;
+    width: 100%;
+    text-align: center;
+    margin-top: 16px;
+    background: var(--ac);
+    color: #132011;
+    font-family: var(--f-display);
+    text-transform: uppercase;
+    letter-spacing: .14em;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 14px;
+    border-radius: 12px;
+}
+.ibtn:disabled { opacity: .5; }
+.ibtn.ighost { background: none; color: var(--muted); border: 1px solid var(--line); }
+.isave { margin-top: 14px; }
+
+/* ── start-a-pass form ── */
+.istart { margin-top: 14px; }
+.irow { display: flex; gap: 10px; }
+.irow > div { flex: 1; }
+.il2 {
+    font-family: var(--f-display);
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    font-size: 8.5px;
+    font-weight: 600;
+    color: var(--dim);
+    margin: 12px 0 6px;
+}
+.iopt { color: var(--dim); opacity: .8; text-transform: none; letter-spacing: 0; font-style: italic; }
+.iin, .iarea {
+    width: 100%;
+    background: rgba(0, 0, 0, .22);
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    padding: 10px 12px;
+    font-family: var(--f-display);
+    font-size: 13px;
+    color: var(--ink);
+}
+.iarea { min-height: 60px; font-family: var(--f-serif); resize: vertical; }
+.istartfoot { display: flex; gap: 10px; margin-top: 12px; }
+.istartfoot .ibtn { margin-top: 0; }
+
+/* ── description ── */
+.idesc { font-family: var(--f-serif); font-size: 13.5px; line-height: 1.5; color: var(--muted); margin-top: 16px; }
+
+/* ── section head ── */
+.isec {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin: 24px 0 12px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--line);
+}
+.ik {
+    font-family: var(--f-display);
+    text-transform: uppercase;
+    letter-spacing: .18em;
+    font-size: 9.5px;
+    font-weight: 700;
+    color: var(--muted);
+}
+.ir {
+    margin-left: auto;
+    font-family: var(--f-display);
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    font-size: 9px;
+    color: var(--ac2);
+}
+
+/* ── classification fields ── */
+.ifield { margin-bottom: 8px; }
+.inote { font-family: var(--f-display); font-size: 12px; padding: 10px 12px; border-radius: 9px; margin-top: 10px; }
+.inote.bad { background: rgba(190, 90, 90, .15); border: 1px solid #be5a5a; color: #e8a0a0; }
+
+/* ── passes ── */
+.ipass { padding: 12px 0; border-bottom: 1px solid var(--line2); }
+.ipasshead { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.ipstatus { font-family: var(--f-display); text-transform: uppercase; letter-spacing: .1em; font-size: 9px; font-weight: 700; }
+.ipstatus.fin { color: var(--ac); }
+.ipstatus.prog { color: var(--ac2); }
+.ipstatus.dro { color: var(--dim); }
+.ipmeta {
+    font-family: var(--f-display);
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    font-size: 10px;
+    color: var(--dim);
+}
+.iprating { font-family: var(--f-display); font-size: 11px; color: var(--ac2); margin-top: 6px; }
+.ipnote {
+    font-family: var(--f-serif);
+    font-style: italic;
+    font-size: 12.5px;
+    color: var(--muted);
+    margin-top: 8px;
+    border-left: 2px solid var(--ac);
+    padding-left: 10px;
+    line-height: 1.45;
+}
+.ipkind {
+    display: block;
+    font-family: var(--f-display);
+    font-style: normal;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    font-size: 8px;
+    color: var(--dim);
+    margin-bottom: 2px;
+}
