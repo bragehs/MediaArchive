@@ -1,19 +1,21 @@
-@page "/explore"
 @using MediaArchive.Services
 @using MediaArchive.Services.Providers
 @inject MediaSearchService Search
 @inject MediaImportService ImportService
 @inject ConsumptionService LogService
 
-<PageTitle>Explore · MediaArchive</PageTitle>
+@* Bottom sheet over the current screen: search a provider, then capture. *@
+<div class="addscrim" @onclick="CloseAsync"></div>
+<div class="addsheet" @onclick:stopPropagation="true">
+    <div class="grabber"></div>
+    <div class="sheethead">
+        <span class="stt">@(_selected is null ? "Add anything" : (_detail?.Title ?? "Loading…"))</span>
+        <button class="x" @onclick="CloseAsync">✕</button>
+    </div>
+    <div class="sheetbody">
 
-<div class="ehead">
-    <div class="label ekick">Add anything</div>
-    <h1 class="etitle">Find your next thing.</h1>
-    <p class="esub">Search any provider to add something new — everything here is not yet in your archive.</p>
-</div>
-
-@* ── ADD: search external providers; tapping a result opens the capture modal ── *@
+@if (_selected is null)
+{
 <div class="sfield">
     <span class="sic">⌕</span>
     <input class="sinput" placeholder="Title or author, then Enter…"
@@ -72,18 +74,38 @@
         }
     </div>
 }
-
-@* capture modal — click the backdrop to dismiss ── *@
-@if (_selected is not null)
+}
+else
 {
-    <div class="modal-scrim" @onclick="Reset">
-        <div class="modal" @onclick:stopPropagation="true">
+    @* capture — a result is selected ── *@
             @if (_loadingDetail)
             {
                 <div class="detail">
                     <div class="dcover"></div>
                     <div class="dm">Fetching details…</div>
                 </div>
+            }
+            else if (_selected!.MediaType == MediaType.Show && !_seasonChosen)
+            {
+                @* pick a season — each becomes its own item ── *@
+                <div class="scount">Choose a season</div>
+                @foreach (var s in _seasons)
+                {
+                    <button class="presult" @onclick="() => PickSeason(s)">
+                        <div class="pcov" style="--t:@UiHelpers.TypeColorVar(MediaType.Show)">
+                            @if (s.ImageUrl is { } cover)
+                            {
+                                <img src="@cover" alt="" loading="lazy"/>
+                            }
+                        </div>
+                        <div class="pmeta">
+                            <div class="prt">@s.Name</div>
+                            <div class="pra">@SeasonMeta(s)</div>
+                        </div>
+                        <span class="pradd">Pick</span>
+                    </button>
+                }
+                <button class="sback" @onclick="Reset">‹ Back to search</button>
             }
             else if (_detail is not null)
             {
@@ -376,42 +398,16 @@
                     </div>
                 </div>
             }
-        </div>
+        }
     </div>
-}
-
-@* ── RECOMMENDATIONS: skeleton with placeholder rails (not wired up yet) ── *@
-<section class="homesec">
-    <div class="sechead">
-        <span class="label">For you</span>
-        <span class="rt">Preview · recommendations aren't wired up yet</span>
-    </div>
-
-    @foreach (var rail in RecRails)
-    {
-        <div class="recrail">
-            <div class="recrail-head">
-                <span class="recrail-t">@rail.Title</span>
-                <span class="recrail-why">@rail.Why</span>
-            </div>
-            <div class="recrow">
-                @foreach (var card in rail.Cards)
-                {
-                    <div class="reccard">
-                        <div class="recposter" style="--tint:@UiHelpers.TypeColorVar(card.Type)">
-                            <span>@card.Title</span>
-                        </div>
-                        <div class="recct">@card.Title</div>
-                        <div class="reccc">@card.Creator</div>
-                    </div>
-                }
-                <div class="recmore">soon</div>
-            </div>
-        </div>
-    }
-</section>
+</div>
 
 @code {
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public EventCallback OnAdded { get; set; }
+
+    private async Task CloseAsync() => await OnClose.InvokeAsync();
+
     // The three write actions from the vault's Log-and-capture note. Dropped is
     // deliberately absent — you can't drop something you never started.
     private enum LogAction
@@ -430,6 +426,11 @@
     private MediaSearchResultDto? _selected;
     private MediaItemDto? _detail;
     private bool _loadingDetail;
+
+    // TV: a show fans out into seasons; each is captured as its own item.
+    private IReadOnlyList<SeasonDto> _seasons = [];
+    private bool _seasonChosen;
+    private string? _showTitle;
 
     private Vocabulary _vocab = new([], [], [], []);
 
@@ -578,6 +579,9 @@
     {
         _selected = result;
         _detail = null;
+        _seasons = [];
+        _seasonChosen = false;
+        _showTitle = null;
         _loadingDetail = true;
         _error = null;
         _savedMessage = null;
@@ -585,8 +589,22 @@
         try
         {
             _detail = await Search.GetByIdAsync(result.ExternalId, result.MediaType);
-            _effort = _detail?.Length;
-            _releaseDate = _detail?.ReleaseDate;
+
+            if (result.MediaType == MediaType.Show)
+            {
+                _showTitle = _detail?.Title;
+                _seasons = await Search.GetSeasonsAsync(result.ExternalId);
+
+                // 0–1 seasons: nothing to choose — capture the whole show as one item.
+                if (_seasons.Count <= 1)
+                    PickSeason(_seasons.FirstOrDefault());
+            }
+            else
+            {
+                _seasonChosen = true;
+                _effort = _detail?.Length;
+                _releaseDate = _detail?.ReleaseDate;
+            }
         }
         catch (Exception ex)
         {
@@ -596,6 +614,37 @@
         {
             _loadingDetail = false;
         }
+    }
+
+    // Turn the chosen season into the item we capture: its own external id, and
+    // grouped under the show as a Series at the season's position.
+    private void PickSeason(SeasonDto? season)
+    {
+        if (season is not null && _detail is not null && _selected is not null)
+        {
+            _detail = _detail with
+            {
+                ExternalId = $"{_selected.ExternalId}/season/{season.SeasonNumber}",
+                Title = _seasons.Count > 1 ? $"{_showTitle} — {season.Name}" : _detail.Title,
+                ImageUrl = season.ImageUrl ?? _detail.ImageUrl,
+                Length = season.EpisodeCount ?? _detail.Length,
+                ReleaseDate = season.AirDate ?? _detail.ReleaseDate
+            };
+            _series = _showTitle is { } title ? [title] : _series;
+            _seriesPosition = season.SeasonNumber;
+        }
+
+        _seasonChosen = true;
+        _effort = _detail?.Length;
+        _releaseDate = _detail?.ReleaseDate;
+    }
+
+    private static string SeasonMeta(SeasonDto s)
+    {
+        var parts = new List<string>();
+        if (s.EpisodeCount is { } ec) parts.Add($"{ec} ep{(ec == 1 ? "" : "s")}");
+        if (s.AirDate is { } d) parts.Add(d.Year.ToString());
+        return string.Join(" · ", parts);
     }
 
     private async Task Submit()
@@ -649,6 +698,7 @@
             _savedMessage = $"“{_detail.Title}” — {ActionLabel(_action).ToLowerInvariant()}.";
             await RefreshVocabulary();
             Reset();
+            await OnAdded.InvokeAsync();
         }
         catch (Exception ex)
         {
@@ -665,6 +715,9 @@
     {
         _selected = null;
         _detail = null;
+        _seasons = [];
+        _seasonChosen = false;
+        _showTitle = null;
         _action = LogAction.Start;
         _genres = [];
         _tags = [];
@@ -685,44 +738,4 @@
         _startNote = "";
     }
 
-    // ── Recommendations skeleton — static placeholders until the engine exists ──
-    private record RecCard(string Title, string Creator, MediaType Type);
-    private record RecRail(string Title, string Why, List<RecCard> Cards);
-
-    private static readonly List<RecRail> RecRails =
-    [
-        new("More from Brandon Sanderson", "You rate his books highly",
-        [
-            new("Warbreaker", "Brandon Sanderson", MediaType.Book),
-            new("Elantris", "Brandon Sanderson", MediaType.Book),
-            new("Tress of the Emerald Sea", "Brandon Sanderson", MediaType.Book),
-            new("The Sunlit Man", "Brandon Sanderson", MediaType.Book)
-        ]),
-        new("More from FromSoftware", "Because you played Elden Ring",
-        [
-            new("Sekiro", "FromSoftware", MediaType.Game),
-            new("Bloodborne", "FromSoftware", MediaType.Game),
-            new("Dark Souls III", "FromSoftware", MediaType.Game),
-            new("Armored Core VI", "FromSoftware", MediaType.Game)
-        ]),
-        new("Popular in your genres", "Top-rated in fantasy & sci-fi",
-        [
-            new("Dune", "Frank Herbert", MediaType.Book),
-            new("Blade Runner 2049", "Denis Villeneuve", MediaType.Movie),
-            new("Disco Elysium", "ZA/UM", MediaType.Game),
-            new("Severance", "Dan Erickson", MediaType.Show)
-        ]),
-        new("Cross-domain picks", "Reads like the things you love, across media",
-        [
-            new("Hyperion", "Dan Simmons", MediaType.Book),
-            new("Outer Wilds", "Mobius Digital", MediaType.Game),
-            new("Arrival", "Denis Villeneuve", MediaType.Movie)
-        ]),
-        new("Claude's picks", "From your profile & taste",
-        [
-            new("Piranesi", "Susanna Clarke", MediaType.Book),
-            new("Pentiment", "Obsidian", MediaType.Game),
-            new("The Leftovers", "Damon Lindelof", MediaType.Show)
-        ])
-    ];
 }

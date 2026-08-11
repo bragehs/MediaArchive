@@ -13,6 +13,14 @@ public record MediaSearchResultDto(
     public int? ReleaseYear => ReleaseDate?.Year;
 }
 
+// One season of a show — each is captured as its own MediaItem (Option A).
+public record SeasonDto(
+    int SeasonNumber,
+    string Name,
+    int? EpisodeCount,
+    DateOnly? AirDate,
+    string? ImageUrl);
+
 public record CreditDto(string Name, CreditRole Role);
 
 public record MediaItemDto(

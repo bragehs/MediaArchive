@@ -170,6 +170,37 @@ public class TmdbProvider(HttpClient httpClient) : IMediaProvider
         return show is null ? null : MapToItem(show);
     }
 
+    // Option A: each season is captured as its own item. The seasons array comes
+    // back on the base tv/{id} call — no append needed.
+    public async Task<IReadOnlyList<SeasonDto>> GetSeasonsAsync(string showExternalId,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.GetAsync($"tv/{showExternalId}", cancellationToken);
+
+        if (response.StatusCode == HttpStatusCode.NotFound)
+            return [];
+
+        response.EnsureSuccessStatusCode();
+
+        var show = await response.Content
+            .ReadFromJsonAsync<TmdbTvDetail>(JsonOptions, cancellationToken);
+
+        if (show?.Seasons is null)
+            return [];
+
+        // Skip "Specials" (season 0); present real seasons in order.
+        return show.Seasons
+            .Where(s => s.SeasonNumber >= 1)
+            .OrderBy(s => s.SeasonNumber)
+            .Select(s => new SeasonDto(
+                s.SeasonNumber,
+                s.Name ?? $"Season {s.SeasonNumber}",
+                s.EpisodeCount,
+                ParseDate(s.AirDate),
+                s.PosterPath is not null ? $"{ImageBaseUrl}{s.PosterPath}" : null))
+            .ToList();
+    }
+
     private static MediaItemDto MapToItem(TmdbTvDetail show)
     {
         return new MediaItemDto(
@@ -256,11 +287,19 @@ public class TmdbProvider(HttpClient httpClient) : IMediaProvider
         List<TmdbCompany>? Networks,
         // Often empty on newer shows — fall back to LastEpisodeToAir.Runtime.
         List<int>? EpisodeRunTime,
-        TmdbEpisode? LastEpisodeToAir);
+        TmdbEpisode? LastEpisodeToAir,
+        List<TmdbSeason>? Seasons);
 
     private sealed record TmdbCreatedBy(string? Name);
 
     private sealed record TmdbEpisode(int? Runtime);
+
+    private sealed record TmdbSeason(
+        int SeasonNumber,
+        string? Name,
+        int? EpisodeCount,
+        string? AirDate,
+        string? PosterPath);
 
     private sealed record TmdbGenre(int Id, string? Name);
 

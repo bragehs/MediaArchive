@@ -17,6 +17,12 @@ public class MediaSearchService(IEnumerable<IMediaProvider> providers)
         return ResolveProvider(mediaType).GetByIdAsync(id, mediaType, cancellationToken);
     }
 
+    public Task<IReadOnlyList<SeasonDto>> GetSeasonsAsync(string showExternalId,
+        CancellationToken cancellationToken = default)
+    {
+        return ResolveProvider(MediaType.Show).GetSeasonsAsync(showExternalId, cancellationToken);
+    }
+
     private IMediaProvider ResolveProvider(MediaType mediaType)
     {
         return providers.FirstOrDefault(p => p.CanHandle(mediaType))
