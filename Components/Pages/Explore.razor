@@ -1,0 +1,63 @@
+@page "/explore"
+@using MediaArchive.Services
+@inject CollectionService Collection
+@inject NavigationManager Nav
+
+<PageTitle>Explore · MediaArchive</PageTitle>
+
+<div class="xseg">
+    <button class="xopt @(_mode == Mode.Search ? "on" : "")"
+            @onclick="() => _mode = Mode.Search">Search</button>
+    <button class="xopt @(_mode == Mode.UpNext ? "on" : "")"
+            @onclick="ShowUpNextAsync">Up next</button>
+</div>
+
+@if (_mode == Mode.Search)
+{
+    <AddSheet Embedded="true" />
+}
+else if (_upNext is null)
+{
+    <p class="xmpt">Loading…</p>
+}
+else if (_upNext.Count == 0)
+{
+    <p class="xmpt">Nothing unread yet. Find something in Search.</p>
+}
+else
+{
+    <div class="xgrid">
+        @foreach (var item in _upNext)
+        {
+            <button class="xcard" @onclick="() => Open(item.UserMediaItemId)">
+                <span class="xcov">
+                    @if (!string.IsNullOrWhiteSpace(item.ImageUrl))
+                    {
+                        <img src="@item.ImageUrl" alt="Cover of @item.Title"/>
+                    }
+                    else
+                    {
+                        <span class="xfb">@item.Title</span>
+                    }
+                </span>
+                <span class="xt">@item.Title</span>
+            </button>
+        }
+    </div>
+}
+
+@code {
+    private enum Mode { Search, UpNext }
+
+    private Mode _mode = Mode.Search;
+    private IReadOnlyList<OnDeckItem>? _upNext;
+
+    // Lazy: only query the backlog the first time Up Next is opened, then cache it.
+    private async Task ShowUpNextAsync()
+    {
+        _mode = Mode.UpNext;
+        _upNext ??= await Collection.GetOnDeckAsync();
+    }
+
+    private void Open(int userMediaItemId) => Nav.NavigateTo($"/item/{userMediaItemId}");
+}

@@ -1,0 +1,77 @@
+/* Explore — mode switch (Search / Up next) + backlog cover grid.
+   Scoped: x- prefix, never touches the desktop app.css. */
+
+.xseg {
+    display: flex;
+    background: rgba(0, 0, 0, .2);
+    border: 1px solid var(--line);
+    border-radius: 11px;
+    padding: 3px;
+    margin: 4px 0 14px;
+}
+.xopt {
+    flex: 1;
+    text-align: center;
+    padding: 9px 0;
+    border-radius: 8px;
+    font-family: var(--f-display);
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--dim);
+}
+.xopt.on { background: var(--ac); color: #132011; }
+
+.xmpt {
+    font-family: var(--f-serif);
+    font-style: italic;
+    color: var(--dim);
+    font-size: 13px;
+    padding: 24px 0;
+    text-align: center;
+}
+
+.xgrid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px 12px;
+    padding-bottom: 8px;
+}
+.xcard {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    text-align: left;
+    cursor: pointer;
+}
+.xcov {
+    position: relative;
+    display: block;
+    aspect-ratio: 2 / 3;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: linear-gradient(155deg, var(--panel), #131f10);
+    overflow: hidden;
+}
+.xcov img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.xfb {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: flex-end;
+    padding: 6px;
+    font-family: var(--f-display);
+    font-weight: 600;
+    font-size: 8.5px;
+    line-height: 1.1;
+    color: var(--ink);
+    text-shadow: 0 1px 4px rgba(0, 0, 0, .5);
+}
+.xt {
+    font-family: var(--f-title);
+    font-weight: 600;
+    font-size: 12px;
+    line-height: 1.15;
+    color: var(--ink);
+}

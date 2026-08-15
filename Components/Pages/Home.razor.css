@@ -18,10 +18,11 @@
 }
 .mwcell {
     flex: 1;
-    padding: 12px 8px 12px 0;
+    padding: 12px 16px;
     border-right: 1px solid var(--line);
 }
-.mwcell:last-child { border-right: 0; }
+.mwcell:first-child { padding-left: 0; }
+.mwcell:last-child { padding-right: 0; border-right: 0; }
 .mwnum {
     font-family: var(--f-title);
     font-weight: 700;

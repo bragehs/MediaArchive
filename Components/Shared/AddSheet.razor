@@ -4,13 +4,23 @@
 @inject MediaImportService ImportService
 @inject ConsumptionService LogService
 
-@* Bottom sheet over the current screen: search a provider, then capture. *@
-<div class="addscrim" @onclick="CloseAsync"></div>
-<div class="addsheet" @onclick:stopPropagation="true">
-    <div class="grabber"></div>
+@* Search a provider, then capture. Rendered as a bottom sheet (default) or
+   inline inside the Explore tab (Embedded). *@
+@if (!Embedded)
+{
+    <div class="addscrim" @onclick="CloseAsync"></div>
+}
+<div class="addsheet @(Embedded ? "embedded" : "")" @onclick:stopPropagation="true">
+    @if (!Embedded)
+    {
+        <div class="grabber"></div>
+    }
     <div class="sheethead">
         <span class="stt">@(_selected is null ? "Add anything" : (_detail?.Title ?? "Loading…"))</span>
-        <button class="x" @onclick="CloseAsync">✕</button>
+        @if (!Embedded)
+        {
+            <button class="x" @onclick="CloseAsync">✕</button>
+        }
     </div>
     <div class="sheetbody">
 
@@ -405,6 +415,10 @@ else
 @code {
     [Parameter] public EventCallback OnClose { get; set; }
     [Parameter] public EventCallback OnAdded { get; set; }
+
+    // Inline in the Explore tab instead of an overlay sheet: drops the scrim,
+    // grabber and close button, and renders in the page flow.
+    [Parameter] public bool Embedded { get; set; }
 
     private async Task CloseAsync() => await OnClose.InvokeAsync();
 

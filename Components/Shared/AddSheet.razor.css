@@ -22,6 +22,21 @@
     box-shadow: 0 -20px 50px rgba(0, 0, 0, .5);
     padding-bottom: env(safe-area-inset-bottom);
 }
+/* Inline in the Explore tab: shed the overlay chrome, flow in the page.
+   The .viewport supplies the 16px gutter and the scroll, so zero the
+   sheet's own horizontal padding and let its body overflow naturally. */
+.addsheet.embedded {
+    position: static;
+    max-height: none;
+    background: transparent;
+    border-top: 0;
+    border-radius: 0;
+    box-shadow: none;
+    padding-bottom: 0;
+}
+.addsheet.embedded .sheethead { padding: 2px 0 12px; }
+.addsheet.embedded .sheetbody { overflow: visible; padding: 13px 0 20px; }
+
 .grabber {
     flex: none;
     width: 38px;
