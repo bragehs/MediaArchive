@@ -50,7 +50,7 @@ public class CoverCacheServiceTests : IDisposable
 
         var path = await service.TryCacheAsync("https://covers/x.jpg", "OpenLibrary", "OL893415W");
 
-        Assert.Equal("/covers/OpenLibrary-OL893415W.jpg", path);
+        Assert.Equal("covers://c/OpenLibrary-OL893415W.jpg", path);
         Assert.Equal(bytes, await File.ReadAllBytesAsync(
             Path.Combine(_root, "covers", "OpenLibrary-OL893415W.jpg")));
     }
@@ -62,7 +62,7 @@ public class CoverCacheServiceTests : IDisposable
 
         var path = await service.TryCacheAsync("https://images.igdb.com/x.png", "IGDB", "co1r7f");
 
-        Assert.Equal("/covers/IGDB-co1r7f.png", path);
+        Assert.Equal("covers://c/IGDB-co1r7f.png", path);
     }
 
     [Fact]

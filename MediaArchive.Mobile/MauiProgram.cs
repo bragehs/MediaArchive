@@ -1,3 +1,4 @@
+using System.Net.Http;
 using System.Net.Http.Headers;
 using MediaArchive.Data;
 using MediaArchive.Services;
@@ -61,8 +62,18 @@ public static class MauiProgram
         });
         builder.Services.AddTransient<IMediaProvider>(sp => sp.GetRequiredService<IgdbProvider>());
 
-        // Phase 1: render provider image URLs directly (see NullCoverCache).
-        builder.Services.AddSingleton<ICoverCache, NullCoverCache>();
+        // Cache cover images to the device so they render instantly and offline;
+        // the covers:// scheme handler serves them into the WebView. A failed or
+        // slow download just leaves LocalImagePath null and falls back to the URL.
+        builder.Services.AddHttpClient("covers", client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(8);
+            client.DefaultRequestHeaders.UserAgent.ParseAdd(OpenLibraryProvider.UserAgent);
+        });
+        builder.Services.AddSingleton<ICoverCache>(sp => new CoverCacheService(
+            sp.GetRequiredService<IHttpClientFactory>().CreateClient("covers"),
+            Path.Combine(FileSystem.AppDataDirectory, "covers"),
+            sp.GetRequiredService<ILogger<CoverCacheService>>()));
 
         builder.Services.AddScoped<MediaSearchService>();
         builder.Services.AddScoped<MediaImportService>();

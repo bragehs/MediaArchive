@@ -7,7 +7,8 @@ public class CoverCacheService(
     string storageRoot,
     ILogger<CoverCacheService> logger) : ICoverCache
 {
-    public const string RequestPath = "/covers";
+    // Served by the iOS covers:// scheme handler (see CoversSchemeHandler).
+    public const string UrlBase = "covers://c";
 
     private readonly string _storageRoot = storageRoot;
 
@@ -39,7 +40,7 @@ public class CoverCacheService(
 
             File.Move(temp, destination, overwrite: true);
 
-            return $"{RequestPath}/{fileName}";
+            return $"{UrlBase}/{fileName}";
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
