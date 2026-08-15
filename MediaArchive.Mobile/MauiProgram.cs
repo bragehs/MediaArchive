@@ -65,9 +65,11 @@ public static class MauiProgram
         // Cache cover images to the device so they render instantly and offline;
         // the covers:// scheme handler serves them into the WebView. A failed or
         // slow download just leaves LocalImagePath null and falls back to the URL.
+        // Generous timeout: caching runs in the background (see MediaImportService),
+        // and OpenLibrary covers redirect through slow archive.org mirrors.
         builder.Services.AddHttpClient("covers", client =>
         {
-            client.Timeout = TimeSpan.FromSeconds(8);
+            client.Timeout = TimeSpan.FromSeconds(30);
             client.DefaultRequestHeaders.UserAgent.ParseAdd(OpenLibraryProvider.UserAgent);
         });
         builder.Services.AddSingleton<ICoverCache>(sp => new CoverCacheService(
@@ -91,6 +93,10 @@ public static class MauiProgram
         // via the migrations' HasData).
         using (var db = app.Services.GetRequiredService<IDbContextFactory<AppDbContext>>().CreateDbContext())
             db.Database.Migrate();
+
+        // Fire-and-forget: fetch covers for any items that aren't cached yet (added
+        // before caching worked, or imported from the desktop DB). Never blocks launch.
+        _ = app.Services.GetRequiredService<MediaImportService>().BackfillUncachedCoversAsync();
 
         return app;
     }

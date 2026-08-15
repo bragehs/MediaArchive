@@ -2,6 +2,7 @@ using MediaArchive.Data;
 using MediaArchive.Models;
 using MediaArchive.Services.Providers;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace MediaArchive.Services;
 
@@ -14,7 +15,8 @@ public record Vocabulary(
 
 public class MediaImportService(
     IDbContextFactory<AppDbContext> dbContextFactory,
-    ICoverCache coverCache)
+    ICoverCache coverCache,
+    ILogger<MediaImportService> logger)
 {
     public async Task<Vocabulary> GetVocabularyAsync(CancellationToken ct = default)
     {
@@ -40,10 +42,6 @@ public class MediaImportService(
         if (mediaItem is Book book && details.AudioHours is { } audioHours)
             book.AudioHours = audioHours;
 
-        if (mediaItem.LocalImagePath is null)
-            mediaItem.LocalImagePath = await coverCache.TryCacheAsync(
-                mediaItem.ImageUrl, mediaItem.ExternalSource, mediaItem.ExternalId, ct);
-
         // Additive: re-importing something must not drop vocabulary I added by hand.
         await VocabularyResolver.ApplyWorkDetailsAsync(db, mediaItem, details, false, ct);
         await VocabularyResolver.ApplyCreditsAsync(db, mediaItem, item.Credits, ct);
@@ -53,7 +51,58 @@ public class MediaImportService(
 
         await db.SaveChangesAsync(ct);
 
+        // Cover download is slow (OpenLibrary redirects through archive.org), so keep
+        // it off the add path: the item is saved now and the cover fills in once
+        // fetched. mediaItem.Id is populated by SaveChangesAsync above.
+        if (mediaItem.LocalImagePath is null && !string.IsNullOrWhiteSpace(mediaItem.ImageUrl))
+            QueueCoverCache(mediaItem.Id, mediaItem.ImageUrl,
+                mediaItem.ExternalSource, mediaItem.ExternalId);
+
         return userItem.Id;
+    }
+
+    // Covers for items added before caching worked (or whose download failed) stay
+    // null forever otherwise. Queue a background fetch for each on launch.
+    public async Task BackfillUncachedCoversAsync(CancellationToken ct = default)
+    {
+        await using var db = await dbContextFactory.CreateDbContextAsync(ct);
+
+        var uncached = await db.MediaItems
+            .Where(m => m.LocalImagePath == null && m.ImageUrl != null)
+            .Select(m => new { m.Id, m.ImageUrl, m.ExternalSource, m.ExternalId })
+            .ToListAsync(ct);
+
+        foreach (var m in uncached)
+            QueueCoverCache(m.Id, m.ImageUrl!, m.ExternalSource, m.ExternalId);
+    }
+
+    // Fire-and-forget: download the cover on a background task and write the local
+    // path back through a fresh DbContext (the request-scoped one is disposed by then).
+    private void QueueCoverCache(int mediaItemId, string imageUrl,
+        string? externalSource, string? externalId)
+    {
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                var localPath = await coverCache.TryCacheAsync(imageUrl, externalSource, externalId);
+                if (localPath is null)
+                    return;
+
+                await using var db = await dbContextFactory.CreateDbContextAsync();
+                var item = await db.MediaItems.FirstOrDefaultAsync(m => m.Id == mediaItemId);
+                if (item is null)
+                    return;
+
+                item.LocalImagePath = localPath;
+                await db.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Background cover cache failed for media item {MediaItemId}",
+                    mediaItemId);
+            }
+        });
     }
 
     private static async Task<MediaItem> ResolveMediaItemAsync(AppDbContext db, MediaItemDto dto,
