@@ -22,7 +22,6 @@ public abstract class MediaItem
     public string? ExternalId { get; set; }
     public string? ExternalSource { get; set; }
 
-    // Provider's own average, normalised to a 0-10 scale (matching the user rating).
     public double? ExternalRating { get; set; }
     public int? ExternalRatingCount { get; set; }
 
@@ -32,7 +31,6 @@ public abstract class MediaItem
     public int SeriesId { get; set; } = Series.StandaloneId;
     public Series? Series { get; set; }
 
-    // Position within the series (book 3 of 4). Null when unknown or standalone.
     public int? SeriesPosition { get; set; }
 
     public List<MediaItemGenre> Genres { get; set; } = [];
@@ -60,11 +58,8 @@ public abstract class MediaItem
         }
     }
 
-    // Total length, type-specific (pages / hours / runtime / episodes).
     [NotMapped] public abstract int? Length { get; }
 
-    // Null = can't be converted, so the item is excluded from time totals
-    // rather than counted as zero.
     [NotMapped] public abstract double? MinutesPerUnit { get; }
 
     [NotMapped]
@@ -80,18 +75,11 @@ public class Book : MediaItem
 
     public int? PageCount { get; set; }
 
-    // Audiobook total length in hours — user-entered (no provider supplies it).
-    // Lets an audiobook pass be logged in hours and converted to the canonical
-    // page unit; null for a print-only book.
     public double? AudioHours { get; set; }
 
     [NotMapped] public override int? Length => PageCount;
     [NotMapped] public override double? MinutesPerUnit => MinutesPerPage;
 
-    // Audiobook progress is entered in hours; store it as pages proportionally so
-    // print and audio share one unit. Null when we lack a denominator to convert.
-    // Static because the log surfaces have the scalars (from a DTO or parameters),
-    // not a Book entity.
     public static int? PagesFromHours(double? hours, double? audioHours, int? pageCount) =>
         hours is { } h && audioHours is > 0 && pageCount is > 0
             ? (int)Math.Round(h / audioHours.Value * pageCount.Value)
@@ -118,7 +106,6 @@ public class Show : MediaItem
 {
     public int? EpisodeCount { get; set; }
 
-    // Episodes have no usable average — a sitcom and a drama differ by 3x.
     public int? EpisodeRuntime { get; set; }
 
     [NotMapped] public override int? Length => EpisodeCount;

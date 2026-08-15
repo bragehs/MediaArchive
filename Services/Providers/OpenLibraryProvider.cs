@@ -8,7 +8,6 @@ namespace MediaArchive.Services.Providers;
 
 public partial class OpenLibraryProvider(HttpClient httpClient) : IMediaProvider
 {
-    // Open Library asks every client to identify itself instead of taking an API key.
     public const string UserAgent =
         "MediaArchive (https://github.com/bragehs/MediaArchive; brage.skjorestad@gmail.com)";
 
@@ -16,15 +15,12 @@ public partial class OpenLibraryProvider(HttpClient httpClient) : IMediaProvider
     private const string CoverBaseUrl = "https://covers.openlibrary.org/b/id";
     private const string SourceName = "OpenLibrary";
 
-    // The search index is the only place that carries authors, page count and
-    // ratings in one hop; ask for exactly the columns MediaItemDto needs.
     private const string SearchFields =
         "key,title,author_name,first_publish_year,cover_i,number_of_pages_median,ratings_average,ratings_count,subject";
 
     private const int SearchLimit = 5;
     private const int MaxGenres = 8;
 
-    // Open Library is snake_case; the Web defaults alone would leave those properties null.
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
     {
         PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
@@ -43,8 +39,6 @@ public partial class OpenLibraryProvider(HttpClient httpClient) : IMediaProvider
     {
         var workId = NormaliseWorkId(id);
 
-        // Neither endpoint alone fills the DTO: the work record owns the description,
-        // the search index owns authors, pages, ratings and subjects. Fire both at once.
         var docTask = GetSearchDocAsync(workId, cancellationToken);
         var workTask = GetWorkAsync(workId, cancellationToken);
 
@@ -131,11 +125,9 @@ public partial class OpenLibraryProvider(HttpClient httpClient) : IMediaProvider
             [.. CleanSubjects(doc?.Subject ?? work?.Subjects)],
             RatingScale.FromFive(doc?.RatingsAverage),
             doc?.RatingsCount,
-            []); // Open Library has no keyword feed — books get vocabulary suggestions only.
+            []);
     }
 
-    // Ids travel as "/works/OL893415W" inside the API but are stored bare, so
-    // accept either shape coming back in.
     private static string NormaliseWorkId(string? key)
     {
         if (string.IsNullOrWhiteSpace(key))
@@ -146,7 +138,6 @@ public partial class OpenLibraryProvider(HttpClient httpClient) : IMediaProvider
         return lastSlash >= 0 ? key[(lastSlash + 1)..] : key;
     }
 
-    // Covers are addressed by id and size suffix: S (small), M (list rows), L (detail).
     private static string? CoverUrl(int? coverId, char size)
     {
         return coverId is > 0 ? $"{CoverBaseUrl}/{coverId}-{size}.jpg" : null;
@@ -174,8 +165,6 @@ public partial class OpenLibraryProvider(HttpClient httpClient) : IMediaProvider
 
         var text = description.Replace("\r\n", "\n").Replace('\r', '\n');
 
-        // Editors close descriptions with a horizontal rule followed by source
-        // links; that footer is metadata, not blurb.
         var footer = SourceFooter().Match(text);
         if (footer.Success)
             text = text[..footer.Index];
@@ -183,7 +172,6 @@ public partial class OpenLibraryProvider(HttpClient httpClient) : IMediaProvider
         text = MarkdownLink().Replace(text, "$1");
         text = ReferenceLink().Replace(text, "$1");
 
-        // Some records were pasted in from HTML pages.
         text = BreakTags().Replace(text, "\n");
         text = AnyTag().Replace(text, "");
         text = WebUtility.HtmlDecode(text);
@@ -219,8 +207,6 @@ public partial class OpenLibraryProvider(HttpClient httpClient) : IMediaProvider
     [GeneratedRegex(@"\n{3,}")]
     private static partial Regex BlankLines();
 
-    // Open Library only publishes the first year a work was printed, so a date
-    // is always padded to Jan 1.
     private static DateOnly? ParseYear(int? year)
     {
         return year is > 0 and < 3000 ? new DateOnly(year.Value, 1, 1) : null;
@@ -246,8 +232,6 @@ public partial class OpenLibraryProvider(HttpClient httpClient) : IMediaProvider
         [property: JsonConverter(typeof(OpenLibraryTextConverter))]
         string? Description);
 
-    // "description" is either a plain string or a {"type","value"} text object,
-    // depending on how old the record is.
     private sealed class OpenLibraryTextConverter : JsonConverter<string?>
     {
         public override string? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)

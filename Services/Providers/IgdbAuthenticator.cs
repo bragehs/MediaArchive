@@ -3,9 +3,6 @@ using Microsoft.Extensions.Options;
 
 namespace MediaArchive.Services.Providers;
 
-// IGDB has no API key of its own: every call carries a Twitch app access token.
-// Registered as a singleton so the token is fetched once and reused until it nears
-// expiry, instead of round-tripping to Twitch on every game lookup.
 public sealed class IgdbAuthenticator(IHttpClientFactory httpClientFactory, IOptions<IgdbOptions> options)
 {
     private const string TokenUrl = "https://id.twitch.tv/oauth2/token";
@@ -13,7 +10,6 @@ public sealed class IgdbAuthenticator(IHttpClientFactory httpClientFactory, IOpt
     private readonly IHttpClientFactory _httpClientFactory = httpClientFactory;
     private readonly IgdbOptions _options = options.Value;
 
-    // Guards the refresh so concurrent requests don't all hit Twitch at once.
     private readonly SemaphoreSlim _gate = new(1, 1);
 
     private string? _token;

@@ -1,7 +1,5 @@
 namespace MediaArchive.Models;
 
-// A human or company that made something. Companies live here too — they occupy
-// the same slot in the same queries.
 public class Person : INamed
 {
     public int Id { get; set; }

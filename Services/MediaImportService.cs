@@ -38,11 +38,10 @@ public class MediaImportService(
 
         var mediaItem = await ResolveMediaItemAsync(db, item, ct);
 
-        // Audiobook length is user-entered, not from the provider — set it when given.
         if (mediaItem is Book book && details.AudioHours is { } audioHours)
             book.AudioHours = audioHours;
 
-        // Additive: re-importing something must not drop vocabulary I added by hand.
+        // false = additive: re-importing must not drop hand-added vocabulary.
         await VocabularyResolver.ApplyWorkDetailsAsync(db, mediaItem, details, false, ct);
         await VocabularyResolver.ApplyCreditsAsync(db, mediaItem, item.Credits, ct);
 
@@ -51,9 +50,6 @@ public class MediaImportService(
 
         await db.SaveChangesAsync(ct);
 
-        // Cover download is slow (OpenLibrary redirects through archive.org), so keep
-        // it off the add path: the item is saved now and the cover fills in once
-        // fetched. mediaItem.Id is populated by SaveChangesAsync above.
         if (mediaItem.LocalImagePath is null && !string.IsNullOrWhiteSpace(mediaItem.ImageUrl))
             QueueCoverCache(mediaItem.Id, mediaItem.ImageUrl,
                 mediaItem.ExternalSource, mediaItem.ExternalId);
@@ -61,8 +57,6 @@ public class MediaImportService(
         return userItem.Id;
     }
 
-    // Covers for items added before caching worked (or whose download failed) stay
-    // null forever otherwise. Queue a background fetch for each on launch.
     public async Task BackfillUncachedCoversAsync(CancellationToken ct = default)
     {
         await using var db = await dbContextFactory.CreateDbContextAsync(ct);
@@ -76,8 +70,6 @@ public class MediaImportService(
             QueueCoverCache(m.Id, m.ImageUrl!, m.ExternalSource, m.ExternalId);
     }
 
-    // Fire-and-forget: download the cover on a background task and write the local
-    // path back through a fresh DbContext (the request-scoped one is disposed by then).
     private void QueueCoverCache(int mediaItemId, string imageUrl,
         string? externalSource, string? externalId)
     {

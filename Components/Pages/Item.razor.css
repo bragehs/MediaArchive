@@ -1,6 +1,3 @@
-/* Mobile item detail — hero, facts, action, classification, pass log.
-   Scoped: i-prefixed classes never touch the desktop app.css. */
-
 .iempty {
     font-family: var(--f-serif);
     font-style: italic;
@@ -9,7 +6,6 @@
     padding: 16px 0;
 }
 
-/* ── top nav ── */
 .itopnav {
     display: flex;
     align-items: center;
@@ -26,7 +22,6 @@
 .ifav { font-size: 19px; color: var(--dim); line-height: 1; }
 .ifav.on { color: var(--ac2); }
 
-/* ── hero ── */
 .ihero { display: flex; gap: 14px; margin-top: 6px; }
 .icov {
     position: relative;
@@ -35,7 +30,6 @@
     aspect-ratio: 2 / 3;
     border-radius: 10px;
     border: 1px solid var(--line);
-    border-top: 3px solid var(--t, var(--ac));
     background: linear-gradient(155deg, var(--panel), #131f10);
     overflow: hidden;
 }
@@ -70,7 +64,6 @@
     margin-top: 10px;
 }
 
-/* interactive half-star rating */
 .istars {
     position: relative;
     display: inline-block;
@@ -99,7 +92,6 @@
     margin-top: 8px;
 }
 
-/* ── facts ── */
 .ifacts {
     display: flex;
     margin-top: 18px;
@@ -119,7 +111,6 @@
     margin-top: 6px;
 }
 
-/* ── action ── */
 .iopen { font-family: var(--f-serif); font-style: italic; font-size: 12px; color: var(--dim); margin-top: 16px; }
 .ibar { height: 5px; background: rgba(0, 0, 0, .3); border-radius: 3px; margin-top: 8px; overflow: hidden; }
 .ibar i { display: block; height: 100%; background: var(--ac); }
@@ -142,7 +133,6 @@
 .ibtn.ighost { background: none; color: var(--muted); border: 1px solid var(--line); }
 .isave { margin-top: 14px; }
 
-/* ── start-a-pass form ── */
 .istart { margin-top: 14px; }
 .irow { display: flex; gap: 10px; }
 .irow > div { flex: 1; }
@@ -170,10 +160,8 @@
 .istartfoot { display: flex; gap: 10px; margin-top: 12px; }
 .istartfoot .ibtn { margin-top: 0; }
 
-/* ── description ── */
 .idesc { font-family: var(--f-serif); font-size: 13.5px; line-height: 1.5; color: var(--muted); margin-top: 16px; }
 
-/* ── section head ── */
 .isec {
     display: flex;
     align-items: baseline;
@@ -199,12 +187,10 @@
     color: var(--ac2);
 }
 
-/* ── classification fields ── */
 .ifield { margin-bottom: 8px; }
 .inote { font-family: var(--f-display); font-size: 12px; padding: 10px 12px; border-radius: 9px; margin-top: 10px; }
 .inote.bad { background: rgba(190, 90, 90, .15); border: 1px solid #be5a5a; color: #e8a0a0; }
 
-/* ── passes ── */
 .ipass { padding: 12px 0; border-bottom: 1px solid var(--line2); }
 .ipasshead { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
 .ipstatus { font-family: var(--f-display); text-transform: uppercase; letter-spacing: .1em; font-size: 9px; font-weight: 700; }

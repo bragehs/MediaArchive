@@ -1,7 +1,5 @@
 namespace MediaArchive.Models;
 
-// An ordered, single-medium sequence (Mistborn Era 1, the MCU phase films).
-// Distinct from Universe, which spans media types.
 public class Series : INamed
 {
     // Every item belongs to a series; anything that isn't part of one gets this row.

@@ -51,10 +51,8 @@ public class CollectionService(IDbContextFactory<AppDbContext> dbContextFactory)
             .ToListAsync(ct);
     }
 
-    // Masthead search over the archive itself. Matches title OR any credited
-    // person (so "Sanderson" finds his books), then ranks title-prefix hits above
-    // plain contains. Credits are Included because Creator is [NotMapped] and only
-    // resolves once the rows are in memory.
+    // Credits are Included because Creator is [NotMapped] and only resolves once
+    // the rows are in memory.
     public async Task<List<LibrarySearchResult>> SearchLibraryAsync(string query,
         CancellationToken ct = default)
     {
@@ -143,7 +141,6 @@ public class CollectionService(IDbContextFactory<AppDbContext> dbContextFactory)
             item.Entries.Count);
     }
 
-    // Genres, tags, series, universe — replace semantics: the form is the truth.
     public async Task UpdateDetailsAsync(int mediaItemId, WorkDetails details,
         CancellationToken ct = default)
     {

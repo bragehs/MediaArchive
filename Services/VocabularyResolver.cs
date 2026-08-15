@@ -26,7 +26,6 @@ public static class VocabularyResolver
 
         var series = await ResolveSeriesAsync(db, details.Series, ct);
         mediaItem.Series = series;
-        // Position is meaningless without a real series.
         mediaItem.SeriesPosition = series.Id == Series.StandaloneId ? null : details.SeriesPosition;
 
         await ApplyGenresAsync(db, mediaItem, details.Genres, replace, ct);
@@ -173,8 +172,6 @@ public static class VocabularyResolver
         return result;
     }
 
-    // A brand-new entity has nothing in the DB to load; an existing one needs its
-    // join rows pulled in before we can diff against them.
     private static async Task LoadIfPersistedAsync<TProp>(AppDbContext db, MediaItem mediaItem,
         Expression<Func<MediaItem, IEnumerable<TProp>>> collection, CancellationToken ct)
         where TProp : class

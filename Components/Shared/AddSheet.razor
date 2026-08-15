@@ -4,8 +4,6 @@
 @inject MediaImportService ImportService
 @inject ConsumptionService LogService
 
-@* Search a provider, then capture. Rendered as a bottom sheet (default) or
-   inline inside the Explore tab (Embedded). *@
 @if (!Embedded)
 {
     <div class="addscrim" @onclick="CloseAsync"></div>
@@ -87,8 +85,7 @@
 }
 else
 {
-    @* capture — a result is selected ── *@
-            @if (_loadingDetail)
+                @if (_loadingDetail)
             {
                 <div class="detail">
                     <div class="dcover"></div>
@@ -97,8 +94,7 @@ else
             }
             else if (_selected!.MediaType == MediaType.Show && !_seasonChosen)
             {
-                @* pick a season — each becomes its own item ── *@
-                <div class="scount">Choose a season</div>
+                                <div class="scount">Choose a season</div>
                 @foreach (var s in _seasons)
                 {
                     <button class="presult" @onclick="() => PickSeason(s)">
@@ -416,14 +412,10 @@ else
     [Parameter] public EventCallback OnClose { get; set; }
     [Parameter] public EventCallback OnAdded { get; set; }
 
-    // Inline in the Explore tab instead of an overlay sheet: drops the scrim,
-    // grabber and close button, and renders in the page flow.
     [Parameter] public bool Embedded { get; set; }
 
     private async Task CloseAsync() => await OnClose.InvokeAsync();
 
-    // The three write actions from the vault's Log-and-capture note. Dropped is
-    // deliberately absent — you can't drop something you never started.
     private enum LogAction
     {
         Start,
@@ -441,7 +433,6 @@ else
     private MediaItemDto? _detail;
     private bool _loadingDetail;
 
-    // TV: a show fans out into seasons; each is captured as its own item.
     private IReadOnlyList<SeasonDto> _seasons = [];
     private bool _seasonChosen;
     private string? _showTitle;
@@ -478,11 +469,9 @@ else
         _vocab = await ImportService.GetVocabularyAsync();
     }
 
-    // A Book consumed as an audiobook: effort is entered in hours, not pages.
     private bool IsAudiobook => _detail?.MediaType == MediaType.Book
                                 && _context == ConsumptionContext.Audiobook;
 
-    // Convert audiobook hours to the canonical page unit; fall back to plain effort.
     private int? EffortToStore() =>
         IsAudiobook ? Book.PagesFromHours(_hoursListened, _audioHours, _detail?.Length) : _effort;
 
@@ -609,7 +598,6 @@ else
                 _showTitle = _detail?.Title;
                 _seasons = await Search.GetSeasonsAsync(result.ExternalId);
 
-                // 0–1 seasons: nothing to choose — capture the whole show as one item.
                 if (_seasons.Count <= 1)
                     PickSeason(_seasons.FirstOrDefault());
             }
@@ -630,8 +618,6 @@ else
         }
     }
 
-    // Turn the chosen season into the item we capture: its own external id, and
-    // grouped under the show as a Series at the season's position.
     private void PickSeason(SeasonDto? season)
     {
         if (season is not null && _detail is not null && _selected is not null)
@@ -724,7 +710,6 @@ else
         }
     }
 
-    // Clears the current selection and the capture form; leaves the results in place.
     private void Reset()
     {
         _selected = null;

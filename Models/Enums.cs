@@ -39,7 +39,6 @@ public enum CreditRole
 
 public static class MediaTypeExtensions
 {
-    // The role Creator surfaces — every media type has exactly one headline credit.
     public static CreditRole PrimaryCreditRole(this MediaType mediaType)
     {
         return mediaType switch

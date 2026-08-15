@@ -1,7 +1,5 @@
 namespace MediaArchive.Models;
 
-// The seeded core vocabulary carries a facet; ad-hoc tags created while logging
-// leave it null. Cross-media rollups filter Facet != null && AppliesTo == null.
 public enum TagFacet
 {
     Mood,
@@ -18,7 +16,6 @@ public class Tag : INamed
 
     public TagFacet? Facet { get; set; }
 
-    // Null = cross-media. Set = type-local.
     public MediaType? AppliesTo { get; set; }
 
     public List<MediaItemTag> MediaItems { get; set; } = [];

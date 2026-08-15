@@ -3,9 +3,7 @@ using WebKit;
 
 namespace MediaArchive.Mobile;
 
-// Serves cover images written at runtime to AppDataDirectory/covers over a custom
-// "covers://" scheme, so the BlazorWebView can display files that live outside the
-// bundled wwwroot. CoverCacheService returns "covers://c/{file}" as LocalImagePath.
+// Serves runtime-cached covers (outside the bundled wwwroot) to the WebView.
 public sealed class CoversSchemeHandler : NSObject, IWKUrlSchemeHandler
 {
     public const string Scheme = "covers";

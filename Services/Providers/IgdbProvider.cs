@@ -12,7 +12,6 @@ public class IgdbProvider(HttpClient httpClient, IgdbAuthenticator authenticator
 
     private const int SearchLimit = 5;
 
-    // IGDB is snake_case; the Web defaults alone would leave those properties null.
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
     {
         PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
@@ -27,7 +26,6 @@ public class IgdbProvider(HttpClient httpClient, IgdbAuthenticator authenticator
         return mediaType == MediaType.Game;
     }
 
-    // IGDB uses POST /games with an Apicalypse body where the caller lists the fields it wants.
     public async Task<IReadOnlyList<MediaSearchResultDto>> SearchAsync(string query,
         MediaType _,
         CancellationToken cancellationToken = default)
@@ -41,8 +39,6 @@ public class IgdbProvider(HttpClient httpClient, IgdbAuthenticator authenticator
         return games.Select(MapToSearchResult).ToList();
     }
 
-    // /games fills most of the DTO, but time-to-beat lives on its own endpoint, so
-    // fire both at once and merge (same shape as OpenLibrary's two parallel fetches).
     public async Task<MediaItemDto?> GetByIdAsync(string id,
         MediaType _,
         CancellationToken cancellationToken = default)
@@ -65,7 +61,6 @@ public class IgdbProvider(HttpClient httpClient, IgdbAuthenticator authenticator
         return game is null ? null : MapToItem(game, await hoursTask);
     }
 
-    // Suggested main-story length in hours; falls back to the other tiers if absent.
     private async Task<int?> QueryHoursToBeatAsync(long gameId, CancellationToken cancellationToken)
     {
         var body = "fields normally,hastily,completely; "
@@ -130,7 +125,6 @@ public class IgdbProvider(HttpClient httpClient, IgdbAuthenticator authenticator
             [.. Tags(game)]);
     }
 
-    // Only the companies flagged as developers become the headline Studio credit.
     private static IEnumerable<CreditDto> Studios(IgdbGame game)
     {
         return game.InvolvedCompanies?
@@ -154,7 +148,6 @@ public class IgdbProvider(HttpClient httpClient, IgdbAuthenticator authenticator
         return imageId is null ? null : $"{ImageBaseUrl}/{size}/{imageId}.jpg";
     }
 
-    // first_release_date is a Unix timestamp in seconds.
     private static DateOnly? ParseDate(long? unixSeconds)
     {
         return unixSeconds is > 0
@@ -162,7 +155,6 @@ public class IgdbProvider(HttpClient httpClient, IgdbAuthenticator authenticator
             : null;
     }
 
-    // Apicalypse wraps the search term in double quotes, so escape any the query carries.
     private static string Escape(string query)
     {
         return query.Replace("\\", "\\\\").Replace("\"", "\\\"");
@@ -189,6 +181,5 @@ public class IgdbProvider(HttpClient httpClient, IgdbAuthenticator authenticator
 
     private sealed record IgdbNamed(string? Name);
 
-    // Times are in seconds; each tier is a separate submission average.
     private sealed record IgdbTimeToBeat(long? Hastily, long? Normally, long? Completely);
 }

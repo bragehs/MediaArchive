@@ -24,13 +24,10 @@ public static class MauiProgram
 
         builder.Services.AddMauiBlazorWebView();
 
-        // On device the DB lives in the app's private data dir, not the CWD.
         var dbPath = Path.Combine(FileSystem.AppDataDirectory, "mediaarchive.db");
         builder.Services.AddDbContextFactory<AppDbContext>(options =>
             options.UseSqlite($"Data Source={dbPath}"));
 
-        // Media providers: bind config, give each provider its own typed HttpClient,
-        // then expose it via IMediaProvider so consumers can inject them as a set.
         builder.Services.AddHttpClient<OpenLibraryProvider>(client =>
         {
             client.DefaultRequestHeaders.UserAgent.ParseAdd(OpenLibraryProvider.UserAgent);
@@ -62,11 +59,8 @@ public static class MauiProgram
         });
         builder.Services.AddTransient<IMediaProvider>(sp => sp.GetRequiredService<IgdbProvider>());
 
-        // Cache cover images to the device so they render instantly and offline;
-        // the covers:// scheme handler serves them into the WebView. A failed or
-        // slow download just leaves LocalImagePath null and falls back to the URL.
-        // Generous timeout: caching runs in the background (see MediaImportService),
-        // and OpenLibrary covers redirect through slow archive.org mirrors.
+        // 30s: cover caching runs in the background and OpenLibrary redirects
+        // through slow archive.org mirrors.
         builder.Services.AddHttpClient("covers", client =>
         {
             client.Timeout = TimeSpan.FromSeconds(30);
@@ -89,13 +83,9 @@ public static class MauiProgram
 
         var app = builder.Build();
 
-        // Create + migrate the on-device database on launch (seed data rides along
-        // via the migrations' HasData).
         using (var db = app.Services.GetRequiredService<IDbContextFactory<AppDbContext>>().CreateDbContext())
             db.Database.Migrate();
 
-        // Fire-and-forget: fetch covers for any items that aren't cached yet (added
-        // before caching worked, or imported from the desktop DB). Never blocks launch.
         _ = app.Services.GetRequiredService<MediaImportService>().BackfillUncachedCoversAsync();
 
         return app;

@@ -28,8 +28,6 @@ public record JustClosedItem(
 
 public enum MediaBucket { Gaming, Viewing, Reading }
 
-// One home-page tile: how much of this bucket happened this week, and across how
-// many distinct items. Value is hours for Gaming/Viewing, pages for Reading.
 public record WeeklyBucketStat(MediaBucket Bucket, double Value, string Unit, int ItemsTouched);
 
 public record WeeklyActivity(DateOnly WeekStart, DateOnly WeekEnd,
@@ -47,7 +45,6 @@ public record PassSummary(
     ConsumptionContext? Context,
     List<PassNote> Notes);
 
-// Owns ConsumptionEntry and EntryNote — passes, reading and writing both.
 public class ConsumptionService(
     IDbContextFactory<AppDbContext> dbContextFactory,
     MediaImportService importService)
@@ -115,21 +112,19 @@ public class ConsumptionService(
             entry.UserMediaItem.Rating, daysSinceClosed);
     }
 
-    // Time/volume logged in the current calendar week (Mon–Sun, UTC to match how
-    // note timestamps are stored). Effort is cumulative, so we slice each pass by
-    // walking its note timeline and counting only the increments dated this week.
     public async Task<WeeklyActivity> GetWeeklyActivityAsync(CancellationToken ct = default)
     {
         await using var db = await dbContextFactory.CreateDbContextAsync(ct);
 
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        var weekStart = today.AddDays(-(((int)today.DayOfWeek + 6) % 7)); // back to Monday
+        var weekStart = today.AddDays(-(((int)today.DayOfWeek + 6) % 7));
         var weekEnd = weekStart.AddDays(6);
         var from = weekStart.ToDateTime(TimeOnly.MinValue);
         var toExclusive = weekStart.AddDays(7).ToDateTime(TimeOnly.MinValue);
 
-        // Only passes with a note this week can contribute; load each one's full
-        // note history so the cumulative-effort walk has its running baseline.
+        // Load each pass's full note history so the cumulative-effort walk has its
+        // running baseline — filtering the Include to this week would silently
+        // corrupt the running total.
         var entries = await db.ConsumptionEntries
             .Where(e => e.Notes.Any(n => n.CreatedAt >= from && n.CreatedAt < toExclusive))
             .Include(e => e.Notes)
@@ -144,10 +139,6 @@ public class ConsumptionService(
 
         foreach (var entry in entries)
         {
-            // The query loads any pass with a note logged this week, but a note's
-            // effort belongs to when it *happened* (ActivityDate). Skip passes with
-            // no activity dated this week — e.g. a book logged now but read Feb–April
-            // — so they count toward neither the units nor the item tally.
             var touchedThisWeek = entry.Notes.Any(n =>
             {
                 var when = ActivityDate(entry, n);
@@ -170,7 +161,7 @@ public class ConsumptionService(
                     readingPages += units;
                     readingItems.Add(entry.UserMediaItemId);
                     break;
-                default: // Movie or Show → Viewing
+                default:
                     viewingMinutes += minutes;
                     viewingItems.Add(entry.UserMediaItemId);
                     break;
@@ -187,9 +178,6 @@ public class ConsumptionService(
         return new WeeklyActivity(weekStart, weekEnd, buckets);
     }
 
-    // Effort is a running total, so a note's contribution is its cumulative value
-    // minus the previous note's. Null EffortAtTime (a start note, or a comment with
-    // no progress) carries the baseline forward and adds nothing.
     private static double UnitsLoggedInWeek(ConsumptionEntry entry, DateTime from, DateTime toExclusive)
     {
         double previous = 0, units = 0;
@@ -205,10 +193,6 @@ public class ConsumptionService(
         return units;
     }
 
-    // A note's effort belongs to when it actually happened, not when it was logged.
-    // A backdated Start/Finish (e.g. a book logged today but read Feb–April) belongs
-    // to the pass's own StartDate/EndDate; a live Progress note has no logical date
-    // of its own, so its CreatedAt stands.
     private static DateTime ActivityDate(ConsumptionEntry entry, EntryNote note) => note.Kind switch
     {
         NoteKind.Finish => (entry.EndDate ?? DateOnly.FromDateTime(note.CreatedAt)).ToDateTime(TimeOnly.MinValue),
@@ -287,7 +271,6 @@ public class ConsumptionService(
         {
             Kind = NoteKind.Progress,
             EffortAtTime = entry.Effort,
-            // Progress notes are optional now — store null rather than "" when blank.
             Text = string.IsNullOrWhiteSpace(note.Text) ? null : note.Text.Trim()
         });
 
@@ -320,7 +303,6 @@ public class ConsumptionService(
                 Text = finish.Note.Trim()
             });
 
-        // Status stays my *current* relationship to the work — latest pass wins.
         userItem.Status = outcome is PassOutcome.Completed
             ? MediaStatus.Completed
             : MediaStatus.Dropped;
@@ -329,8 +311,6 @@ public class ConsumptionService(
         await db.SaveChangesAsync(ct);
     }
 
-    // Cross-aggregate use case: import the work, then open and close a pass on it in
-    // one go. Lives here because the outcome is a finished pass.
     public async Task<int> LogCompletedAsync(MediaItemDto item, WorkDetails details,
         PassStart start, PassFinish finish, CancellationToken ct = default)
     {

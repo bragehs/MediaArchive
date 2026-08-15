@@ -7,7 +7,6 @@ public class CoverCacheService(
     string storageRoot,
     ILogger<CoverCacheService> logger) : ICoverCache
 {
-    // Served by the iOS covers:// scheme handler (see CoversSchemeHandler).
     public const string UrlBase = "covers://c";
 
     private readonly string _storageRoot = storageRoot;

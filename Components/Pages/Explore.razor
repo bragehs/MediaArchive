@@ -52,7 +52,6 @@ else
     private Mode _mode = Mode.Search;
     private IReadOnlyList<OnDeckItem>? _upNext;
 
-    // Lazy: only query the backlog the first time Up Next is opened, then cache it.
     private async Task ShowUpNextAsync()
     {
         _mode = Mode.UpNext;

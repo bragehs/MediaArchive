@@ -13,7 +13,6 @@ public sealed class IgdbOptions
 {
     public const string SectionName = "Igdb";
 
-    // IGDB authenticates through Twitch: exchange these for a bearer token.
     public string? ClientId { get; set; }
     public string? ClientSecret { get; set; }
 }

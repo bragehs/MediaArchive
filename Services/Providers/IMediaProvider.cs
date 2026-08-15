@@ -16,7 +16,6 @@ public interface IMediaProvider
         MediaType mediaType,
         CancellationToken cancellationToken = default);
 
-    // Only TV providers split into seasons; everyone else inherits the empty default.
     Task<IReadOnlyList<SeasonDto>> GetSeasonsAsync(
         string showExternalId,
         CancellationToken cancellationToken = default)

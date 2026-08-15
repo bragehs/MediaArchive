@@ -10,7 +10,6 @@ public class TmdbProvider(HttpClient httpClient) : IMediaProvider
     private const string SourceName = "Tmdb";
     private const string ImageBaseUrl = "https://image.tmdb.org/t/p/w500";
 
-    // TMDB is snake_case; the Web defaults alone would leave those properties null.
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
     {
         PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
@@ -170,8 +169,6 @@ public class TmdbProvider(HttpClient httpClient) : IMediaProvider
         return show is null ? null : MapToItem(show);
     }
 
-    // Option A: each season is captured as its own item. The seasons array comes
-    // back on the base tv/{id} call — no append needed.
     public async Task<IReadOnlyList<SeasonDto>> GetSeasonsAsync(string showExternalId,
         CancellationToken cancellationToken = default)
     {
@@ -188,7 +185,6 @@ public class TmdbProvider(HttpClient httpClient) : IMediaProvider
         if (show?.Seasons is null)
             return [];
 
-        // Skip "Specials" (season 0); present real seasons in order.
         return show.Seasons
             .Where(s => s.SeasonNumber >= 1)
             .OrderBy(s => s.SeasonNumber)
@@ -217,7 +213,6 @@ public class TmdbProvider(HttpClient httpClient) : IMediaProvider
             RatingScale.FromTen(show.VoteAverage),
             show.VoteCount,
             [.. show.Keywords?.Results?.Select(k => k.Name).OfType<string>() ?? []],
-            // Series-level runtime is empty on many newer shows; fall back to the latest episode.
             show.EpisodeRunTime?.FirstOrDefault(r => r > 0) ?? show.LastEpisodeToAir?.Runtime
         );
     }
@@ -238,7 +233,6 @@ public class TmdbProvider(HttpClient httpClient) : IMediaProvider
         return creators.Concat(networks).DistinctBy(c => (c.Name, c.Role));
     }
 
-    // Full ISO date, but "" for unreleased titles.
     private static DateOnly? ParseDate(string? date)
     {
         return DateOnly.TryParse(date, CultureInfo.InvariantCulture, out var parsed) ? parsed : null;
@@ -258,7 +252,6 @@ public class TmdbProvider(HttpClient httpClient) : IMediaProvider
         string? FirstAirDate,
         string? PosterPath);
 
-    // Detail: fetched with append_to_response so credits arrive in the same call.
     private sealed record TmdbMovieDetail(
         int Id,
         string? Title,
@@ -285,7 +278,6 @@ public class TmdbProvider(HttpClient httpClient) : IMediaProvider
         double? VoteAverage,
         int? VoteCount,
         List<TmdbCompany>? Networks,
-        // Often empty on newer shows — fall back to LastEpisodeToAir.Runtime.
         List<int>? EpisodeRunTime,
         TmdbEpisode? LastEpisodeToAir,
         List<TmdbSeason>? Seasons);

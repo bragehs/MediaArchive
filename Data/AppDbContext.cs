@@ -55,7 +55,6 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             .HasIndex(t => t.Name)
             .IsUnique();
 
-        // One person can hold several roles on one item, so Role is part of the key.
         builder.Entity<MediaItemCredit>()
             .HasKey(mc => new { mc.MediaItemId, mc.PersonId, mc.Role });
 
@@ -71,8 +70,6 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             .HasIndex(s => s.Name)
             .IsUnique();
 
-        // Required: an item is always in a series, "Standalone" if nothing else.
-        // Restrict so a series can't be deleted out from under its items.
         builder.Entity<MediaItem>()
             .HasOne(m => m.Series)
             .WithMany(s => s.Items)
@@ -87,8 +84,6 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
                 Name = Models.Series.StandaloneName
             });
 
-        // Self-referencing genre hierarchy. Restrict: a genre with subgenres
-        // can't be deleted out from under them.
         builder.Entity<Genre>()
             .HasOne(g => g.ParentGenre)
             .WithMany(g => g.Subgenres)

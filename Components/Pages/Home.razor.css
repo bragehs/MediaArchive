@@ -1,6 +1,3 @@
-/* Mobile Home — weekstrip, open-now, on-deck rail, just-closed.
-   Scoped: these classes never touch the desktop app.css. */
-
 .mempty {
     font-family: var(--f-serif);
     font-style: italic;
@@ -9,7 +6,6 @@
     padding: 10px 0;
 }
 
-/* ── weekstrip ── */
 .mweek {
     display: flex;
     border-top: 2px solid var(--ink);
@@ -64,7 +60,6 @@
     margin: 12px 0 2px;
 }
 
-/* ── section head ── */
 .msec {
     display: flex;
     align-items: baseline;
@@ -90,13 +85,11 @@
     color: var(--dim);
 }
 
-/* ── cover tile (shared by open-now + rail) ── */
 .mcov {
     position: relative;
     flex: none;
     border-radius: 8px;
     border: 1px solid var(--line);
-    border-top: 3px solid var(--t, var(--ac));
     background: linear-gradient(155deg, var(--panel), #131f10);
     overflow: hidden;
     cursor: pointer;
@@ -116,7 +109,6 @@
     text-shadow: 0 1px 4px rgba(0, 0, 0, .5);
 }
 
-/* ── open now ── */
 .mnow {
     display: flex;
     gap: 13px;
@@ -167,7 +159,6 @@
     margin-left: 4px;
 }
 
-/* ── on-deck rail ── */
 .mrail {
     display: flex;
     gap: 11px;
@@ -187,7 +178,6 @@
     padding: 0 6px;
 }
 
-/* ── just closed ── */
 .mclosed {
     display: flex;
     align-items: baseline;
