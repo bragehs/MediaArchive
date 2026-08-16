@@ -146,8 +146,8 @@ body::before {
     width: 31px;
     height: 31px;
     border-radius: 7px;
-    border: 1px solid var(--ac2);
-    background: linear-gradient(155deg, var(--panel), #16240f);
+    border: 1px solid var(--ac);
+    background: #0a0a0a;
     font-family: var(--f-title);
     font-weight: 700;
     font-size: 15px;
@@ -155,7 +155,6 @@ body::before {
     line-height: 1;
     color: var(--ac);
     text-transform: none;
-    box-shadow: inset 0 0 0 3px rgba(28, 48, 28, .6);
 }
 .brandmark > span { color: var(--ink); }
 

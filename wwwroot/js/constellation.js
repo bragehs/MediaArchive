@@ -18,7 +18,7 @@ window.constellation = (function () {
   let genreNode = {}, hueOf = {}, genreItems = {};
   let el = {}, VW = 0, VH = 0, DPR = 1, cam = { x: 0, y: 0, z: 0.66 };
   let alpha = 1, dragging = null, selected = null, hiSet = null, searchHits = null;
-  let raf = 0, wiredWindow = false, searchTimer = 0;
+  let raf = 0, wiredWindow = false, searchTimer = 0, camTo = null;
 
   const genresOf = it => [...new Set(it.g || [])];
 
@@ -44,27 +44,31 @@ window.constellation = (function () {
       const ang = i / gkeys.length * 6.2832;
       genreNode[g] = mk('g:' + g, {
         kind: 'genre', name: g, col: hueOf[g], count: genreItems[g].length,
-        r: 18 + Math.sqrt(genreItems[g].length) * 11, x: Math.cos(ang) * 380, y: Math.sin(ang) * 380
+        r: 16 + Math.sqrt(genreItems[g].length) * 10, x: Math.cos(ang) * 230, y: Math.sin(ang) * 230
       });
     });
 
-    // One node per (item, genre). Copies of a shared work are NOT linked to each
-    // other — that kept the graph readable rather than a hairball.
+    // One node per (item, genre): a small dot coloured by its genre. Dot size
+    // nods to your rating. Copies of a shared work are twin-linked so it bridges
+    // the hubs it belongs to — that weave is what pulls related genres together.
     const copies = {};
     items.forEach((it, idx) => {
       const gs = genresOf(it); if (!gs.length) return;
+      const r = 4 + ((it.r || 0) / 10) * 4;
       gs.forEach(g => {
         const gn = genreNode[g], list = genreItems[g], pos = list.indexOf(idx);
-        const ang = pos / list.length * 6.2832 + rnd() * 0.4;
-        const rad = gn.r + 82;
+        const ang = pos / list.length * 6.2832 + rnd() * 0.6;
+        const rad = gn.r + 40;
         const n = mk('i:' + idx + '@' + g, {
-          kind: 'item', name: it.t, item: it, idx, genre: g, col: hueOf[g], r: 30,
+          kind: 'item', name: it.t, item: it, idx, genre: g, col: hueOf[g], r,
           x: gn.x + Math.cos(ang) * rad, y: gn.y + Math.sin(ang) * rad
         });
         link(n, gn, 'orbit');
         (copies[idx] = copies[idx] || []).push(n);
       });
-      if (it.img) { const im = new Image(); im.onload = () => { (copies[idx] || []).forEach(n => n.im = im); }; im.src = it.img; }
+    });
+    Object.values(copies).forEach(list => {
+      for (let a = 0; a < list.length; a++) for (let b = a + 1; b < list.length; b++) link(list[a], list[b], 'twin');
     });
   }
 
@@ -92,7 +96,7 @@ window.constellation = (function () {
         const b = nodes[j];
         let dx = a.x - b.x, dy = a.y - b.y, d2 = dx * dx + dy * dy || 0.01;
         const bothG = (a.kind === 'genre' && b.kind === 'genre');
-        const rep = bothG ? 42000 : (a.kind === 'item' && b.kind === 'item' ? 7000 : 5600);
+        const rep = bothG ? 11000 : (a.kind === 'item' && b.kind === 'item' ? 1400 : 2000);
         const minD = a.r + b.r + 22;
         let f = rep / d2;
         if (d2 < minD * minD) f += (minD * minD - d2) / d2 * 1.1;
@@ -104,17 +108,17 @@ window.constellation = (function () {
     for (const l of links) {
       let dx = l.t.x - l.s.x, dy = l.t.y - l.s.y, d = Math.hypot(dx, dy) || .01;
       if (l.rel === 'orbit') {
-        const rest = l.t.r + 82, f = (d - rest) * 0.05 * alpha; dx /= d; dy /= d;
+        const rest = l.t.r + 40, f = (d - rest) * 0.05 * alpha; dx /= d; dy /= d;
         l.s.vx += dx * f; l.s.vy += dy * f;
         l.t.vx -= dx * f * 0.02; l.t.vy -= dy * f * 0.02;
       } else {
-        const f = (d - 165) * 0.0022 * alpha; dx /= d; dy /= d;
+        const f = (d - 90) * 0.006 * alpha; dx /= d; dy /= d;
         l.s.vx += dx * f; l.s.vy += dy * f;
         l.t.vx -= dx * f; l.t.vy -= dy * f;
       }
     }
     for (const a of nodes) {
-      a.vx -= a.x * 0.0011 * alpha; a.vy -= a.y * 0.0011 * alpha;
+      a.vx -= a.x * 0.0018 * alpha; a.vy -= a.y * 0.0018 * alpha;
       a.vx *= 0.85; a.vy *= 0.85;
       if (a !== dragging) { a.x += a.vx; a.y += a.vy; }
     }
@@ -130,6 +134,10 @@ window.constellation = (function () {
 
   function draw() {
     step();
+    if (camTo) {
+      cam.x += (camTo.x - cam.x) * 0.18; cam.y += (camTo.y - cam.y) * 0.18;
+      if (Math.abs(camTo.x - cam.x) < 0.5 && Math.abs(camTo.y - cam.y) < 0.5) { cam.x = camTo.x; cam.y = camTo.y; camTo = null; }
+    }
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0); ctx.clearRect(0, 0, VW, VH);
     const g = ctx.createRadialGradient(VW / 2, VH * 0.44, 60, VW / 2, VH * 0.44, Math.max(VW, VH) * 0.85);
     g.addColorStop(0, '#161616'); g.addColorStop(1, '#0a0a0a'); ctx.fillStyle = g; ctx.fillRect(0, 0, VW, VH);
@@ -160,24 +168,10 @@ window.constellation = (function () {
     for (const a of nodes) {
       if (a.kind !== 'item') continue;
       const on = active(a.id), dim = (hiSet || searchHits) && !on;
-      ctx.globalAlpha = dim ? 0.12 : 1;
-      ctx.save();
+      ctx.globalAlpha = dim ? 0.14 : 1;
       ctx.beginPath(); ctx.arc(a.dx, a.dy, a.r, 0, 6.2832);
-      if (!dim) { ctx.shadowColor = 'rgba(0,0,0,.5)'; ctx.shadowBlur = 8; ctx.shadowOffsetY = 2; }
-      ctx.fillStyle = '#0c0c0c'; ctx.fill();
-      ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
-      ctx.clip();
-      if (a.im) {
-        const iw = a.im.naturalWidth, ih = a.im.naturalHeight, s = Math.max(2 * a.r / iw, 2 * a.r / ih);
-        ctx.drawImage(a.im, a.dx - iw * s / 2, a.dy - ih * s / 2, iw * s, ih * s);
-      } else {
-        const p = PAL[a.item.ty] || ['#3a4a34', '#26301f'];
-        const lg = ctx.createLinearGradient(a.dx - a.r, a.dy - a.r, a.dx + a.r, a.dy + a.r);
-        lg.addColorStop(0, p[0]); lg.addColorStop(1, p[1]); ctx.fillStyle = lg;
-        ctx.fillRect(a.dx - a.r, a.dy - a.r, a.r * 2, a.r * 2);
-      }
-      ctx.restore();
-      if (a === selected) { ctx.beginPath(); ctx.arc(a.dx, a.dy, a.r, 0, 6.2832); ctx.lineWidth = 2.5; ctx.strokeStyle = '#fafcf8'; ctx.stroke(); }
+      ctx.fillStyle = rgb(a.col); ctx.fill();
+      if (a === selected) { ctx.lineWidth = 2; ctx.strokeStyle = '#fafcf8'; ctx.stroke(); }
     }
     ctx.globalAlpha = 1;
     for (const a of nodes) {
@@ -188,9 +182,13 @@ window.constellation = (function () {
       rgd.addColorStop(0, rgba(a.col, .97)); rgd.addColorStop(1, rgba(a.col, .74)); ctx.fillStyle = rgd;
       ctx.shadowColor = rgba(a.col, .7); ctx.shadowBlur = dim ? 0 : 22; ctx.fill(); ctx.shadowBlur = 0;
       if (a === selected) { ctx.lineWidth = 2.5; ctx.strokeStyle = '#fafcf8'; ctx.stroke(); }
-      ctx.globalAlpha = dim ? 0.3 : 1; ctx.fillStyle = '#0c120a';
-      ctx.font = `${clamp(a.r * 0.42, 9, 17) | 0}px "Cinzel Decorative",serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      if (a.r > 16 || !(hiSet || searchHits) || on) ctx.fillText(a.name, a.dx, a.dy);
+      ctx.globalAlpha = dim ? 0.3 : 1;
+      ctx.font = `${clamp(a.r * 0.5, 10, 18) | 0}px "Cinzel Decorative",serif`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
+      if (a.r > 14 || !(hiSet || searchHits) || on) {
+        ctx.lineWidth = 3.5; ctx.strokeStyle = 'rgba(6,6,6,.92)'; ctx.strokeText(a.name, a.dx, a.dy);
+        ctx.fillStyle = '#fafcf8'; ctx.fillText(a.name, a.dx, a.dy);
+      }
     }
     ctx.globalAlpha = 1; ctx.restore();
     raf = requestAnimationFrame(draw);
@@ -218,7 +216,7 @@ window.constellation = (function () {
 
   function posterHTML(it) {
     const badge = `<div class="cbadge">${TL[it.ty] || it.ty}</div>`;
-    const rt = it.r ? `<div class="crt">★ ${it.r}</div>` : '';
+    const rt = it.r ? `<div class="crt">★ ${it.r / 2}</div>` : '';
     return it.img
       ? `<div class="cposter" style="background-image:url('${it.img}')">${badge}${rt}</div>`
       : `<div class="cposter cfb" style="background:linear-gradient(150deg,${(PAL[it.ty] || ['#3a4a34', '#26301f'])[0]},${(PAL[it.ty] || ['#3a4a34', '#26301f'])[1]})">${badge}${rt}<div class="cfbt">${it.t}</div></div>`;
@@ -249,14 +247,7 @@ window.constellation = (function () {
     el.pscroll.querySelectorAll('.ccell').forEach(cell => cell.onclick = () => openItem(items[+cell.dataset.i]));
     el.pscroll.querySelectorAll('[data-g]').forEach(chip => chip.onclick = () => { const nd = genreNode[chip.dataset.g]; if (nd) { select(nd); centerOn(nd); } });
   }
-  function centerOn(node) { cam.x = -node.x * cam.z; cam.y = -node.y * cam.z; alpha = Math.max(alpha, 0.2); }
-  function zoomBy(f) { cam.z = clamp(cam.z * f, 0.32, 3); alpha = Math.max(alpha, 0.05); }
-  // Open zoomed in on the centre so covers are legible; pan / zoom out to explore.
-  function frameInitial() {
-    let sx = 0, sy = 0; for (const n of nodes) { sx += n.x; sy += n.y; }
-    const cx = nodes.length ? sx / nodes.length : 0, cy = nodes.length ? sy / nodes.length : 0;
-    cam.z = 0.85; cam.x = -cx * cam.z; cam.y = -cy * cam.z;
-  }
+  function centerOn(node) { camTo = { x: -node.x * cam.z, y: -node.y * cam.z }; alpha = Math.max(alpha, 0.2); }
 
   function fitView(pad) {
     pad = pad || 60;
@@ -290,6 +281,7 @@ window.constellation = (function () {
         const d = Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y);
         const mx = (p[0].x + p[1].x) / 2, my = (p[0].y + p[1].y) / 2;
         cam.z = clamp(pinch.z * d / pinch.d, 0.32, 3);
+        camTo = null;
         const r = el.stage.getBoundingClientRect();
         cam.x = (mx - r.left - VW / 2) - pinch.w.x * cam.z;
         cam.y = (my - r.top - VH * 0.46) - pinch.w.y * cam.z;
@@ -298,7 +290,7 @@ window.constellation = (function () {
       const dx = e.clientX - last.x, dy = e.clientY - last.y;
       if (Math.abs(dx) + Math.abs(dy) > 3) moved = true;
       if (dragging) { const w = toWorld(e.clientX, e.clientY); dragging.x = w.x; dragging.y = w.y; dragging.vx = 0; dragging.vy = 0; alpha = Math.max(alpha, 0.3); }
-      else if (panning) { cam.x += dx; cam.y += dy; }
+      else if (panning) { cam.x += dx; cam.y += dy; camTo = null; }
       last = { x: e.clientX, y: e.clientY };
     };
     const up = e => {
@@ -321,8 +313,13 @@ window.constellation = (function () {
       <span class="crttl">${n.name}</span><span class="crmeta">${n.count} works</span></div>`;
   }
   function rowForItem(it) {
-    return `<div class="crow" data-i="${it.id}"><span class="cdot" style="background:${rgb(hueOf[(it.g || [])[0]] || [140, 160, 130])}"></span>
-      <span class="crttl">${it.t}</span><span class="crmeta">${TL[it.ty] || it.ty}</span></div>`;
+    const p = PAL[it.ty] || ['#3a4a34', '#26301f'];
+    const cover = it.img
+      ? `<span class="crcov" style="background-image:url('${it.img}')"></span>`
+      : `<span class="crcov" style="background:linear-gradient(150deg,${p[0]},${p[1]})"></span>`;
+    return `<div class="crow crowitem" data-i="${it.id}">${cover}
+      <span class="crbody"><span class="crttl">${it.t}</span><span class="crsub">${it.c || ''}</span></span>
+      <span class="crmeta">${TL[it.ty] || it.ty}</span></div>`;
   }
   function runSearch() {
     const v = el.q.value.trim(), lv = v.toLowerCase();
@@ -356,8 +353,7 @@ window.constellation = (function () {
       panel: document.getElementById('cpanel'), scrim: document.getElementById('cscrim'),
       phead: document.getElementById('cphead'), pscroll: document.getElementById('cpscroll'),
       reset: document.getElementById('creset'), cnt: document.getElementById('ccnt'),
-      q: document.getElementById('cq'), res: document.getElementById('cres'), clr: document.getElementById('cclr'),
-      zin: document.getElementById('czin'), zout: document.getElementById('czout')
+      q: document.getElementById('cq'), res: document.getElementById('cres'), clr: document.getElementById('cclr')
     };
     if (!el.canvas) return;
     ctx = el.canvas.getContext('2d');
@@ -366,14 +362,12 @@ window.constellation = (function () {
     build();
     resize();
     alpha = 1; let guard = 0; while (alpha > 0.02 && guard++ < 4000) step();
-    frameInitial();
+    fitView();
 
     if (!wiredWindow) { addEventListener('resize', () => { if (el.canvas) resize(); }); wiredWindow = true; }
     wirePointer();
     el.reset.onclick = clearSel;
     el.scrim.onclick = clearSel;
-    if (el.zin) el.zin.onclick = () => zoomBy(1.35);
-    if (el.zout) el.zout.onclick = () => zoomBy(1 / 1.35);
     el.q.oninput = runSearch;
     el.q.onfocus = () => { if (el.q.value) el.res.classList.add('on'); };
     el.clr.onclick = () => { el.q.value = ''; runSearch(); el.q.focus(); };

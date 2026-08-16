@@ -127,6 +127,15 @@ public class CommonQueries(IDbContextFactory<AppDbContext> dbContextFactory)
             item.Entries.Count);
     }
 
+    public async Task<int?> GetEntryEffortAsync(int entryId, CancellationToken ct = default)
+    {
+        await using var db = await dbContextFactory.CreateDbContextAsync(ct);
+        return await db.ConsumptionEntries
+            .Where(e => e.Id == entryId)
+            .Select(e => e.Effort)
+            .FirstOrDefaultAsync(ct);
+    }
+
     public async Task<List<PassSummary>> GetPassHistoryAsync(int userMediaItemId,
         CancellationToken ct = default)
     {

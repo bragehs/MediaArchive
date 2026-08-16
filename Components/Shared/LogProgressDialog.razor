@@ -1,5 +1,6 @@
 @using MediaArchive.Services
 @inject LoggingService LogService
+@inject CommonQueries Queries
 
 @* Blocking modal for an already-open pass: log progress (AddNote) or finish it
    (FinishPass). Invoked from Home's open-now rows. *@
@@ -36,7 +37,12 @@
                     else
                     {
                         <div class="fl">Effort so far (@UiHelpers.LengthUnit(MediaType)) <b>required</b></div>
-                        <input class="in" type="number" min="0" @bind="_progressEffort"/>
+                        <input class="in" type="number" min="0" @bind="_progressEffort"
+                               placeholder="@(_previousEffort?.ToString() ?? "")"/>
+                        @if (_previousEffort is { } prev)
+                        {
+                            <div class="fl opt">Last logged at @prev @UiHelpers.LengthUnit(MediaType)</div>
+                        }
                     }
                 </div>
             </div>
@@ -136,6 +142,10 @@
     [Parameter] public EventCallback OnLogged { get; set; }
 
     private Mode _mode = Mode.Progress;
+    private int? _previousEffort;
+
+    protected override async Task OnInitializedAsync() =>
+        _previousEffort = await Queries.GetEntryEffortAsync(EntryId);
 
     private int? _progressEffort;
     private double? _progressHours;
