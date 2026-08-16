@@ -7,10 +7,21 @@
 }
 
 .mweek {
+    position: relative;
     display: flex;
     border-top: 2px solid var(--ink);
     border-bottom: 1px solid var(--line);
     margin-top: 2px;
+}
+.mwdate {
+    position: absolute;
+    right: 0;
+    bottom: 12px;
+    font-family: var(--f-display);
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    font-size: 8px;
+    color: var(--dim);
 }
 .mwcell {
     flex: 1;
@@ -50,14 +61,6 @@
     font-size: 11px;
     color: var(--muted);
     margin-top: 2px;
-}
-.mrange {
-    font-family: var(--f-display);
-    text-transform: uppercase;
-    letter-spacing: .12em;
-    font-size: 9px;
-    color: var(--dim);
-    margin: 12px 0 2px;
 }
 
 .msec {

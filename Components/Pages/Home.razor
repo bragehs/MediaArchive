@@ -15,6 +15,7 @@ else
     @if (_weekly is { } week)
     {
         <div class="mweek">
+            <span class="mwdate">@WeekRange(week)</span>
             @foreach (var b in week.Buckets)
             {
                 <div class="mwcell">
@@ -24,7 +25,6 @@ else
                 </div>
             }
         </div>
-        <div class="mrange">This week · @week.WeekStart.ToString("MMM d") – @week.WeekEnd.ToString("MMM d")</div>
     }
 
     <div class="msec"><span class="mk">Open now</span><span class="mr">@_openNow.Count open</span></div>
@@ -145,6 +145,11 @@ else
         days <= 0 ? "today" : days == 1 ? "yesterday" : $"{days} days ago";
 
     private static string Plural(int n, string word) => n == 1 ? word : word + "s";
+
+    private static string WeekRange(WeeklyActivity w) =>
+        w.WeekStart.Month == w.WeekEnd.Month
+            ? $"{w.WeekStart:MMM d}–{w.WeekEnd.Day}"
+            : $"{w.WeekStart:MMM d} – {w.WeekEnd:MMM d}";
 
     private static string FormatValue(WeeklyBucketStat b) =>
         b.Unit == "pages" ? ((int)b.Value).ToString() : b.Value.ToString("0.#");
