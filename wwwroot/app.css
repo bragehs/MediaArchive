@@ -1206,6 +1206,7 @@ body { overflow: hidden; overscroll-behavior: none; }
 .viewport {
     flex: 1;
     min-height: 0;
+    position: relative;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     padding: 2px 16px 24px;

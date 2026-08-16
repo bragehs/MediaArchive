@@ -1,0 +1,80 @@
+@page "/library"
+@using MediaArchive.Services
+@inject LibraryQueries Lib
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+@implements IAsyncDisposable
+
+<PageTitle>Library · MediaArchive</PageTitle>
+
+<div class="clib">
+    <div id="cstage" class="cstage"><canvas id="ccanvas"></canvas></div>
+
+    <div class="csearchwrap">
+        <div class="csearchbar">
+            <span class="csic">⌕</span>
+            <input id="cq" type="text" placeholder="Search the archive…"
+                   autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false"/>
+            <div id="cclr" class="cclr">✕</div>
+        </div>
+        <div id="cres" class="cres"></div>
+    </div>
+
+    <div class="czoom">
+        <button id="czin" class="czbtn">+</button>
+        <button id="czout" class="czbtn">−</button>
+    </div>
+
+    <div class="chud">
+        <div id="creset" class="cchip cact">Show all</div>
+        <div id="ccnt" class="cchip"></div>
+    </div>
+
+    <div id="cscrim" class="cscrim"></div>
+    <div id="cpanel" class="cpanel">
+        <div class="cgrab"></div>
+        <div id="cphead" class="cphead"></div>
+        <div id="cpscroll" class="cpscroll"></div>
+    </div>
+</div>
+
+@code {
+    private DotNetObjectReference<Library>? _ref;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        var items = (await Lib.GetLibraryAsync()).Select(ToJs).ToList();
+        _ref = DotNetObjectReference.Create(this);
+        await JS.InvokeVoidAsync("constellation.init", items, _ref);
+    }
+
+    [JSInvokable]
+    public void OpenItem(int userMediaItemId) => Nav.NavigateTo($"/item/{userMediaItemId}");
+
+    [JSInvokable]
+    public async Task<List<object>> Search(string query) =>
+        (await Lib.SearchCompletedAsync(query)).Select(ToJs).ToList();
+
+    // Shape the canvas JS reads (the design draft's short keys; media type as a string).
+    private static object ToJs(LibraryItem i) => new
+    {
+        id = i.UserMediaItemId,
+        t = i.Title,
+        c = i.Creator,
+        ty = i.MediaType.ToString(),
+        img = i.ImageUrl,
+        yr = i.Year,
+        r = i.Rating,
+        fav = i.IsFavorite,
+        u = i.Universe,
+        g = i.Genres,
+        tags = i.Tags
+    };
+
+    public async ValueTask DisposeAsync()
+    {
+        try { await JS.InvokeVoidAsync("constellation.dispose"); } catch { }
+        _ref?.Dispose();
+    }
+}

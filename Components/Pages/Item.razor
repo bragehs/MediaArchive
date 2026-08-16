@@ -4,6 +4,7 @@
 @inject MediaImportService ImportService
 @inject LoggingService Logging
 @inject UserItemService UserItems
+@inject IJSRuntime JS
 
 @* The record for one logged item: the work, my classification, the pass log. *@
 
@@ -18,7 +19,7 @@ else
     var item = _item;
 
     <div class="itopnav">
-        <a class="iback" href="/">‹ Back</a>
+        <a class="iback" role="button" @onclick="GoBack">‹ Back</a>
         <button class="ifav @(item.IsFavorite ? "on" : "")" @onclick="ToggleFavorite">
             @(item.IsFavorite ? "♥" : "♡")
         </button>
@@ -266,6 +267,8 @@ else
         _vocabulary = await ImportService.GetVocabularyAsync();
         await LoadAsync();
     }
+
+    private async Task GoBack() => await JS.InvokeVoidAsync("history.back");
 
     private async Task LoadAsync()
     {
