@@ -1,7 +1,6 @@
 using MediaArchive.Models;
-using MediaArchive.Services.Providers;
 
-namespace MediaArchive.Services;
+namespace MediaArchive.Services.Providers;
 
 public class MediaSearchService(IEnumerable<IMediaProvider> providers)
 {

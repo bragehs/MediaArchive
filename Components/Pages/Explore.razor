@@ -1,6 +1,6 @@
 @page "/explore"
 @using MediaArchive.Services
-@inject CollectionService Collection
+@inject CommonQueries Common
 @inject NavigationManager Nav
 
 <PageTitle>Explore · MediaArchive</PageTitle>
@@ -50,12 +50,12 @@ else
     private enum Mode { Search, UpNext }
 
     private Mode _mode = Mode.Search;
-    private IReadOnlyList<OnDeckItem>? _upNext;
+    private IReadOnlyList<CoverCard>? _upNext;
 
     private async Task ShowUpNextAsync()
     {
         _mode = Mode.UpNext;
-        _upNext ??= await Collection.GetOnDeckAsync();
+        _upNext ??= await Common.GetBacklogAsync();
     }
 
     private void Open(int userMediaItemId) => Nav.NavigateTo($"/item/{userMediaItemId}");

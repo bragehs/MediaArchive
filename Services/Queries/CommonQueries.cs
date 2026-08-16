@@ -1,14 +1,11 @@
+using System.Linq.Expressions;
 using MediaArchive.Data;
 using MediaArchive.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace MediaArchive.Services;
 
-public record OnDeckItem(int UserMediaItemId, string Title, string? ImageUrl);
-
-public record LibrarySearchResult(
-    int UserMediaItemId, string Title, string? Creator,
-    MediaType MediaType, string? ImageUrl, MediaStatus Status);
+public record CoverCard(int UserMediaItemId, string Title, string? ImageUrl);
 
 public record OpenPassSummary(int EntryId, DateOnly? StartDate, int? Effort, double? Progress);
 
@@ -37,53 +34,42 @@ public record ItemDetail(
     OpenPassSummary? OpenPass,
     int PassCount);
 
-public class CollectionService(IDbContextFactory<AppDbContext> dbContextFactory)
+public record PassNote(DateTime CreatedAt, NoteKind Kind, int? EffortAtTime, string? Text);
+
+public record PassSummary(
+    int EntryId,
+    DateOnly? StartDate,
+    DateOnly? EndDate,
+    PassOutcome? Outcome,
+    int? RatingAtTime,
+    int? Effort,
+    ConsumptionContext? Context,
+    List<PassNote> Notes);
+
+// Reads shared across surfaces (Home, Library, Explore, item page).
+public class CommonQueries(IDbContextFactory<AppDbContext> dbContextFactory)
 {
-    public async Task<List<OnDeckItem>> GetOnDeckAsync(CancellationToken ct = default)
+    // Reusable projection: surface queries drop this into their own .Select.
+    public static readonly Expression<Func<UserMediaItem, CoverCard>> ToCoverCard =
+        u => new CoverCard(u.Id, u.MediaItem!.Title,
+            u.MediaItem.LocalImagePath ?? u.MediaItem.ImageUrl);
+
+    public async Task<List<CoverCard>> GetBacklogAsync(CancellationToken ct = default)
     {
         await using var db = await dbContextFactory.CreateDbContextAsync(ct);
 
         return await db.UserMediaItems
             .Where(u => u.Status == MediaStatus.Interested)
             .OrderBy(u => u.AddedDate)
-            .Select(u => new OnDeckItem(u.Id, u.MediaItem!.Title,
-                u.MediaItem.LocalImagePath ?? u.MediaItem.ImageUrl))
+            .Select(ToCoverCard)
             .ToListAsync(ct);
-    }
-
-    // Credits are Included because Creator is [NotMapped] and only resolves once
-    // the rows are in memory.
-    public async Task<List<LibrarySearchResult>> SearchLibraryAsync(string query,
-        CancellationToken ct = default)
-    {
-        var q = query.Trim().ToLower();
-        if (q.Length == 0) return [];
-
-        await using var db = await dbContextFactory.CreateDbContextAsync(ct);
-
-        var matches = await db.UserMediaItems
-            .Where(u => u.MediaItem!.Title.ToLower().Contains(q)
-                        || u.MediaItem.Credits.Any(c => c.Person!.Name.ToLower().Contains(q)))
-            .Include(u => u.MediaItem).ThenInclude(m => m!.Credits).ThenInclude(c => c.Person)
-            .ToListAsync(ct);
-
-        return matches
-            .OrderBy(u => u.MediaItem!.Title.ToLower().StartsWith(q) ? 0 : 1)
-            .ThenBy(u => u.MediaItem!.Title)
-            .Take(10)
-            .Select(u => new LibrarySearchResult(
-                u.Id, u.MediaItem!.Title, u.MediaItem.Creator,
-                u.MediaItem.MediaType,
-                u.MediaItem.LocalImagePath ?? u.MediaItem.ImageUrl,
-                u.Status))
-            .ToList();
     }
 
     public async Task<ItemDetail?> GetItemDetailAsync(int userMediaItemId,
         CancellationToken ct = default)
     {
         await using var db = await dbContextFactory.CreateDbContextAsync(ct);
-        
+
         var item = await db.UserMediaItems
             .Where(u => u.Id == userMediaItemId)
             .Include(u => u.MediaItem).ThenInclude(m => m!.Genres).ThenInclude(mg => mg.Genre)
@@ -141,46 +127,26 @@ public class CollectionService(IDbContextFactory<AppDbContext> dbContextFactory)
             item.Entries.Count);
     }
 
-    public async Task UpdateDetailsAsync(int mediaItemId, WorkDetails details,
+    public async Task<List<PassSummary>> GetPassHistoryAsync(int userMediaItemId,
         CancellationToken ct = default)
     {
         await using var db = await dbContextFactory.CreateDbContextAsync(ct);
 
-        var mediaItem = await db.MediaItems.FirstAsync(m => m.Id == mediaItemId, ct);
+        var entries = await db.ConsumptionEntries
+            .Where(e => e.UserMediaItemId == userMediaItemId)
+            .Include(e => e.Notes)
+            .OrderByDescending(e => e.StartDate)
+            .ThenByDescending(e => e.Id)
+            .AsNoTracking()
+            .ToListAsync(ct);
 
-        await VocabularyResolver.ApplyWorkDetailsAsync(db, mediaItem, details, true, ct);
-
-        if (details.Discovery is { } discovery)
-        {
-            var userItem = await db.UserMediaItems
-                .FirstOrDefaultAsync(u => u.MediaItemId == mediaItemId, ct);
-
-            if (userItem is not null)
-                userItem.Discovery = discovery;
-        }
-
-        await db.SaveChangesAsync(ct);
-    }
-
-    public Task SetRatingAsync(int userMediaItemId, int? rating, CancellationToken ct = default)
-    {
-        return UpdateUserItemAsync(userMediaItemId, u => u.Rating = rating, ct);
-    }
-
-    public Task SetFavoriteAsync(int userMediaItemId, bool isFavorite,
-        CancellationToken ct = default)
-    {
-        return UpdateUserItemAsync(userMediaItemId, u => u.IsFavorite = isFavorite, ct);
-    }
-
-    private async Task UpdateUserItemAsync(int userMediaItemId, Action<UserMediaItem> change,
-        CancellationToken ct)
-    {
-        await using var db = await dbContextFactory.CreateDbContextAsync(ct);
-
-        var userItem = await db.UserMediaItems.FirstAsync(u => u.Id == userMediaItemId, ct);
-        change(userItem);
-
-        await db.SaveChangesAsync(ct);
+        return entries
+            .Select(e => new PassSummary(
+                e.Id, e.StartDate, e.EndDate, e.Outcome, e.RatingAtTime, e.Effort, e.Context,
+                e.Notes
+                    .OrderBy(n => n.CreatedAt)
+                    .Select(n => new PassNote(n.CreatedAt, n.Kind, n.EffortAtTime, n.Text))
+                    .ToList()))
+            .ToList();
     }
 }

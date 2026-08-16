@@ -73,8 +73,11 @@ public static class MauiProgram
 
         builder.Services.AddScoped<MediaSearchService>();
         builder.Services.AddScoped<MediaImportService>();
-        builder.Services.AddScoped<ConsumptionService>();
-        builder.Services.AddScoped<CollectionService>();
+        builder.Services.AddScoped<LoggingService>();
+        builder.Services.AddScoped<UserItemService>();
+        builder.Services.AddScoped<CommonQueries>();
+        builder.Services.AddScoped<HomeQueries>();
+        builder.Services.AddScoped<LibraryQueries>();
 
 #if DEBUG
         builder.Services.AddBlazorWebViewDeveloperTools();

@@ -1,8 +1,9 @@
 @page "/item/{UserMediaItemId:int}"
 @using MediaArchive.Services
-@inject CollectionService Collection
-@inject ConsumptionService Consumption
+@inject CommonQueries Common
 @inject MediaImportService ImportService
+@inject LoggingService Logging
+@inject UserItemService UserItems
 
 @* The record for one logged item: the work, my classification, the pass log. *@
 
@@ -269,7 +270,7 @@ else
     private async Task LoadAsync()
     {
         _loading = true;
-        _item = await Collection.GetItemDetailAsync(UserMediaItemId);
+        _item = await Common.GetItemDetailAsync(UserMediaItemId);
 
         if (_item is not null)
         {
@@ -281,7 +282,7 @@ else
             _seriesPosition = _item.SeriesPosition;
 
             _history = _item.PassCount > 0
-                ? await Consumption.GetPassHistoryAsync(UserMediaItemId)
+                ? await Common.GetPassHistoryAsync(UserMediaItemId)
                 : [];
         }
 
@@ -312,7 +313,7 @@ else
                     : new TagInput(name, null, null))
                 .ToList();
 
-            await Collection.UpdateDetailsAsync(_item.MediaItemId, new WorkDetails(
+            await UserItems.UpdateDetailsAsync(_item.MediaItemId, new WorkDetails(
                 _genres, tags,
                 _universe.FirstOrDefault(), _series.FirstOrDefault(),
                 _series.Count > 0 ? _seriesPosition : null,
@@ -335,7 +336,7 @@ else
     {
         if (_item is null) return;
 
-        await Collection.SetRatingAsync(_item.UserMediaItemId, rating);
+        await UserItems.SetRatingAsync(_item.UserMediaItemId, rating);
         _item = _item with { Rating = rating };
     }
 
@@ -344,7 +345,7 @@ else
         if (_item is null) return;
 
         var next = !_item.IsFavorite;
-        await Collection.SetFavoriteAsync(_item.UserMediaItemId, next);
+        await UserItems.SetFavoriteAsync(_item.UserMediaItemId, next);
         _item = _item with { IsFavorite = next };
     }
 
@@ -361,7 +362,7 @@ else
                 ? parsed
                 : (ConsumptionContext?)null;
 
-            await Consumption.StartPassAsync(_item.UserMediaItemId,
+            await Logging.StartPassAsync(_item.UserMediaItemId,
                 new PassStart(_startDate, context,
                     _startNote.Trim().Length == 0 ? null : _startNote));
 

@@ -1,5 +1,5 @@
 @using MediaArchive.Services
-@inject CollectionService Collection
+@inject LibraryQueries Library
 @inject NavigationManager Nav
 
 @* Masthead search over YOUR archive (title or creator). Adding new items lives in
@@ -58,7 +58,7 @@
     private async Task OnInput(ChangeEventArgs e)
     {
         _query = e.Value?.ToString() ?? "";
-        _results = await Collection.SearchLibraryAsync(_query);
+        _results = await Library.SearchLibraryAsync(_query);
     }
 
     private void OnKey(KeyboardEventArgs e)

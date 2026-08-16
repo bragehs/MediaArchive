@@ -1,7 +1,7 @@
 @page "/"
 @using MediaArchive.Services
-@inject CollectionService Collection
-@inject ConsumptionService Consumption
+@inject CommonQueries Common
+@inject HomeQueries Dashboard
 @inject NavigationManager Nav
 
 <PageTitle>Home · MediaArchive</PageTitle>
@@ -116,7 +116,7 @@ else
     private const int OnDeckCap = 8;
 
     private bool _loading = true;
-    private IReadOnlyList<OnDeckItem> _onDeck = [];
+    private IReadOnlyList<CoverCard> _onDeck = [];
     private IReadOnlyList<OpenNowItem> _openNow = [];
     private JustClosedItem? _justClosed;
     private WeeklyActivity? _weekly;
@@ -128,10 +128,10 @@ else
 
     private async Task LoadAsync()
     {
-        _onDeck = await Collection.GetOnDeckAsync();
-        _openNow = await Consumption.GetOpenNowAsync();
-        _justClosed = await Consumption.GetJustClosedAsync();
-        _weekly = await Consumption.GetWeeklyActivityAsync();
+        _onDeck = await Common.GetBacklogAsync();
+        _openNow = await Dashboard.GetOpenNowAsync();
+        _justClosed = await Dashboard.GetJustClosedAsync();
+        _weekly = await Dashboard.GetWeeklyActivityAsync();
         _loading = false;
     }
 
