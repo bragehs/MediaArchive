@@ -1,6 +1,7 @@
 @using MediaArchive.Services
 @inject LoggingService LogService
 @inject CommonQueries Queries
+@inject IJSRuntime JS
 
 @* Blocking modal for an already-open pass: log progress (AddNote) or finish it
    (FinishPass). Invoked from Home's open-now rows. *@
@@ -200,6 +201,10 @@
                 await LogService.FinishPassAsync(EntryId,
                     new PassFinish(_endDate!.Value, _rating == 0 ? null : _rating,
                         effort, note, _dropped));
+
+                // Completing a logged pass is worth celebrating — not dropping it.
+                if (!_dropped)
+                    await JS.InvokeVoidAsync("confetti.burst");
             }
 
             await OnLogged.InvokeAsync();
