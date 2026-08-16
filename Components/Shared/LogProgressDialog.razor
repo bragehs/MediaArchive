@@ -32,7 +32,11 @@
                     {
                         <div class="fl">Hours listened so far <b>required</b></div>
                         <input class="in" type="number" min="0" step="0.1" @bind="_progressHours"
-                               placeholder="@(AudioHours?.ToString() ?? "")"/>
+                               placeholder="@(_previousHours?.ToString() ?? "")"/>
+                        @if (_previousHours is { } ph)
+                        {
+                            <div class="fl opt">Last logged at @ph hours</div>
+                        }
                     }
                     else
                     {
@@ -143,6 +147,11 @@
 
     private Mode _mode = Mode.Progress;
     private int? _previousEffort;
+
+    // Audiobook effort is stored as pages; show it back in the hours the user logs in.
+    private double? _previousHours => _previousEffort is { } pe && PageCount is > 0 && AudioHours is > 0
+        ? Math.Round((double)pe / PageCount.Value * AudioHours.Value, 1)
+        : null;
 
     protected override async Task OnInitializedAsync() =>
         _previousEffort = await Queries.GetEntryEffortAsync(EntryId);
