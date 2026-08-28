@@ -4,9 +4,9 @@ A personal, locally-run **media OS**: one place that tracks everything I've cons
 across every media type (books, games, films, shows, anime) and surfaces taste
 insights. Letterboxd + Goodreads + IGDB combined, but private, local, and unified.
 
-This is **one application** — a Blazor Web App that also owns the database and
-business logic. There is no separate backend/frontend, no API over HTTP, and no
-authentication: it runs as a single local user.
+This is **one application** — a MAUI Blazor Hybrid iOS app that also owns the
+database and business logic. There is no separate backend/frontend, no API over
+HTTP, and no authentication: it runs as a single local user, on my phone.
 
 ---
 
@@ -14,21 +14,29 @@ authentication: it runs as a single local user.
 
 | Concern | Choice |
 |---|---|
-| Framework | ASP.NET Core **Blazor Web App**, Interactive Server render mode |
+| Framework | **.NET MAUI Blazor Hybrid** (iOS) over a shared Razor class library |
 | Runtime | .NET 10 |
 | Data access | EF Core 10 (`Microsoft.EntityFrameworkCore.Sqlite`) |
-| Database | **SQLite** — a single `mediaarchive.db` file, created + seeded on first run |
+| Database | **SQLite** — `mediaarchive.db` in the app's container on the phone, migrated on launch |
 | UI | Razor components + one hand-written CSS design system (`wwwroot/app.css`) |
 | Auth | None (single local user) |
 
 ## Running it
 
+There is no web app to start — `MediaArchive.csproj` is a class library. Everything
+runs through `./ma`:
+
 ```bash
-dotnet run        # builds, migrates + seeds the DB, starts the server
+./ma              # build + launch on the iOS simulator
+./ma phone        # renew signing, build, install + launch on the iPhone
+./ma pull         # copy the phone's DB + covers into backups/ and refresh the repo DB
+./ma --help       # everything else
 ```
 
-Open the URL it prints (e.g. `http://localhost:5064`). To wipe and reseed the data,
-delete `mediaarchive.db*` and run again.
+Signing note: a free Apple ID only issues **7-day** provisioning profiles, so device
+builds break every week. `./ma renew` reissues one non-interactively; `./ma phone`
+does it automatically. A launchd agent (`scripts/install-weekly-job.sh`) runs
+`./ma weekly` each Tuesday at 10:00 to back the phone up and reinstall the app.
 
 ```bash
 dotnet ef migrations add <Name>   # after changing Models/ or DbContext
@@ -126,13 +134,13 @@ are filters on it — not separate tabs.
 ### Root files
 | File | Role |
 |---|---|
-| `Program.cs` | App entry point: registers Blazor, the SQLite `DbContextFactory`, and `LibraryService`; sets up the HTTP pipeline; migrates + seeds the DB; runs. |
+| `ma` | Project CLI — build/run on simulator or phone, renew signing, pull the phone's DB. Replaces running anything from Rider. |
 | `UiHelpers.cs` | Presentation helpers — maps `MediaStatus` / `MediaType` to glyphs, labels, and CSS classes (the shared visual vocabulary). |
 | `MediaArchive.csproj` | Project + NuGet package references. |
 | `MediaArchive.sln` | Solution file. |
-| `appsettings*.json` | Config (the SQLite connection string). Git-ignored; `Program.cs` falls back to `mediaarchive.db` if absent. |
-| `Properties/launchSettings.json` | Local run profiles (ports). |
-| `.gitignore` | Ignores `bin/`, `obj/`, `appsettings*.json`, and the `*.db` files. |
+| `MediaArchive.Mobile/appsettings.json` | Provider keys (TMDB, IGDB), shipped as a `MauiAsset` and read via `AddJsonStream`. Git-ignored. |
+| `mediaarchive.db` | **Design-time only** — gives `dotnet ef migrations` a schema to diff. The live DB is on the phone. |
+| `.gitignore` | Ignores `bin/`, `obj/`, `appsettings*.json`, `backups/`, `.provisioning/`, and the `*.db` files. |
 
 ---
 

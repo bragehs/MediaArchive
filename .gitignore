@@ -24,3 +24,8 @@ covers/
 
 # JetBrains IDE config (editor-local, not project source)
 .idea/
+# Throwaway Xcode target used only to renew the iOS provisioning profile (see ./ma)
+.provisioning/
+
+# Local snapshots pulled off the phone by ./ma pull
+backups/

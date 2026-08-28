@@ -3,13 +3,22 @@
 ## What this project is
 
 A personal, locally-run **media OS** — one place tracking everything I've consumed
-(books, games, films, shows, anime) with taste insights. One **Blazor Web App**
-(Interactive Server, .NET 10) that owns the DB and business logic directly: no
-separate API over HTTP, no auth, single local user. See `README.md` for the full
-layout and `Migrations/` for schema history.
+(books, games, films, shows, anime) with taste insights. It owns the DB and
+business logic directly: no separate API over HTTP, no auth, single local user.
+See `README.md` for the full layout and `Migrations/` for schema history.
 
-**Stack:** ASP.NET Core Blazor Web App · .NET 10 · EF Core 10 + SQLite
-(`mediaarchive.db`) · Razor components inject services / `DbContext` directly.
+**There is no web app.** `MediaArchive.csproj` is a **Razor class library** —
+components, services, models, EF Core — with exactly one head on top of it:
+`MediaArchive.Mobile`, a **.NET MAUI Blazor Hybrid iOS app**. The library has no
+`Program.cs` and cannot be run on its own.
+
+**Stack:** .NET MAUI + BlazorWebView · .NET 10 · EF Core 10 + SQLite · Razor
+components inject services / `DbContext` directly.
+
+**Where the database lives:** on the phone, at `FileSystem.AppDataDirectory/
+mediaarchive.db`. The `mediaarchive.db` in the repo root is **design-time only** —
+it exists so `dotnet ef migrations` has a schema to diff against. `./ma pull`
+refreshes it from the phone; treat the phone as the source of truth.
 
 ## Important
 
@@ -81,10 +90,21 @@ Blazor app with read-only surfaces) are done.
 ## Build & run
 
 ```bash
-dotnet run                          # builds, migrates + seeds the DB, starts the server
+./ma                                # run on the iOS simulator (no Rider needed)
+./ma phone                          # renew signing, build, install + launch on my iPhone
+./ma pull                           # copy the phone's DB + covers back into the repo
+./ma renew                          # refresh the 7-day provisioning profile
 dotnet ef migrations add <Name>     # after changing Models/ or DbContext
 dotnet build                        # compile check
 ```
 
-Wipe + reseed: delete `mediaarchive.db*` and run again. The app applies migrations
-and seeds on startup (`Program.cs`).
+`./ma --help` lists everything. Migrations are applied on app launch
+(`MauiProgram.cs`); there is no seeding step any more.
+
+**Signing:** a free Apple ID only gets **7-day** provisioning profiles, so device
+builds break weekly with "Could not find any available provisioning profiles".
+`./ma renew` fixes that non-interactively by driving `xcodebuild
+-allowProvisioningUpdates` against a generated stub Xcode project in
+`.provisioning/`. `./ma phone` renews automatically when the profile is nearly
+expired. A launchd agent runs `./ma weekly` (pull + redeploy) every Tuesday at
+10:00 — install or remove it with `scripts/install-weekly-job.sh`.

@@ -13,7 +13,8 @@
 
 set -euo pipefail
 
-REPO="/Users/bragehs/Desktop/projects/MediaArchive"
+# Derived, not hardcoded — the repo has moved once already.
+REPO="${0:A:h:h}"
 ISSUES_DIR="/Users/bragehs/Desktop/vault/Personal Projects/MediaArchive/Issues"
 
 query="${1:-}"

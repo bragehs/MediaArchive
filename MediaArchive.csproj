@@ -15,12 +15,13 @@
   </ItemGroup>
 
   <!-- The test and mobile-head projects live under this project's folder; keep
-       default globbing from compiling their files into the library. -->
+       default globbing from compiling their files into the library. `http/` and
+       `backups/` are local scratch, and must not ride along into the app bundle. -->
   <ItemGroup>
-    <Compile Remove="Tests/**;MediaArchive.Mobile/**" />
-    <Content Remove="Tests/**;MediaArchive.Mobile/**" />
-    <None Remove="Tests/**;MediaArchive.Mobile/**" />
-    <EmbeddedResource Remove="Tests/**;MediaArchive.Mobile/**" />
+    <Compile Remove="Tests/**;MediaArchive.Mobile/**;http/**;backups/**" />
+    <Content Remove="Tests/**;MediaArchive.Mobile/**;http/**;backups/**" />
+    <None Remove="Tests/**;MediaArchive.Mobile/**;http/**;backups/**" />
+    <EmbeddedResource Remove="Tests/**;MediaArchive.Mobile/**;http/**;backups/**" />
   </ItemGroup>
 
   <ItemGroup>
