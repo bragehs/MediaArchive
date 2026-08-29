@@ -69,25 +69,33 @@ else
         </div>
     }
 
-    @if (_snapshot.Verdicts.Count > 0)
+    @foreach (var universe in _snapshot.Universes)
     {
-        <div class="psec"><span class="psk">Against the grain</span><span class="psr">You vs the world</span></div>
-        <div class="pverdicts">
-            @foreach (var v in _snapshot.Verdicts)
+        <div class="psec">
+            <span class="psk">@universe.Name</span>
+            <span class="psr">
+                @universe.Works works@(universe.AvgRating is { } stars ? $" · ★ {Stars(stars)}" : "")
+            </span>
+        </div>
+        <p class="puefx">
+            @string.Join(" · ", universe.Effort.Select(e => $"{Trim(e.Value)} {e.Unit}"))@(universe.StillInside ? " · still there" : "")
+        </p>
+        <div class="purail">
+            @foreach (var cover in universe.Covers)
             {
-                <button class="pverdict" @onclick="() => Open(v.UserMediaItemId)">
-                    <span class="pvt">@v.Title</span>
-                    <span class="pvn">you <b>@Stars(v.Mine)</b> · them <b>@Stars(v.World)</b></span>
-                    <span class="pvd @(v.Delta >= 0 ? "up" : "down")">@Signed(v.Delta)</span>
+                <button class="pucov" @onclick="() => Open(cover.UserMediaItemId)">
+                    @if (!string.IsNullOrWhiteSpace(cover.ImageUrl))
+                    {
+                        <img src="@cover.ImageUrl" alt="Cover of @cover.Title"/>
+                    }
+                    else
+                    {
+                        <span class="pufb">@cover.Title</span>
+                    }
+                    <span class="pugl st-@(cover.Status.ToString().ToLowerInvariant())" title="@UiHelpers.StatusLabel(cover.Status)">@UiHelpers.StatusGlyph(cover.Status)</span>
                 </button>
             }
         </div>
-        @if (_snapshot.AvgDelta is { } avgDelta)
-        {
-            <p class="pfoot">
-                On average you land <b>@Signed(avgDelta)</b> @(avgDelta >= 0 ? "above" : "below") the public.
-            </p>
-        }
     }
 
     @if (_snapshot.Canon.Count > 0)
@@ -160,9 +168,8 @@ else
     private static string Stars(double tenScale) =>
         (tenScale / 2).ToString("0.#", CultureInfo.InvariantCulture);
 
-    private static string Signed(double tenScaleDelta) =>
-        (tenScaleDelta >= 0 ? "+" : "−") +
-        Math.Abs(tenScaleDelta / 2).ToString("0.0", CultureInfo.InvariantCulture);
+    private static string Trim(double value) =>
+        value.ToString("#,0.#", CultureInfo.InvariantCulture);
 
     private static string Days(int days) => days switch
     {

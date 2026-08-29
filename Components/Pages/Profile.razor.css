@@ -82,14 +82,19 @@
     color: var(--dim);
 }
 
-/* ── hall of fame: the covers carry it, one badge each ── */
-.pfamerail { display: flex; gap: 9px; overflow-x: auto; padding-bottom: 4px; }
-.pfame { flex: none; background: none; border: 0; padding: 0; cursor: pointer; }
+/* ── hall of fame: the covers carry it, one badge each. A wrapping grid, four
+   to a row — the shelf is never scrollable, everything on it is in view. ── */
+.pfamerail {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 9px;
+}
+.pfame { background: none; border: 0; padding: 0; cursor: pointer; min-width: 0; }
 .pfcov {
     position: relative;
     display: block;
-    width: 74px;
-    height: 111px;
+    width: 100%;
+    aspect-ratio: 2 / 3;
     border-radius: 7px;
     overflow: hidden;
     border: 1px solid var(--line2);
@@ -121,61 +126,74 @@
     color: var(--ac2);
 }
 
-/* ── against the grain: one list, signed deltas ── */
-.pverdicts { display: flex; flex-direction: column; }
-.pverdict {
-    display: flex;
-    align-items: baseline;
-    gap: 10px;
-    padding: 9px 0;
-    border-bottom: 1px solid var(--line2);
-    background: none;
-    border-left: 0; border-right: 0; border-top: 0;
+/* ── universes: what a world cost you, and everything of it you hold. Status
+   rides on the cover, same glyphs as everywhere else. ── */
+.puefx {
+    font-family: var(--f-serif);
+    font-style: italic;
+    font-size: 12.5px;
+    color: var(--muted);
+    margin: -2px 0 12px;
+}
+.purail { display: flex; flex-wrap: wrap; gap: 8px; }
+.pucov {
+    position: relative;
+    flex: none;
+    width: 48px;
+    height: 72px;
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid var(--line2);
+    background: linear-gradient(155deg, var(--panel), #131f10);
+    padding: 0;
     cursor: pointer;
+}
+.pucov img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.pucov .st-interested { opacity: .8; }
+.pucov:has(.st-interested) img { opacity: .45; }
+.pufb {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: flex-end;
+    padding: 4px;
+    font-family: var(--f-display);
+    font-size: 7px;
+    line-height: 1.1;
+    color: var(--ink);
     text-align: left;
 }
-.pverdict:last-child { border-bottom: 0; }
-.pvt {
-    flex: 1;
-    min-width: 0;
-    font-family: var(--f-title);
-    font-weight: 700;
-    font-size: 12.5px;
-    color: var(--ink);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-.pvn {
-    flex: none;
-    font-family: var(--f-serif);
-    font-style: italic;
-    font-size: 11px;
-    color: var(--dim);
-}
-.pvn b { font-style: normal; color: var(--muted); }
-.pvd {
-    flex: none;
-    width: 44px;
-    text-align: right;
-    font-family: var(--f-title);
-    font-weight: 700;
-    font-size: 14px;
-}
-.pvd.up { color: var(--ac); }
-.pvd.down { color: var(--ac2); }
-
-.pfoot {
-    font-family: var(--f-serif);
-    font-style: italic;
-    font-size: 12px;
+.pugl {
+    position: absolute;
+    right: 2px;
+    bottom: 2px;
+    min-width: 13px;
+    height: 13px;
+    padding: 0 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    background: rgba(0, 0, 0, .82);
+    font-size: 8px;
+    line-height: 1;
     color: var(--muted);
-    margin-top: 10px;
 }
-.pfoot b { font-style: normal; color: var(--ink); }
+.pugl.st-completed { color: var(--ac); }
+.pugl.st-inprogress { color: var(--ac2); font-size: 6px; letter-spacing: -1px; }
+.pugl.st-interested { color: var(--sage); }
+.pugl.st-dropped { color: var(--dim); }
 
-/* ── the canon: the vault's one sanctioned text list ── */
-.pcanon { display: flex; flex-direction: column; }
+/* ── the canon: the vault's one sanctioned text list. Five rows in view, the
+   rest scroll within the section. ── */
+.pcanon {
+    display: flex;
+    flex-direction: column;
+    max-height: 201px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+}
 .pcreator {
     display: flex;
     align-items: baseline;

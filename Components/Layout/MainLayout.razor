@@ -1,4 +1,7 @@
 @inherits LayoutComponentBase
+@using MediaArchive.Services.Infrastructure
+@inject NavigationManager Nav
+@inject DeepLinkService DeepLinks
 
 <div class="shell">
     <header class="appbar">
@@ -25,3 +28,12 @@
     <a href="." class="reload">Reload</a>
     <span class="dismiss">🗙</span>
 </div>
+
+@code {
+    // The layout lives for the whole app session, which makes it the natural
+    // subscriber for native deep links. Routes dispatched before first render
+    // (cold start from a widget tap) are queued inside the service and
+    // delivered on Subscribe.
+    protected override void OnInitialized() =>
+        DeepLinks.Subscribe(route => _ = InvokeAsync(() => Nav.NavigateTo(route)));
+}

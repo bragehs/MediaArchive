@@ -76,7 +76,8 @@ UI and services.
 - **Design before code.** Surface architectural forks explicitly with a
   recommendation *and* the reasoning, and settle the approach with me before
   implementing a Zone-A feature.
-- **Design choices**. Look at desktop/vault/Personal Projects/Mediaarchive and look for relevant design choices before
+- **Design choices**. Look in the Obsidian vault at `~/Documents/vault_personal`
+  (hub note: `Projects/MediaArchive.md`) for relevant design choices before
   implementing a task.
 - Dont write to much comments in the code, only when necessary.
 

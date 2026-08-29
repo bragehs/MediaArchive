@@ -25,7 +25,29 @@
 
         <!-- Device runs iOS 18.3.2; keep the floor at or below that so it installs. -->
         <SupportedOSPlatformVersion>18.0</SupportedOSPlatformVersion>
+
+        <!-- App Group shared with the widget extension. -->
+        <CodesignEntitlements>Platforms\iOS\Entitlements.plist</CodesignEntitlements>
     </PropertyGroup>
+
+    <!-- The home-screen widget: a Swift .appex compiled by xcodebuild (see ./ma),
+         embedded and co-signed here. The Exists() guard keeps plain `dotnet build`
+         working before the widget has been compiled for the current flavor. -->
+    <PropertyGroup>
+        <_WidgetBuildOutput>build/Debug-iphoneos</_WidgetBuildOutput>
+        <_WidgetBuildOutput Condition="'$(RuntimeIdentifier)' != '' and $(RuntimeIdentifier.Contains('simulator'))">build/Debug-iphonesimulator</_WidgetBuildOutput>
+    </PropertyGroup>
+    <ItemGroup Condition="Exists('$(MSBuildThisFileDirectory)..\widget\$(_WidgetBuildOutput)\MediaArchiveWidget.appex')">
+        <AdditionalAppExtensions Include="$(MSBuildThisFileDirectory)..\widget">
+            <Name>MediaArchiveWidget</Name>
+            <BuildOutput>$(_WidgetBuildOutput)</BuildOutput>
+        </AdditionalAppExtensions>
+        <!-- Swift shim exposing WidgetKit's reload call to C#
+             (WidgetSnapshotPublisher) — WidgetKit itself has no .NET binding. -->
+        <NativeReference Include="$(MSBuildThisFileDirectory)..\widget\$(_WidgetBuildOutput)\WidgetLink.framework">
+            <Kind>Framework</Kind>
+        </NativeReference>
+    </ItemGroup>
 
     <ItemGroup>
         <!-- App Icon -->

@@ -7,10 +7,15 @@ namespace MediaArchive.Services.Queries;
 public record FameItem(int UserMediaItemId, string Title, string? ImageUrl,
     int Rating, bool IsFavorite);
 
-// Personal rating against the public one, both on the stored /10 scale;
-// halving to stars is the view's job, like everywhere else.
-public record Verdict(int UserMediaItemId, string Title, MediaType MediaType,
-    int Mine, double World, double Delta);
+public record UniverseCover(int UserMediaItemId, string Title, string? ImageUrl,
+    MediaStatus Status);
+
+// Effort in the same buckets Home reports: hours played, hours watched, pages
+// read — universes mix media, and a single unit would silently drop the rest.
+public record UniverseEffort(MediaBucket Bucket, double Value, string Unit);
+
+public record UniverseCard(string Name, int Works, double? AvgRating, bool StillInside,
+    IReadOnlyList<UniverseEffort> Effort, IReadOnlyList<UniverseCover> Covers);
 
 public record CreatorLine(string Name, int Works, double? AvgRating,
     IReadOnlyList<MediaType> Types);
@@ -28,8 +33,7 @@ public record ProfileSnapshot(
     int Finished,
     int GenreCount,
     IReadOnlyList<FameItem> HallOfFame,
-    IReadOnlyList<Verdict> Verdicts,
-    double? AvgDelta,
+    IReadOnlyList<UniverseCard> Universes,
     IReadOnlyList<CreatorLine> Canon,
     PassRecord? LongestPass,
     PassRecord? FastestFinish,
@@ -38,9 +42,7 @@ public record ProfileSnapshot(
 
 public class ProfileQueries(IDbContextFactory<AppDbContext> dbContextFactory)
 {
-    private const int FameFloor = 9;      // 4.5★ and up make the shelf
-    private const int VerdictCap = 8;
-    private const int CanonCap = 6;
+    private const int FameFloor = 10;     // full marks only; favourites join regardless
 
     // One materialise, then every aggregate in memory: the archive is a single
     // local user's few hundred rows, and each section below is a different walk
@@ -52,6 +54,7 @@ public class ProfileQueries(IDbContextFactory<AppDbContext> dbContextFactory)
         var items = await db.UserMediaItems
             .Include(u => u.MediaItem).ThenInclude(m => m!.Genres)
             .Include(u => u.MediaItem).ThenInclude(m => m!.Credits).ThenInclude(c => c.Person)
+            .Include(u => u.MediaItem).ThenInclude(m => m!.Universe)
             .Include(u => u.Entries).ThenInclude(e => e.Notes)
             .AsSplitQuery()
             .AsNoTracking()
@@ -65,8 +68,6 @@ public class ProfileQueries(IDbContextFactory<AppDbContext> dbContextFactory)
             .Distinct()
             .Count();
 
-        var verdicts = BuildVerdicts(items);
-
         return new ProfileSnapshot(
             ItemsLogged: items.Count,
             AvgRating: ratings.Count > 0 ? ratings.Average() : null,
@@ -74,8 +75,7 @@ public class ProfileQueries(IDbContextFactory<AppDbContext> dbContextFactory)
             Finished: items.Count(u => u.Status == MediaStatus.Completed),
             GenreCount: genreCount,
             HallOfFame: BuildHallOfFame(items),
-            Verdicts: verdicts.Take(VerdictCap).ToList(),
-            AvgDelta: verdicts.Count > 0 ? verdicts.Average(v => v.Delta) : null,
+            Universes: BuildUniverses(items),
             Canon: BuildCanon(items),
             LongestPass: BuildLongestPass(items),
             FastestFinish: BuildFastestFinish(items),
@@ -83,8 +83,8 @@ public class ProfileQueries(IDbContextFactory<AppDbContext> dbContextFactory)
             BusiestMonth: BuildBusiestMonth(items));
     }
 
-    // Favourites always belong; ratings from the floor up join them. Favourites
-    // and full marks lead the shelf, the 4.5s trail it.
+    // The shelf is deliberately exclusive: favourites and full marks, nothing
+    // else — and favourites lead it.
     private static List<FameItem> BuildHallOfFame(List<UserMediaItem> items) => items
         .Where(u => u.IsFavorite || u.Rating >= FameFloor)
         .OrderByDescending(u => u.IsFavorite)
@@ -95,12 +95,52 @@ public class ProfileQueries(IDbContextFactory<AppDbContext> dbContextFactory)
             u.Rating ?? 0, u.IsFavorite))
         .ToList();
 
-    private static List<Verdict> BuildVerdicts(List<UserMediaItem> items) => items
-        .Where(u => u.Rating is not null && u.MediaItem!.ExternalRating is not null)
-        .Select(u => new Verdict(u.Id, u.MediaItem!.Title, u.MediaItem.MediaType,
-            u.Rating!.Value, u.MediaItem.ExternalRating!.Value,
-            u.Rating.Value - u.MediaItem.ExternalRating.Value))
-        .OrderByDescending(v => Math.Abs(v.Delta))
+    private static List<UniverseCard> BuildUniverses(List<UserMediaItem> items) => items
+        .Where(u => u.MediaItem!.Universe is not null)
+        .GroupBy(u => u.MediaItem!.Universe!.Name)
+        .Select(g =>
+        {
+            var rated = g.Where(u => u.Rating is not null).Select(u => u.Rating!.Value).ToList();
+
+            double gamingMin = 0, viewingMin = 0, readingPages = 0;
+            foreach (var u in g)
+            {
+                var media = u.MediaItem!;
+                // A resumed pass carries its predecessor's total forward, so its
+                // own contribution is the part above the baseline.
+                var units = u.Entries.Sum(e => (e.Effort ?? 0) - (e.StartingEffort ?? 0));
+                var minutes = media.MinutesPerUnit is { } perUnit ? units * perUnit : 0;
+
+                switch (media.MediaType)
+                {
+                    case MediaType.Game: gamingMin += minutes; break;
+                    case MediaType.Book: readingPages += units; break;
+                    default: viewingMin += minutes; break;
+                }
+            }
+
+            var effort = new List<UniverseEffort>();
+            if (gamingMin > 0) effort.Add(new(MediaBucket.Gaming, Math.Round(gamingMin / 60, 1), "h played"));
+            if (viewingMin > 0) effort.Add(new(MediaBucket.Viewing, Math.Round(viewingMin / 60, 1), "h watched"));
+            if (readingPages > 0) effort.Add(new(MediaBucket.Reading, Math.Round(readingPages), "pages read"));
+
+            // Your order: first touch first; the merely-interested trail the rail.
+            var covers = g
+                .OrderBy(u => u.Entries.Count == 0)
+                .ThenBy(u => u.Entries.Select(e => e.StartDate).Min() ?? DateOnly.MaxValue)
+                .Select(u => new UniverseCover(u.Id, u.MediaItem!.Title,
+                    u.MediaItem.LocalImagePath ?? u.MediaItem.ImageUrl, u.Status))
+                .ToList();
+
+            return new UniverseCard(
+                g.Key,
+                g.Count(),
+                rated.Count > 0 ? rated.Average() : null,
+                g.Any(u => u.Entries.Any(e => e.StartDate is not null && e.EndDate is null)),
+                effort,
+                covers);
+        })
+        .OrderByDescending(c => c.Works)
         .ToList();
 
     // Only each medium's primary credit counts — otherwise one film trilogy
@@ -122,7 +162,6 @@ public class ProfileQueries(IDbContextFactory<AppDbContext> dbContextFactory)
         })
         .OrderByDescending(c => c.Works)
         .ThenByDescending(c => c.AvgRating ?? 0)
-        .Take(CanonCap)
         .ToList();
 
     private static IEnumerable<(UserMediaItem Item, ConsumptionEntry Entry, int Days)>
