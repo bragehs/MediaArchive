@@ -37,7 +37,8 @@ public sealed class WidgetSnapshotPublisher(
 
             var items = await queries.GetInProgressAsync();
 
-            foreach (var item in items)
+            // Only the first 4 render as covers; the rest just feed the "+N" count.
+            foreach (var item in items.Take(4))
                 if (item.Cover is { } cover)
                     CopyCoverDownscaled(cover, coversDir);
 
@@ -67,24 +68,25 @@ public sealed class WidgetSnapshotPublisher(
     }
 
     // Widget extensions run under a tight memory budget, so they get a small
-    // JPEG instead of the full cached cover. Covers are immutable per external
-    // id (same filename ⇒ same image), so each is converted once.
+    // JPEG instead of the full cached cover. Rewritten on every publish — it's
+    // at most 8 tiny images, and it keeps old copies from surviving a resize
+    // of the widget's cover art.
     private static void CopyCoverDownscaled(string fileName, string coversDir)
     {
         var source = Path.Combine(FileSystem.AppDataDirectory, "covers", fileName);
         var dest = Path.Combine(coversDir, fileName);
-        if (!File.Exists(source) || File.Exists(dest))
+        if (!File.Exists(source))
             return;
 
         using var image = UIImage.FromFile(source);
         if (image is null)
             return;
 
-        const double targetHeight = 132; // 3× the 44pt row thumbnail
+        const double targetHeight = 252; // 3× the 84pt cover
         var scale = targetHeight / image.Size.Height;
         if (scale >= 1)
         {
-            File.Copy(source, dest);
+            File.Copy(source, dest, overwrite: true);
             return;
         }
 

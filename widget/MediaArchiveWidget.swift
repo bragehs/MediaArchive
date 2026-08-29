@@ -87,29 +87,23 @@ struct ItemCell: View {
 
     var body: some View {
         Link(destination: URL(string: "mediaarchive://log/\(item.id)")!) {
-            HStack(spacing: 8) {
+            VStack(spacing: 4) {
                 cover
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(item.title)
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.white)
-                        .lineLimit(1)
-                    Text(progressText)
-                        .font(.caption2)
-                        .foregroundStyle(.white.opacity(0.55))
-                        .lineLimit(1)
-                    bar
-                }
+                Text(item.title)
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+                Text(percentText)
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(item.accent)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(width: 62)
         }
     }
 
-    private var progressText: String {
-        if let p = item.percent {
-            return "\(item.progressLabel) · \(Int(p.rounded()))%"
-        }
-        return item.progressLabel
+    private var percentText: String {
+        if let p = item.percent { return "\(Int(p.rounded()))%" }
+        return "–"
     }
 
     @ViewBuilder private var cover: some View {
@@ -117,42 +111,23 @@ struct ItemCell: View {
             Image(uiImage: ui)
                 .resizable()
                 .aspectRatio(contentMode: .fill)
-                .frame(width: 30, height: 44)
-                .clipShape(RoundedRectangle(cornerRadius: 4))
+                .frame(width: 58, height: 84)
+                .clipShape(RoundedRectangle(cornerRadius: 6))
         } else {
-            RoundedRectangle(cornerRadius: 4)
+            RoundedRectangle(cornerRadius: 6)
                 .fill(item.accent.opacity(0.22))
-                .frame(width: 30, height: 44)
+                .frame(width: 58, height: 84)
                 .overlay(
                     Text(String(item.title.prefix(1)))
-                        .font(.caption.weight(.bold))
+                        .font(.title3.weight(.bold))
                         .foregroundStyle(item.accent)
                 )
         }
-    }
-
-    private var bar: some View {
-        GeometryReader { geo in
-            ZStack(alignment: .leading) {
-                Capsule().fill(.white.opacity(0.12))
-                if let p = item.percent {
-                    Capsule()
-                        .fill(item.accent)
-                        .frame(width: max(3, geo.size.width * min(p, 100) / 100))
-                }
-            }
-        }
-        .frame(height: 3)
     }
 }
 
 struct InProgressView: View {
     var entry: InProgressEntry
-
-    private let columns = [
-        GridItem(.flexible(), spacing: 14),
-        GridItem(.flexible(), spacing: 14),
-    ]
 
     var body: some View {
         Group {
@@ -161,9 +136,16 @@ struct InProgressView: View {
                     .font(.caption)
                     .foregroundStyle(.white.opacity(0.45))
             } else {
-                LazyVGrid(columns: columns, spacing: 10) {
+                // One centered shelf of up to 4 covers; a small "+N" marks
+                // anything the row can't fit (least recent first to go).
+                HStack(alignment: .center, spacing: 10) {
                     ForEach(entry.items.prefix(4)) { item in
                         ItemCell(item: item)
+                    }
+                    if entry.items.count > 4 {
+                        Text("+\(entry.items.count - 4)")
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(.white.opacity(0.5))
                     }
                 }
             }
