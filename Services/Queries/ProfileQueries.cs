@@ -4,30 +4,22 @@ using Microsoft.EntityFrameworkCore;
 
 namespace MediaArchive.Services.Queries;
 
-// A pass clipped to one calendar year, positioned in days.
-public record YearPass(
-    int UserMediaItemId,
-    string Title,
-    MediaType MediaType,
-    int StartDay,
-    int Days,
-    bool CarriedIn,
-    bool CarriedOut,
-    bool StillRunning,
-    int Lane);
+public record FameItem(int UserMediaItemId, string Title, string? ImageUrl,
+    int Rating, bool IsFavorite);
 
-public record YearActivity(
-    int Year,
-    int DaysInYear,
-    int PassCount,
-    int MaxConcurrent,
-    int DaysRunning,
-    int LaneCount,
-    IReadOnlyList<YearPass> Passes);
+// Personal rating against the public one, both on the stored /10 scale;
+// halving to stars is the view's job, like everywhere else.
+public record Verdict(int UserMediaItemId, string Title, MediaType MediaType,
+    int Mine, double World, double Delta);
 
-public record TypeCount(MediaType MediaType, int Count);
+public record CreatorLine(string Name, int Works, double? AvgRating,
+    IReadOnlyList<MediaType> Types);
 
-public record GenreCount(string Name, int Count);
+public record PassRecord(int UserMediaItemId, string Title, MediaType MediaType, int Days);
+
+public record BailRecord(int UserMediaItemId, string Title, MediaType MediaType, double Share);
+
+public record MonthRecord(int Year, int Month, int Logs);
 
 public record ProfileSnapshot(
     int ItemsLogged,
@@ -35,31 +27,37 @@ public record ProfileSnapshot(
     int RatedCount,
     int Finished,
     int GenreCount,
-    IReadOnlyList<YearActivity> Years,
-    IReadOnlyList<TypeCount> ByType,
-    IReadOnlyList<GenreCount> ByGenre);
+    IReadOnlyList<FameItem> HallOfFame,
+    IReadOnlyList<Verdict> Verdicts,
+    double? AvgDelta,
+    IReadOnlyList<CreatorLine> Canon,
+    PassRecord? LongestPass,
+    PassRecord? FastestFinish,
+    BailRecord? DeepestBail,
+    MonthRecord? BusiestMonth);
 
 public class ProfileQueries(IDbContextFactory<AppDbContext> dbContextFactory)
 {
-    // Passes closer than this share no lane, so short stripes stay separate.
-    private const int LaneGapDays = 3;
+    private const int FameFloor = 9;      // 4.5★ and up make the shelf
+    private const int VerdictCap = 8;
+    private const int CanonCap = 6;
 
-    // A few hundred rows total: one round trip, every aggregate in memory.
+    // One materialise, then every aggregate in memory: the archive is a single
+    // local user's few hundred rows, and each section below is a different walk
+    // over the same graph.
     public async Task<ProfileSnapshot> GetSnapshotAsync(CancellationToken ct = default)
     {
         await using var db = await dbContextFactory.CreateDbContextAsync(ct);
 
         var items = await db.UserMediaItems
-            .Include(u => u.MediaItem).ThenInclude(m => m!.Genres).ThenInclude(mg => mg.Genre)
-            .Include(u => u.Entries)
+            .Include(u => u.MediaItem).ThenInclude(m => m!.Genres)
+            .Include(u => u.MediaItem).ThenInclude(m => m!.Credits).ThenInclude(c => c.Person)
+            .Include(u => u.Entries).ThenInclude(e => e.Notes)
             .AsSplitQuery()
             .AsNoTracking()
             .ToListAsync(ct);
 
-        var ratings = items
-            .Where(u => u.Rating is not null)
-            .Select(u => u.Rating!.Value)
-            .ToList();
+        var ratings = items.Where(u => u.Rating is not null).Select(u => u.Rating!.Value).ToList();
 
         var genreCount = items
             .SelectMany(u => u.MediaItem!.Genres)
@@ -67,110 +65,122 @@ public class ProfileQueries(IDbContextFactory<AppDbContext> dbContextFactory)
             .Distinct()
             .Count();
 
+        var verdicts = BuildVerdicts(items);
+
         return new ProfileSnapshot(
             ItemsLogged: items.Count,
             AvgRating: ratings.Count > 0 ? ratings.Average() : null,
             RatedCount: ratings.Count,
             Finished: items.Count(u => u.Status == MediaStatus.Completed),
             GenreCount: genreCount,
-            Years: BuildYears(items, DateOnly.FromDateTime(DateTime.Today)),
-            ByType: items
-                .GroupBy(u => u.MediaItem!.MediaType)
-                .Select(g => new TypeCount(g.Key, g.Count()))
-                .OrderByDescending(t => t.Count)
-                .ThenBy(t => t.MediaType)
-                .ToList(),
-            // An item counts once per genre, so rows sum past the archive total.
-            ByGenre: items
-                .SelectMany(u => u.MediaItem!.Genres)
-                .Where(mg => mg.Genre is not null)
-                .GroupBy(mg => mg.Genre!.Name)
-                .Select(g => new GenreCount(g.Key, g.Count()))
-                .OrderByDescending(g => g.Count)
-                .ThenBy(g => g.Name)
-                .ToList());
+            HallOfFame: BuildHallOfFame(items),
+            Verdicts: verdicts.Take(VerdictCap).ToList(),
+            AvgDelta: verdicts.Count > 0 ? verdicts.Average(v => v.Delta) : null,
+            Canon: BuildCanon(items),
+            LongestPass: BuildLongestPass(items),
+            FastestFinish: BuildFastestFinish(items),
+            DeepestBail: BuildDeepestBail(items),
+            BusiestMonth: BuildBusiestMonth(items));
     }
 
-    // A pass spanning New Year is drawn in every year it touches, clipped to each.
-    private static List<YearActivity> BuildYears(List<UserMediaItem> items, DateOnly today)
-    {
-        var passes = items
-            .SelectMany(u => u.Entries, (u, e) => (Item: u, Entry: e))
-            .Where(p => p.Entry.StartDate is not null)
-            .Select(p => (
-                p.Item,
-                Start: p.Entry.StartDate!.Value,
-                End: p.Entry.EndDate ?? today,
-                IsOpen: p.Entry.EndDate is null))
-            .Where(p => p.End >= p.Start)
-            .ToList();
+    // Favourites always belong; ratings from the floor up join them. Favourites
+    // and full marks lead the shelf, the 4.5s trail it.
+    private static List<FameItem> BuildHallOfFame(List<UserMediaItem> items) => items
+        .Where(u => u.IsFavorite || u.Rating >= FameFloor)
+        .OrderByDescending(u => u.IsFavorite)
+        .ThenByDescending(u => u.Rating)
+        .ThenBy(u => u.MediaItem!.Title)
+        .Select(u => new FameItem(u.Id, u.MediaItem!.Title,
+            u.MediaItem.LocalImagePath ?? u.MediaItem.ImageUrl,
+            u.Rating ?? 0, u.IsFavorite))
+        .ToList();
 
-        var years = new List<YearActivity>();
-        if (passes.Count == 0) return years;
+    private static List<Verdict> BuildVerdicts(List<UserMediaItem> items) => items
+        .Where(u => u.Rating is not null && u.MediaItem!.ExternalRating is not null)
+        .Select(u => new Verdict(u.Id, u.MediaItem!.Title, u.MediaItem.MediaType,
+            u.Rating!.Value, u.MediaItem.ExternalRating!.Value,
+            u.Rating.Value - u.MediaItem.ExternalRating.Value))
+        .OrderByDescending(v => Math.Abs(v.Delta))
+        .ToList();
 
-        for (var year = passes.Max(p => p.End.Year); year >= passes.Min(p => p.Start.Year); year--)
+    // Only each medium's primary credit counts — otherwise one film trilogy
+    // floods the list with its three screenwriters.
+    private static List<CreatorLine> BuildCanon(List<UserMediaItem> items) => items
+        .SelectMany(u => u.MediaItem!.Credits
+            .Where(c => c.Person is not null
+                        && c.Role == u.MediaItem!.MediaType.PrimaryCreditRole())
+            .Select(c => (c.Person!.Name, u)))
+        .GroupBy(x => x.Name)
+        .Select(g =>
         {
-            var jan1 = new DateOnly(year, 1, 1);
-            var dec31 = new DateOnly(year, 12, 31);
-            var daysInYear = dec31.DayNumber - jan1.DayNumber + 1;
+            var rated = g.Select(x => x.u.Rating).Where(r => r is not null).ToList();
+            return new CreatorLine(
+                g.Key,
+                g.Select(x => x.u.Id).Distinct().Count(),
+                rated.Count > 0 ? rated.Average(r => r!.Value) : null,
+                g.Select(x => x.u.MediaItem!.MediaType).Distinct().Order().ToList());
+        })
+        .OrderByDescending(c => c.Works)
+        .ThenByDescending(c => c.AvgRating ?? 0)
+        .Take(CanonCap)
+        .ToList();
 
-            var inYear = passes
-                .Where(p => p.Start <= dec31 && p.End >= jan1)
-                .Select(p =>
-                {
-                    var from = p.Start > jan1 ? p.Start : jan1;
-                    var to = p.End < dec31 ? p.End : dec31;
-                    return (
-                        p.Item,
-                        StartDay: from.DayNumber - jan1.DayNumber,
-                        Days: to.DayNumber - from.DayNumber + 1,
-                        CarriedIn: p.Start < jan1,
-                        CarriedOut: p.End > dec31,
-                        StillRunning: p.IsOpen && to == p.End);
-                })
-                .OrderBy(p => p.StartDay)
-                .ThenByDescending(p => p.Days)
-                .ToList();
+    private static IEnumerable<(UserMediaItem Item, ConsumptionEntry Entry, int Days)>
+        ClosedPasses(List<UserMediaItem> items) => items
+        .SelectMany(u => u.Entries, (u, e) => (Item: u, Entry: e))
+        .Where(p => p.Entry.StartDate is not null && p.Entry.EndDate is not null)
+        .Select(p => (p.Item, p.Entry,
+            Days: p.Entry.EndDate!.Value.DayNumber - p.Entry.StartDate!.Value.DayNumber));
 
-            if (inYear.Count == 0) continue;
+    private static PassRecord? BuildLongestPass(List<UserMediaItem> items) =>
+        ClosedPasses(items)
+            .OrderByDescending(p => p.Days)
+            .Select(p => new PassRecord(p.Item.Id, p.Item.MediaItem!.Title,
+                p.Item.MediaItem.MediaType, p.Days))
+            .FirstOrDefault();
 
-            // Coverage sweep: peak depth is concurrency, non-zero days the union.
-            var cover = new int[daysInYear];
-            foreach (var p in inYear)
-                for (var d = p.StartDay; d < p.StartDay + p.Days; d++)
-                    cover[d]++;
+    // Films finish in a sitting by nature, so they'd hold this record forever;
+    // it only means something for media consumed across days.
+    private static PassRecord? BuildFastestFinish(List<UserMediaItem> items) =>
+        ClosedPasses(items)
+            .Where(p => p.Entry.Outcome == PassOutcome.Completed
+                        && p.Item.MediaItem!.MediaType != MediaType.Movie)
+            .OrderBy(p => p.Days)
+            .Select(p => new PassRecord(p.Item.Id, p.Item.MediaItem!.Title,
+                p.Item.MediaItem.MediaType, p.Days))
+            .FirstOrDefault();
 
-            // Greedy lane packing; LaneGapDays can push LaneCount above
-            // MaxConcurrent, so it drives band height only.
-            var laneEnds = new List<int>();
-            var laid = new List<YearPass>(inYear.Count);
-            foreach (var p in inYear)
-            {
-                var lane = laneEnds.FindIndex(end => end < p.StartDay - LaneGapDays);
-                if (lane < 0)
-                {
-                    lane = laneEnds.Count;
-                    laneEnds.Add(0);
-                }
-                laneEnds[lane] = p.StartDay + p.Days - 1;
+    private static BailRecord? BuildDeepestBail(List<UserMediaItem> items) => items
+        .SelectMany(u => u.Entries, (u, e) => (Item: u, Entry: e))
+        .Where(p => p.Entry.Outcome == PassOutcome.Dropped
+                    && p.Entry.Effort is not null && p.Item.MediaItem!.Length is not null)
+        .Select(p => new BailRecord(p.Item.Id, p.Item.MediaItem!.Title,
+            p.Item.MediaItem.MediaType,
+            (double)p.Entry.Effort!.Value / p.Item.MediaItem.Length!.Value))
+        .OrderByDescending(b => b.Share)
+        .FirstOrDefault();
 
-                var media = p.Item.MediaItem!;
-                laid.Add(new YearPass(
-                    p.Item.Id, media.Title, media.MediaType,
-                    p.StartDay, p.Days,
-                    p.CarriedIn, p.CarriedOut, p.StillRunning, lane));
-            }
+    // A "log" here matches the Diary's event grammar: a start, a finish, and
+    // every progress note each count once, on their own dates.
+    private static MonthRecord? BuildBusiestMonth(List<UserMediaItem> items)
+    {
+        var counts = new Dictionary<(int Year, int Month), int>();
+        void Bump(DateOnly d) =>
+            counts[(d.Year, d.Month)] = counts.GetValueOrDefault((d.Year, d.Month)) + 1;
 
-            years.Add(new YearActivity(
-                Year: year,
-                DaysInYear: daysInYear,
-                PassCount: inYear.Count,
-                MaxConcurrent: cover.Max(),
-                DaysRunning: cover.Count(c => c > 0),
-                LaneCount: laneEnds.Count,
-                Passes: laid));
+        foreach (var entry in items.SelectMany(u => u.Entries))
+        {
+            if (entry.StartDate is { } start) Bump(start);
+            if (entry.EndDate is { } end) Bump(end);
+            foreach (var step in EffortMath.Walk(entry))
+                if (step.Note.Kind == NoteKind.Progress)
+                    Bump(DateOnly.FromDateTime(step.When));
         }
 
-        return years;
+        return counts.Count == 0
+            ? null
+            : counts.OrderByDescending(kv => kv.Value)
+                .Select(kv => new MonthRecord(kv.Key.Year, kv.Key.Month, kv.Value))
+                .First();
     }
 }

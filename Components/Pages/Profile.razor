@@ -1,5 +1,6 @@
 @page "/profile"
 @using System.Globalization
+@using MediaArchive.Services.Queries
 @inject ProfileQueries Stats
 @inject NavigationManager Nav
 
@@ -11,7 +12,7 @@
 }
 else if (_snapshot.ItemsLogged == 0)
 {
-    <p class="pempty">Nothing logged yet.</p>
+    <p class="pempty">Nothing logged yet — the profile fills in as you add things.</p>
 }
 else
 {
@@ -23,7 +24,7 @@ else
         <div class="pcell">
             @if (_snapshot.AvgRating is { } avg)
             {
-                <div class="pnum">@((avg / 2).ToString("0.0"))<i>/5</i></div>
+                <div class="pnum">@Stars(avg)<i>/5</i></div>
                 <div class="plab">Avg rating</div>
                 <div class="pnote">across @_snapshot.RatedCount rated</div>
             }
@@ -45,161 +46,131 @@ else
         </div>
     </div>
 
-    <div class="psec"><span class="psk">The year</span></div>
-
-    @if (_snapshot.Years.Count == 0)
+    @if (_snapshot.HallOfFame.Count > 0)
     {
-        <p class="pempty">No dated passes yet.</p>
-    }
-    else
-    {
-        <div class="pyears">
-        @foreach (var year in _snapshot.Years)
-        {
-            var isOpen = _expanded.Contains(year.Year);
-            <div class="pyear">
-                <div class="pyhead @(isOpen ? "on" : "")" @onclick="() => Toggle(year.Year)">
-                    <span class="pyn">@year.Year</span>
-                    <span class="pyt">@(isOpen ? "–" : "+")</span>
-                    <span class="pym">
-                        <b>@year.PassCount</b> @UiHelpers.Plural(year.PassCount, "pass", "passes")
-                        · <b>@year.MaxConcurrent</b> deep
-                        · <b>@year.DaysRunning</b> @UiHelpers.Plural(year.DaysRunning, "day", "days") running
+        <div class="psec"><span class="psk">Hall of fame</span><span class="psr">The keepers</span></div>
+        <div class="pfamerail">
+            @foreach (var fame in _snapshot.HallOfFame)
+            {
+                <button class="pfame" @onclick="() => Open(fame.UserMediaItemId)">
+                    <span class="pfcov">
+                        @if (!string.IsNullOrWhiteSpace(fame.ImageUrl))
+                        {
+                            <img src="@fame.ImageUrl" alt="Cover of @fame.Title"/>
+                        }
+                        else
+                        {
+                            <span class="pffb">@fame.Title</span>
+                        }
+                        <span class="pfbadge">@(fame.IsFavorite ? "♥" : $"★ {Stars(fame.Rating)}")</span>
                     </span>
-                </div>
-
-                @if (isOpen)
-                {
-                    <div class="pledger" style="height:@(year.LaneCount * LaneStep)px">
-                        @foreach (var month in Months(year.Year))
-                        {
-                            <i class="pgl" style="left:@(Pct(month.Left))"></i>
-                        }
-                        @foreach (var pass in year.Passes)
-                        {
-                            <div class="@StripeClass(pass)"
-                                 style="left:@(Pct(pass.StartDay * 100.0 / year.DaysInYear));width:@(Pct(pass.Days * 100.0 / year.DaysInYear));top:@(pass.Lane * LaneStep)px;--t:@(UiHelpers.TypeColorVar(pass.MediaType))"
-                                 title="@pass.Title"
-                                 @onclick="() => OpenItem(pass.UserMediaItemId)"></div>
-                        }
-                    </div>
-                    <div class="pscale">
-                        @foreach (var month in Months(year.Year))
-                        {
-                            <span style="left:@(Pct(month.Left));width:@(Pct(month.Width))">@month.Letter</span>
-                        }
-                    </div>
-                }
-            </div>
-        }
+                </button>
+            }
         </div>
     }
 
-    <div class="psec"><span class="psk">By media type</span></div>
-    <div class="prows">
-        @foreach (var type in _snapshot.ByType)
+    @if (_snapshot.Verdicts.Count > 0)
+    {
+        <div class="psec"><span class="psk">Against the grain</span><span class="psr">You vs the world</span></div>
+        <div class="pverdicts">
+            @foreach (var v in _snapshot.Verdicts)
+            {
+                <button class="pverdict" @onclick="() => Open(v.UserMediaItemId)">
+                    <span class="pvt">@v.Title</span>
+                    <span class="pvn">you <b>@Stars(v.Mine)</b> · them <b>@Stars(v.World)</b></span>
+                    <span class="pvd @(v.Delta >= 0 ? "up" : "down")">@Signed(v.Delta)</span>
+                </button>
+            }
+        </div>
+        @if (_snapshot.AvgDelta is { } avgDelta)
         {
-            <div class="prow">
-                <span class="prk">@UiHelpers.TypeLabel(type.MediaType)</span>
-                <span class="prb">
-                    <i style="width:@(Pct(type.Count * 100.0 / TypeMax));--t:@(UiHelpers.TypeColorVar(type.MediaType))"></i>
-                </span>
-                <span class="prn">@type.Count</span>
-            </div>
+            <p class="pfoot">
+                On average you land <b>@Signed(avgDelta)</b> @(avgDelta >= 0 ? "above" : "below") the public.
+            </p>
         }
-    </div>
-
-    <div class="psec">
-        <span class="psk">By genre</span>
-        <span class="psr">@_snapshot.GenreCount across the archive</span>
-    </div>
-    @if (_snapshot.ByGenre.Count == 0)
-    {
-        <p class="pempty">Nothing carries a genre yet.</p>
     }
-    else
+
+    @if (_snapshot.Canon.Count > 0)
     {
-        <div class="prows">
-            @foreach (var genre in VisibleGenres)
+        <div class="psec"><span class="psk">The canon</span><span class="psr">Creators you return to</span></div>
+        <div class="pcanon">
+            @foreach (var creator in _snapshot.Canon)
             {
-                <div class="prow">
-                    <span class="prk prkg">@genre.Name</span>
-                    <span class="prb"><i style="width:@(Pct(genre.Count * 100.0 / GenreMax));--t:var(--sage)"></i></span>
-                    <span class="prn">@genre.Count</span>
-                </div>
-            }
-            @if (_snapshot.ByGenre.Count > GenreCap)
-            {
-                <div class="prmore" @onclick="() => _allGenres = !_allGenres">
-                    @(_allGenres
-                        ? "− show fewer"
-                        : $"+ {_snapshot.ByGenre.Count - GenreCap} more")
+                <div class="pcreator">
+                    <span class="pcn">@creator.Name</span>
+                    <span class="pcw">
+                        <b>@creator.Works</b> @(creator.Works == 1 ? "work" : "works")
+                        · @string.Join(" · ", creator.Types.Select(t => UiHelpers.TypeLabel(t).ToLowerInvariant() + (creator.Works == 1 ? "" : "s")))
+                    </span>
+                    @if (creator.AvgRating is { } stars)
+                    {
+                        <span class="pcs">★ @Stars(stars)</span>
+                    }
                 </div>
             }
         </div>
     }
+
+    <div class="psec"><span class="psk">Records</span><span class="psr">The extremes</span></div>
+    <div class="precs">
+        @if (_snapshot.LongestPass is { } longest)
+        {
+            <button class="prec" @onclick="() => Open(longest.UserMediaItemId)">
+                <span class="prl">Longest pass</span>
+                <span class="prv">@Days(longest.Days)</span>
+                <span class="prt">@longest.Title</span>
+            </button>
+        }
+        @if (_snapshot.FastestFinish is { } fastest)
+        {
+            <button class="prec" @onclick="() => Open(fastest.UserMediaItemId)">
+                <span class="prl">Fastest finish</span>
+                <span class="prv">@Days(fastest.Days)</span>
+                <span class="prt">@fastest.Title</span>
+            </button>
+        }
+        @if (_snapshot.DeepestBail is { } bail)
+        {
+            <button class="prec" @onclick="() => Open(bail.UserMediaItemId)">
+                <span class="prl">Deepest bail</span>
+                <span class="prv">@bail.Share.ToString("P0", CultureInfo.InvariantCulture) in</span>
+                <span class="prt">@bail.Title</span>
+            </button>
+        }
+        @if (_snapshot.BusiestMonth is { } busiest)
+        {
+            <div class="prec">
+                <span class="prl">Busiest month</span>
+                <span class="prv">@busiest.Logs logs</span>
+                <span class="prt">@MonthName(busiest.Month) @busiest.Year</span>
+            </div>
+        }
+    </div>
 }
 
 @code {
-    private const int LaneStep = 12;
-    private const string MonthLetters = "JFMAMJJASOND";
-
-    private const int GenreCap = 8;
-
     private ProfileSnapshot? _snapshot;
-    private readonly HashSet<int> _expanded = [];
-    private bool _allGenres;
 
-    // Bars are relative to the biggest row; the fallback guards divide-by-zero.
-    private int TypeMax =>
-        _snapshot is { ByType.Count: > 0 } s ? s.ByType.Max(t => t.Count) : 1;
-
-    private int GenreMax =>
-        _snapshot is { ByGenre.Count: > 0 } s ? s.ByGenre.Max(g => g.Count) : 1;
-
-    private IEnumerable<GenreCount> VisibleGenres =>
-        _allGenres ? _snapshot!.ByGenre : _snapshot!.ByGenre.Take(GenreCap);
-
-    protected override async Task OnInitializedAsync()
-    {
+    protected override async Task OnInitializedAsync() =>
         _snapshot = await Stats.GetSnapshotAsync();
 
-        // Years are newest-first, so this expands the most recent.
-        if (_snapshot.Years.Count > 0)
-            _expanded.Add(_snapshot.Years[0].Year);
-    }
+    private void Open(int userMediaItemId) => Nav.NavigateTo($"/item/{userMediaItemId}");
 
-    private void Toggle(int year)
+    // Ratings live on /10 in the model; the app speaks stars.
+    private static string Stars(double tenScale) =>
+        (tenScale / 2).ToString("0.#", CultureInfo.InvariantCulture);
+
+    private static string Signed(double tenScaleDelta) =>
+        (tenScaleDelta >= 0 ? "+" : "−") +
+        Math.Abs(tenScaleDelta / 2).ToString("0.0", CultureInfo.InvariantCulture);
+
+    private static string Days(int days) => days switch
     {
-        if (!_expanded.Remove(year))
-            _expanded.Add(year);
-    }
+        0 => "same day",
+        1 => "1 day",
+        _ => $"{days} days"
+    };
 
-    private void OpenItem(int userMediaItemId) => Nav.NavigateTo($"/item/{userMediaItemId}");
-
-    // True month boundaries, not twelve equal columns.
-    private static IEnumerable<(double Left, double Width, char Letter)> Months(int year)
-    {
-        double total = DateTime.IsLeapYear(year) ? 366 : 365;
-        double consumed = 0;
-        for (var month = 1; month <= 12; month++)
-        {
-            var days = DateTime.DaysInMonth(year, month);
-            yield return (consumed / total * 100, days / total * 100, MonthLetters[month - 1]);
-            consumed += days;
-        }
-    }
-
-    // Invariant culture: a decimal comma would break the inline style.
-    private static string Pct(double value) =>
-        value.ToString("0.###", CultureInfo.InvariantCulture) + "%";
-
-    private static string StripeClass(YearPass pass)
-    {
-        var classes = "pstripe";
-        if (pass.StillRunning) classes += " prun";
-        if (pass.CarriedIn) classes += " pin";
-        if (pass.CarriedOut) classes += " pout";
-        return classes;
-    }
+    private static string MonthName(int month) =>
+        CultureInfo.InvariantCulture.DateTimeFormat.GetMonthName(month);
 }

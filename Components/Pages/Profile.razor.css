@@ -6,7 +6,7 @@
     padding: 10px 0;
 }
 
-/* 2x2 rather than a 4-across strip — "Items logged" needs the width at 8.5px. */
+/* ── identity strip ── */
 .pstrip {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -22,7 +22,6 @@
 .pcell:nth-child(odd) { padding-left: 0; }
 .pcell:nth-child(even) { padding-right: 0; border-right: 0; }
 .pcell:nth-last-child(-n+2) { border-bottom: 0; }
-
 .pnum {
     font-family: var(--f-title);
     font-weight: 700;
@@ -41,7 +40,6 @@
     letter-spacing: .1em;
 }
 .pnum.pnone { color: var(--dim); }
-
 .plab {
     font-family: var(--f-display);
     text-transform: uppercase;
@@ -58,6 +56,7 @@
     margin-top: 2px;
 }
 
+/* ── section headers ── */
 .psec {
     display: flex;
     align-items: baseline;
@@ -83,164 +82,175 @@
     color: var(--dim);
 }
 
-/* Fixed viewport onto the bands: the current year plus the next sit in view,
-   the rest scroll. overscroll-behavior stops the page moving when this hits its
-   end. */
-.pyears {
-    max-height: 168px;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    -webkit-overflow-scrolling: touch;
+/* ── hall of fame: the covers carry it, one badge each ── */
+.pfamerail { display: flex; gap: 9px; overflow-x: auto; padding-bottom: 4px; }
+.pfame { flex: none; background: none; border: 0; padding: 0; cursor: pointer; }
+.pfcov {
+    position: relative;
+    display: block;
+    width: 74px;
+    height: 111px;
+    border-radius: 7px;
+    overflow: hidden;
+    border: 1px solid var(--line2);
+    background: linear-gradient(155deg, var(--panel), #131f10);
+}
+.pfcov img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.pffb {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: flex-end;
+    padding: 6px;
+    font-family: var(--f-display);
+    font-size: 8.5px;
+    line-height: 1.15;
+    color: var(--ink);
+    text-align: left;
+}
+.pfbadge {
+    position: absolute;
+    right: 4px;
+    bottom: 4px;
+    padding: 2px 5px;
+    border-radius: 5px;
+    background: rgba(0, 0, 0, .82);
+    font-family: var(--f-display);
+    font-weight: 700;
+    font-size: 9px;
+    color: var(--ac2);
 }
 
-.pyear { border-bottom: 1px solid var(--line2); padding: 11px 0; }
-.pyear:last-child { border-bottom: 0; }
-
-.pyhead {
+/* ── against the grain: one list, signed deltas ── */
+.pverdicts { display: flex; flex-direction: column; }
+.pverdict {
     display: flex;
     align-items: baseline;
-    gap: 8px;
+    gap: 10px;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--line2);
+    background: none;
+    border-left: 0; border-right: 0; border-top: 0;
     cursor: pointer;
-    flex-wrap: wrap;
+    text-align: left;
 }
-.pyn {
+.pverdict:last-child { border-bottom: 0; }
+.pvt {
+    flex: 1;
+    min-width: 0;
     font-family: var(--f-title);
     font-weight: 700;
-    font-size: 19px;
-    line-height: 1;
-    color: var(--dim);
+    font-size: 12.5px;
+    color: var(--ink);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
-.pyhead.on .pyn { color: var(--ink); }
-.pyt {
-    font-family: var(--f-display);
-    font-size: 13px;
-    line-height: 1;
-    color: var(--dim);
-    width: 10px;
-}
-.pyhead.on .pyt { color: var(--ac); }
-.pym {
+.pvn {
+    flex: none;
     font-family: var(--f-serif);
     font-style: italic;
-    font-size: 11.5px;
-    color: var(--muted);
-    margin-left: auto;
-}
-.pym b { font-style: normal; font-weight: 700; color: var(--ink); }
-
-/* The band. Stripes are absolutely placed on a true day axis; lanes only keep
-   them from colliding, so vertical position carries no meaning. */
-.pledger {
-    position: relative;
-    margin-top: 11px;
-    background: linear-gradient(180deg, var(--panel), #1b2a19);
-    border: 1px solid var(--line2);
-    border-radius: var(--r-sm);
-    overflow: hidden;
-}
-.pgl {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    width: 1px;
-    background: var(--line2);
-}
-.pgl:first-of-type { display: none; }
-
-.pstripe {
-    position: absolute;
-    height: 7px;
-    min-width: 3px;
-    margin-top: 3px;
-    border-radius: 2px;
-    background: var(--t);
-    cursor: pointer;
-}
-/* Squared off where the pass crosses a New Year — the round cap means "this is
-   where it really began / ended". */
-.pin { border-top-left-radius: 0; border-bottom-left-radius: 0; }
-.pout { border-top-right-radius: 0; border-bottom-right-radius: 0; }
-/* Still running: fade the leading edge rather than draw to December, which would
-   claim time that hasn't happened. */
-.prun {
-    -webkit-mask-image: linear-gradient(90deg, #000 60%, transparent 100%);
-    mask-image: linear-gradient(90deg, #000 60%, transparent 100%);
-}
-
-.pscale {
-    position: relative;
-    height: 13px;
-    margin-top: 4px;
-}
-.pscale span {
-    position: absolute;
-    top: 0;
-    text-align: center;
-    font-family: var(--f-display);
-    font-size: 8px;
-    letter-spacing: .06em;
+    font-size: 11px;
     color: var(--dim);
 }
-
-.prows { padding-top: 2px; }
-.prow {
-    display: flex;
-    align-items: center;
-    gap: 11px;
-    padding: 7px 0;
-}
-.prk {
+.pvn b { font-style: normal; color: var(--muted); }
+.pvd {
     flex: none;
-    width: 78px;
-    font-family: var(--f-display);
-    text-transform: uppercase;
-    letter-spacing: .1em;
-    font-size: 9px;
-    color: var(--muted);
-}
-/* Genre names are a free-text vocabulary — too long and too varied for
-   letterspaced caps, so they get the serif treatment instead. */
-.prkg {
-    width: 116px;
-    font-family: var(--f-serif);
-    font-style: italic;
-    text-transform: capitalize;
-    letter-spacing: 0;
-    font-size: 12px;
-    line-height: 1.15;
-}
-.prb {
-    flex: 1;
-    height: 7px;
-    min-width: 0;
-    background: var(--line2);
-    border-radius: 2px;
-    overflow: hidden;
-}
-.prb i {
-    display: block;
-    height: 100%;
-    min-width: 2px;
-    background: var(--t);
-    border-radius: 2px;
-}
-.prn {
-    flex: none;
-    width: 20px;
+    width: 44px;
     text-align: right;
     font-family: var(--f-title);
     font-weight: 700;
     font-size: 14px;
-    line-height: 1;
-    color: var(--ink);
 }
-.prmore {
-    margin-top: 6px;
+.pvd.up { color: var(--ac); }
+.pvd.down { color: var(--ac2); }
+
+.pfoot {
+    font-family: var(--f-serif);
+    font-style: italic;
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 10px;
+}
+.pfoot b { font-style: normal; color: var(--ink); }
+
+/* ── the canon: the vault's one sanctioned text list ── */
+.pcanon { display: flex; flex-direction: column; }
+.pcreator {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--line2);
+}
+.pcreator:last-child { border-bottom: 0; }
+.pcn {
+    font-family: var(--f-title);
+    font-weight: 700;
+    font-size: 13.5px;
+    color: var(--ink);
+    white-space: nowrap;
+}
+.pcw {
+    flex: 1;
+    min-width: 0;
+    font-family: var(--f-serif);
+    font-style: italic;
+    font-size: 11.5px;
+    color: var(--dim);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.pcw b { font-style: normal; color: var(--muted); }
+.pcs {
+    flex: none;
+    font-family: var(--f-display);
+    font-weight: 700;
+    font-size: 11px;
+    color: var(--ac2);
+}
+
+/* ── records ── */
+.precs { display: flex; flex-direction: column; }
+.prec {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--line2);
+    background: none;
+    border-left: 0; border-right: 0; border-top: 0;
+    cursor: pointer;
+    text-align: left;
+}
+.prec:last-child { border-bottom: 0; }
+.prl {
+    flex: none;
+    width: 104px;
     font-family: var(--f-display);
     text-transform: uppercase;
-    letter-spacing: .12em;
-    font-size: 9px;
+    letter-spacing: .1em;
+    font-size: 8.5px;
+    color: var(--dim);
+}
+.prv {
+    flex: none;
+    font-family: var(--f-title);
+    font-weight: 700;
+    font-size: 14px;
     color: var(--ac);
-    cursor: pointer;
-    padding: 4px 0;
+    white-space: nowrap;
+}
+.prt {
+    flex: 1;
+    min-width: 0;
+    text-align: right;
+    font-family: var(--f-serif);
+    font-style: italic;
+    font-size: 12px;
+    color: var(--muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
