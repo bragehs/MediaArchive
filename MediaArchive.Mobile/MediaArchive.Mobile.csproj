@@ -29,7 +29,10 @@
 
     <ItemGroup>
         <!-- App Icon -->
-        <MauiIcon Include="Resources\AppIcon\appicon.svg" ForegroundFile="Resources\AppIcon\appiconfg.svg" Color="#0a0a0a" />
+        <!-- The in-app .brandmark, rendered by branding/makeicon.swift. Full-bleed
+             and opaque, so iOS's own squircle mask does the rounding; single-image
+             (no ForegroundFile) so the art is used exactly as drawn. -->
+        <MauiIcon Include="Resources\AppIcon\appicon.png" Color="#0a0a0a" />
 
         <!-- Splash Screen -->
         <MauiSplashScreen Include="Resources\Splash\splash.svg" Color="#0a0a0a" BaseSize="128,128" />

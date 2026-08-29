@@ -125,25 +125,16 @@ body::before {
 .brand b { color: var(--ac); }
 
 /* the illuminated-M emblem — the app icon distilled, as a logo lockup */
+/* Rendered by branding/makeicon.swift from the same source as the iOS app icon,
+   so the mark in the masthead and the one on the home screen are one artwork.
+   Drawn rather than styled because CSS border-radius is a circular corner and
+   cannot match the iOS squircle. */
 .brandmark {
     flex: none;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
+    display: block;
     width: 31px;
     height: 31px;
-    border-radius: 7px;
-    border: 1px solid var(--ac);
-    background: #0a0a0a;
-    font-family: var(--f-title);
-    font-weight: 700;
-    font-size: 15px;
-    letter-spacing: -.02em;
-    line-height: 1;
-    color: var(--ac);
-    text-transform: none;
 }
-.brandmark > span { color: var(--ink); }
 
 /* the modal freezes the page */
 .modal-scrim {
@@ -524,7 +515,7 @@ body { overflow: hidden; overscroll-behavior: none; }
     background: linear-gradient(var(--bg) 80%, transparent);
 }
 .appbar .brand { font-size: 17px; }
-.appbar .brandmark { width: 28px; height: 28px; font-size: 13px; }
+.appbar .brandmark { width: 28px; height: 28px; }
 
 .viewport {
     flex: 1;
