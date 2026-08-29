@@ -31,20 +31,27 @@
     </PropertyGroup>
 
     <!-- The home-screen widget: a Swift .appex compiled by xcodebuild (see ./ma),
-         embedded and co-signed here. The Exists() guard keeps plain `dotnet build`
-         working before the widget has been compiled for the current flavor. -->
+         embedded and co-signed here. Each flavor is staged in its own directory
+         (.widgetbuild/<sdk>) because the embedding targets scan the whole
+         directory for frameworks — mixing flavors ships the wrong-platform
+         WidgetLink.framework and the app dies at launch on device. The Exists()
+         guard keeps plain `dotnet build` working before the widget is compiled. -->
     <PropertyGroup>
-        <_WidgetBuildOutput>build/Debug-iphoneos</_WidgetBuildOutput>
-        <_WidgetBuildOutput Condition="'$(RuntimeIdentifier)' != '' and $(RuntimeIdentifier.Contains('simulator'))">build/Debug-iphonesimulator</_WidgetBuildOutput>
+        <_WidgetSdk>iphoneos</_WidgetSdk>
+        <_WidgetSdk Condition="'$(RuntimeIdentifier)' != '' and $(RuntimeIdentifier.Contains('simulator'))">iphonesimulator</_WidgetSdk>
+        <_WidgetStage>$(MSBuildThisFileDirectory)..\.widgetbuild\$(_WidgetSdk)</_WidgetStage>
     </PropertyGroup>
-    <ItemGroup Condition="Exists('$(MSBuildThisFileDirectory)..\widget\$(_WidgetBuildOutput)\MediaArchiveWidget.appex')">
-        <AdditionalAppExtensions Include="$(MSBuildThisFileDirectory)..\widget">
+    <ItemGroup Condition="Exists('$(_WidgetStage)\Debug-$(_WidgetSdk)\MediaArchiveWidget.appex')">
+        <AdditionalAppExtensions Include="$(_WidgetStage)">
             <Name>MediaArchiveWidget</Name>
-            <BuildOutput>$(_WidgetBuildOutput)</BuildOutput>
+            <BuildOutput>Debug-$(_WidgetSdk)</BuildOutput>
+            <!-- The .NET build re-signs the appex; without this it strips the
+                 App Group entitlement and the widget can't read its snapshot. -->
+            <CodesignEntitlements>$(MSBuildThisFileDirectory)..\widget\MediaArchiveWidget.entitlements</CodesignEntitlements>
         </AdditionalAppExtensions>
         <!-- Swift shim exposing WidgetKit's reload call to C#
              (WidgetSnapshotPublisher) — WidgetKit itself has no .NET binding. -->
-        <NativeReference Include="$(MSBuildThisFileDirectory)..\widget\$(_WidgetBuildOutput)\WidgetLink.framework">
+        <NativeReference Include="$(_WidgetStage)\Debug-$(_WidgetSdk)\WidgetLink.framework">
             <Kind>Framework</Kind>
         </NativeReference>
     </ItemGroup>

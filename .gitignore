@@ -31,5 +31,4 @@ covers/
 backups/
 
 # Widget extension build output (xcodebuild SYMROOT, see ./ma)
-widget/build/
-widget/xcodebuild.log
+.widgetbuild/

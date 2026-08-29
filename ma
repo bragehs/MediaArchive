@@ -314,13 +314,21 @@ renew() {
 # 7-day profile as a side effect — no separate stub needed.
 build_widget() {
     local sdk="$1"; shift
+    # Each flavor gets its own SYMROOT, and the products live OUTSIDE widget/.
+    # The .NET appex-embedding targets scan the whole extension directory for
+    # frameworks to promote into the app, so device and simulator builds
+    # sharing one tree ends with the wrong-platform WidgetLink.framework in
+    # the bundle — which dyld kills at launch on a real phone.
+    local out="$REPO/.widgetbuild/$sdk"
+    rm -rf "$WIDGET_DIR/build" "$WIDGET_DIR/xcodebuild.log"   # pre-split layout
+    mkdir -p "$out"
     say "building widget ($sdk)…"
     if ! run_timeout 900 xcodebuild -project "$WIDGET_DIR/MediaArchiveWidget.xcodeproj" \
             -alltargets -configuration Debug -sdk "$sdk" \
-            SYMROOT="$WIDGET_DIR/build" "$@" build \
-            >"$WIDGET_DIR/xcodebuild.log" 2>&1; then
-        warn "widget build failed — last lines of widget/xcodebuild.log:"
-        tail -15 "$WIDGET_DIR/xcodebuild.log" >&2
+            SYMROOT="$out" "$@" build \
+            >"$out/xcodebuild.log" 2>&1; then
+        warn "widget build failed — last lines of .widgetbuild/$sdk/xcodebuild.log:"
+        tail -15 "$out/xcodebuild.log" >&2
         die "widget build failed"
     fi
 }
