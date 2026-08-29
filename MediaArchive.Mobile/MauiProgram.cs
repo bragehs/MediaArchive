@@ -78,6 +78,7 @@ public static class MauiProgram
         builder.Services.AddScoped<CommonQueries>();
         builder.Services.AddScoped<HomeQueries>();
         builder.Services.AddScoped<LibraryQueries>();
+        builder.Services.AddScoped<ProfileQueries>();
 
 #if DEBUG
         builder.Services.AddBlazorWebViewDeveloperTools();

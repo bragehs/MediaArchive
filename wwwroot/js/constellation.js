@@ -21,6 +21,11 @@ window.constellation = (function () {
   let raf = 0, wiredWindow = false, searchTimer = 0, camTo = null;
 
   const genresOf = it => [...new Set(it.g || [])];
+  // Genres are stored lower case as one canonical key; capitalising is the
+  // view's job. Canvas text can't be reached by CSS text-transform, so this
+  // mirrors `text-transform: capitalize` in JS. Display only — `data-g` and the
+  // genreNode lookups must keep the raw stored name.
+  const cap = s => String(s).replace(/\b\p{L}/gu, c => c.toUpperCase());
 
   function makeRng(seed) {
     return function () {
@@ -186,8 +191,9 @@ window.constellation = (function () {
       ctx.font = `${clamp(a.r * 0.5, 10, 18) | 0}px "Cinzel Decorative",serif`;
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
       if (a.r > 14 || !(hiSet || searchHits) || on) {
-        ctx.lineWidth = 3.5; ctx.strokeStyle = 'rgba(6,6,6,.92)'; ctx.strokeText(a.name, a.dx, a.dy);
-        ctx.fillStyle = '#fafcf8'; ctx.fillText(a.name, a.dx, a.dy);
+        const label = a.kind === 'genre' ? cap(a.name) : a.name;
+        ctx.lineWidth = 3.5; ctx.strokeStyle = 'rgba(6,6,6,.92)'; ctx.strokeText(label, a.dx, a.dy);
+        ctx.fillStyle = '#fafcf8'; ctx.fillText(label, a.dx, a.dy);
       }
     }
     ctx.globalAlpha = 1; ctx.restore();
@@ -233,12 +239,12 @@ window.constellation = (function () {
     const related = Object.entries(co).sort((a, b) => b[1] - a[1]);
     el.phead.innerHTML = `<div class="cpdot" style="background:${rgb(node.col)};color:${rgb(node.col)}"></div>
       <div class="cpmeta"><div class="cpkick">Genre · ${idxs.length} works</div>
-      <div class="cptitle">${node.name}</div>
+      <div class="cptitle">${node.kind === 'genre' ? cap(node.name) : node.name}</div>
       <div class="cpsub">${node.count >= 6 ? 'A hub of the archive — many works pass through it.' : 'Tap a cover to open it.'}</div></div>`;
     let d = 0;
     const relHTML = related.length ? `<div class="cpgroup">Threads into</div>
       <div class="ctags" style="margin-bottom:4px">${related.map(([g, c]) => `<span class="ctag" data-g="${g}">
-        <i style="background:${rgb(hueOf[g])}"></i>${g} · ${c}</span>`).join('')}</div>
+        <i style="background:${rgb(hueOf[g])}"></i>${cap(g)} · ${c}</span>`).join('')}</div>
       <div class="cpgroup">${idxs.length} works</div>` : '';
     el.pscroll.innerHTML = relHTML + `<div class="cgrid">${idxs.map(i => cellHTML(i, d += 45)).join('')}</div>`;
     el.pscroll.scrollTop = 0; wirePanel();
@@ -310,7 +316,7 @@ window.constellation = (function () {
   // ---- search: genres client-side, items from the server ----
   function rowForGenre(n) {
     return `<div class="crow" data-g="${n.name}"><span class="cdot" style="background:${rgb(n.col)};color:${rgb(n.col)}"></span>
-      <span class="crttl">${n.name}</span><span class="crmeta">${n.count} works</span></div>`;
+      <span class="crttl">${cap(n.name)}</span><span class="crmeta">${n.count} works</span></div>`;
   }
   function rowForItem(it) {
     const p = PAL[it.ty] || ['#3a4a34', '#26301f'];

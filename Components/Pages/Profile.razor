@@ -1,0 +1,214 @@
+@page "/profile"
+@using System.Globalization
+@using MediaArchive.Services
+@inject ProfileQueries Stats
+@inject NavigationManager Nav
+
+<PageTitle>Profile · MediaArchive</PageTitle>
+
+@if (_snapshot is null)
+{
+    <p class="pempty">Loading…</p>
+}
+else if (_snapshot.ItemsLogged == 0)
+{
+    <p class="pempty">Nothing logged yet — the profile fills in as you add things.</p>
+}
+else
+{
+    <div class="pstrip">
+        <div class="pcell">
+            <div class="pnum">@_snapshot.ItemsLogged</div>
+            <div class="plab">Items logged</div>
+        </div>
+        <div class="pcell">
+            @if (_snapshot.AvgRating is { } avg)
+            {
+                <div class="pnum">@((avg / 2).ToString("0.0"))<i>/5</i></div>
+                <div class="plab">Avg rating</div>
+                <div class="pnote">across @_snapshot.RatedCount rated</div>
+            }
+            else
+            {
+                <div class="pnum pnone">—</div>
+                <div class="plab">Avg rating</div>
+                <div class="pnote">nothing rated yet</div>
+            }
+        </div>
+        <div class="pcell">
+            <div class="pnum">@_snapshot.Finished</div>
+            <div class="plab">Finished</div>
+            <div class="pnote">of @_snapshot.ItemsLogged logged</div>
+        </div>
+        <div class="pcell">
+            <div class="pnum">@_snapshot.GenreCount</div>
+            <div class="plab">Genres</div>
+        </div>
+    </div>
+
+    <div class="psec"><span class="psk">The year</span><span class="psr">Where it went</span></div>
+
+    @if (_snapshot.Years.Count == 0)
+    {
+        <p class="pempty">No dated passes yet — the ledger needs a start date to place.</p>
+    }
+    else
+    {
+        <div class="pyears">
+        @foreach (var year in _snapshot.Years)
+        {
+            var isOpen = _expanded.Contains(year.Year);
+            <div class="pyear">
+                <div class="pyhead @(isOpen ? "on" : "")" @onclick="() => Toggle(year.Year)">
+                    <span class="pyn">@year.Year</span>
+                    <span class="pyt">@(isOpen ? "–" : "+")</span>
+                    <span class="pym">
+                        <b>@year.PassCount</b> @Plural(year.PassCount, "pass", "passes")
+                        · <b>@year.MaxConcurrent</b> deep
+                        · <b>@year.DaysRunning</b> @Plural(year.DaysRunning, "day", "days") running
+                    </span>
+                </div>
+
+                @if (isOpen)
+                {
+                    <div class="pledger" style="height:@(year.LaneCount * LaneStep)px">
+                        @foreach (var month in Months(year.Year))
+                        {
+                            <i class="pgl" style="left:@(Pct(month.Left))"></i>
+                        }
+                        @foreach (var pass in year.Passes)
+                        {
+                            <div class="@StripeClass(pass)"
+                                 style="left:@(Pct(pass.StartDay * 100.0 / year.DaysInYear));width:@(Pct(pass.Days * 100.0 / year.DaysInYear));top:@(pass.Lane * LaneStep)px;--t:@(UiHelpers.TypeColorVar(pass.MediaType))"
+                                 title="@pass.Title"
+                                 @onclick="() => OpenItem(pass.UserMediaItemId)"></div>
+                        }
+                    </div>
+                    <div class="pscale">
+                        @foreach (var month in Months(year.Year))
+                        {
+                            <span style="left:@(Pct(month.Left));width:@(Pct(month.Width))">@month.Letter</span>
+                        }
+                    </div>
+                }
+            </div>
+        }
+        </div>
+    }
+
+    <div class="psec"><span class="psk">By media type</span><span class="psr">What you log</span></div>
+    <div class="prows">
+        @foreach (var type in _snapshot.ByType)
+        {
+            <div class="prow">
+                <span class="prk">@UiHelpers.TypeLabel(type.MediaType)</span>
+                <span class="prb">
+                    <i style="width:@(Pct(type.Count * 100.0 / TypeMax));--t:@(UiHelpers.TypeColorVar(type.MediaType))"></i>
+                </span>
+                <span class="prn">@type.Count</span>
+            </div>
+        }
+    </div>
+
+    <div class="psec">
+        <span class="psk">By genre</span>
+        <span class="psr">@_snapshot.GenreCount across the archive</span>
+    </div>
+    @if (_snapshot.ByGenre.Count == 0)
+    {
+        <p class="pempty">Nothing carries a genre yet.</p>
+    }
+    else
+    {
+        <div class="prows">
+            @foreach (var genre in VisibleGenres)
+            {
+                <div class="prow">
+                    <span class="prk prkg">@genre.Name</span>
+                    <span class="prb"><i style="width:@(Pct(genre.Count * 100.0 / GenreMax));--t:var(--sage)"></i></span>
+                    <span class="prn">@genre.Count</span>
+                </div>
+            }
+            @if (_snapshot.ByGenre.Count > GenreCap)
+            {
+                <div class="prmore" @onclick="() => _allGenres = !_allGenres">
+                    @(_allGenres
+                        ? "− show fewer"
+                        : $"+ {_snapshot.ByGenre.Count - GenreCap} more")
+                </div>
+            }
+        </div>
+    }
+}
+
+@code {
+    private const int LaneStep = 12;
+    private const string MonthLetters = "JFMAMJJASOND";
+
+    private const int GenreCap = 8;
+
+    private ProfileSnapshot? _snapshot;
+    private readonly HashSet<int> _expanded = [];
+    private bool _allGenres;
+
+    // Bars are relative to the biggest row, so the longest always fills the
+    // track. The property pattern doubles as the divide-by-zero guard.
+    private int TypeMax =>
+        _snapshot is { ByType.Count: > 0 } s ? s.ByType.Max(t => t.Count) : 1;
+
+    private int GenreMax =>
+        _snapshot is { ByGenre.Count: > 0 } s ? s.ByGenre.Max(g => g.Count) : 1;
+
+    private IEnumerable<GenreCount> VisibleGenres =>
+        _allGenres ? _snapshot!.ByGenre : _snapshot!.ByGenre.Take(GenreCap);
+
+    protected override async Task OnInitializedAsync()
+    {
+        _snapshot = await Stats.GetSnapshotAsync();
+
+        // Years come back newest-first, so this opens the current year — or the
+        // most recent one with anything in it, rather than an empty January.
+        if (_snapshot.Years.Count > 0)
+            _expanded.Add(_snapshot.Years[0].Year);
+    }
+
+    private void Toggle(int year)
+    {
+        if (!_expanded.Remove(year))
+            _expanded.Add(year);
+    }
+
+    private void OpenItem(int userMediaItemId) => Nav.NavigateTo($"/item/{userMediaItemId}");
+
+    // True month boundaries, not twelve equal columns — a stripe has to line up
+    // with the gridline of the month it actually started in.
+    private static IEnumerable<(double Left, double Width, char Letter)> Months(int year)
+    {
+        double total = DateTime.IsLeapYear(year) ? 366 : 365;
+        double consumed = 0;
+        for (var month = 1; month <= 12; month++)
+        {
+            var days = DateTime.DaysInMonth(year, month);
+            yield return (consumed / total * 100, days / total * 100, MonthLetters[month - 1]);
+            consumed += days;
+        }
+    }
+
+    // Invariant culture on purpose: a decimal comma would silently break the
+    // inline style on a Norwegian device.
+    private static string Pct(double value) =>
+        value.ToString("0.###", CultureInfo.InvariantCulture) + "%";
+
+    // Round caps mean "this is where the pass really started/ended", so the
+    // New Year crossings and the still-running fade are flags on the stripe.
+    private static string StripeClass(YearPass pass)
+    {
+        var classes = "pstripe";
+        if (pass.StillRunning) classes += " prun";
+        if (pass.CarriedIn) classes += " pin";
+        if (pass.CarriedOut) classes += " pout";
+        return classes;
+    }
+
+    private static string Plural(int n, string one, string many) => n == 1 ? one : many;
+}

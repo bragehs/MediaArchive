@@ -1,0 +1,246 @@
+.pempty {
+    font-family: var(--f-serif);
+    font-style: italic;
+    color: var(--dim);
+    font-size: 13px;
+    padding: 10px 0;
+}
+
+/* 2x2 rather than a 4-across strip — "Items logged" needs the width at 8.5px. */
+.pstrip {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    border-top: 2px solid var(--ink);
+    border-bottom: 1px solid var(--line);
+    margin-top: 2px;
+}
+.pcell {
+    padding: 14px 16px;
+    border-right: 1px solid var(--line);
+    border-bottom: 1px solid var(--line2);
+}
+.pcell:nth-child(odd) { padding-left: 0; }
+.pcell:nth-child(even) { padding-right: 0; border-right: 0; }
+.pcell:nth-last-child(-n+2) { border-bottom: 0; }
+
+.pnum {
+    font-family: var(--f-title);
+    font-weight: 700;
+    color: var(--ac);
+    font-size: 30px;
+    line-height: .9;
+    display: flex;
+    align-items: baseline;
+    gap: 3px;
+}
+.pnum i {
+    font-family: var(--f-display);
+    font-style: normal;
+    font-size: 10px;
+    color: var(--dim);
+    letter-spacing: .1em;
+}
+.pnum.pnone { color: var(--dim); }
+
+.plab {
+    font-family: var(--f-display);
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    font-size: 8.5px;
+    color: var(--dim);
+    margin-top: 8px;
+}
+.pnote {
+    font-family: var(--f-serif);
+    font-style: italic;
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 2px;
+}
+
+.psec {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin: 24px 0 12px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--line);
+}
+.psk {
+    font-family: var(--f-display);
+    text-transform: uppercase;
+    letter-spacing: .18em;
+    font-size: 9.5px;
+    font-weight: 700;
+    color: var(--muted);
+}
+.psr {
+    margin-left: auto;
+    font-family: var(--f-display);
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    font-size: 9px;
+    color: var(--dim);
+}
+
+/* Fixed viewport onto the bands: the current year plus the next sit in view,
+   the rest scroll. overscroll-behavior stops the page moving when this hits its
+   end. */
+.pyears {
+    max-height: 168px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+}
+
+.pyear { border-bottom: 1px solid var(--line2); padding: 11px 0; }
+.pyear:last-child { border-bottom: 0; }
+
+.pyhead {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    cursor: pointer;
+    flex-wrap: wrap;
+}
+.pyn {
+    font-family: var(--f-title);
+    font-weight: 700;
+    font-size: 19px;
+    line-height: 1;
+    color: var(--dim);
+}
+.pyhead.on .pyn { color: var(--ink); }
+.pyt {
+    font-family: var(--f-display);
+    font-size: 13px;
+    line-height: 1;
+    color: var(--dim);
+    width: 10px;
+}
+.pyhead.on .pyt { color: var(--ac); }
+.pym {
+    font-family: var(--f-serif);
+    font-style: italic;
+    font-size: 11.5px;
+    color: var(--muted);
+    margin-left: auto;
+}
+.pym b { font-style: normal; font-weight: 700; color: var(--ink); }
+
+/* The band. Stripes are absolutely placed on a true day axis; lanes only keep
+   them from colliding, so vertical position carries no meaning. */
+.pledger {
+    position: relative;
+    margin-top: 11px;
+    background: linear-gradient(180deg, var(--panel), #1b2a19);
+    border: 1px solid var(--line2);
+    border-radius: var(--r-sm);
+    overflow: hidden;
+}
+.pgl {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: var(--line2);
+}
+.pgl:first-of-type { display: none; }
+
+.pstripe {
+    position: absolute;
+    height: 7px;
+    min-width: 3px;
+    margin-top: 3px;
+    border-radius: 2px;
+    background: var(--t);
+    cursor: pointer;
+}
+/* Squared off where the pass crosses a New Year — the round cap means "this is
+   where it really began / ended". */
+.pin { border-top-left-radius: 0; border-bottom-left-radius: 0; }
+.pout { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+/* Still running: fade the leading edge rather than draw to December, which would
+   claim time that hasn't happened. */
+.prun {
+    -webkit-mask-image: linear-gradient(90deg, #000 60%, transparent 100%);
+    mask-image: linear-gradient(90deg, #000 60%, transparent 100%);
+}
+
+.pscale {
+    position: relative;
+    height: 13px;
+    margin-top: 4px;
+}
+.pscale span {
+    position: absolute;
+    top: 0;
+    text-align: center;
+    font-family: var(--f-display);
+    font-size: 8px;
+    letter-spacing: .06em;
+    color: var(--dim);
+}
+
+.prows { padding-top: 2px; }
+.prow {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 7px 0;
+}
+.prk {
+    flex: none;
+    width: 78px;
+    font-family: var(--f-display);
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    font-size: 9px;
+    color: var(--muted);
+}
+/* Genre names are a free-text vocabulary — too long and too varied for
+   letterspaced caps, so they get the serif treatment instead. */
+.prkg {
+    width: 116px;
+    font-family: var(--f-serif);
+    font-style: italic;
+    text-transform: capitalize;
+    letter-spacing: 0;
+    font-size: 12px;
+    line-height: 1.15;
+}
+.prb {
+    flex: 1;
+    height: 7px;
+    min-width: 0;
+    background: var(--line2);
+    border-radius: 2px;
+    overflow: hidden;
+}
+.prb i {
+    display: block;
+    height: 100%;
+    min-width: 2px;
+    background: var(--t);
+    border-radius: 2px;
+}
+.prn {
+    flex: none;
+    width: 20px;
+    text-align: right;
+    font-family: var(--f-title);
+    font-weight: 700;
+    font-size: 14px;
+    line-height: 1;
+    color: var(--ink);
+}
+.prmore {
+    margin-top: 6px;
+    font-family: var(--f-display);
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    font-size: 9px;
+    color: var(--ac);
+    cursor: pointer;
+    padding: 4px 0;
+}
