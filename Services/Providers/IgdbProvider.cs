@@ -17,10 +17,6 @@ public class IgdbProvider(HttpClient httpClient, IgdbAuthenticator authenticator
         PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
     };
 
-    private readonly IgdbAuthenticator _authenticator = authenticator;
-
-    private readonly HttpClient _httpClient = httpClient;
-
     public bool CanHandle(MediaType mediaType)
     {
         return mediaType == MediaType.Game;
@@ -79,7 +75,7 @@ public class IgdbProvider(HttpClient httpClient, IgdbAuthenticator authenticator
 
     private async Task<List<T>> QueryAsync<T>(string endpoint, string body, CancellationToken cancellationToken)
     {
-        var token = await _authenticator.GetTokenAsync(cancellationToken);
+        var token = await authenticator.GetTokenAsync(cancellationToken);
 
         using var request = new HttpRequestMessage(HttpMethod.Post, endpoint)
         {
@@ -87,7 +83,7 @@ public class IgdbProvider(HttpClient httpClient, IgdbAuthenticator authenticator
         };
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
-        var response = await _httpClient.SendAsync(request, cancellationToken);
+        var response = await httpClient.SendAsync(request, cancellationToken);
 
         response.EnsureSuccessStatusCode();
 

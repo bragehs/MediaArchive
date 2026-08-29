@@ -2,7 +2,7 @@ using MediaArchive.Data;
 using MediaArchive.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace MediaArchive.Services;
+namespace MediaArchive.Services.Queries;
 
 public record LibraryItem(
     int UserMediaItemId,
@@ -67,7 +67,7 @@ public class LibraryQueries(IDbContextFactory<AppDbContext> dbContextFactory)
         var m = u.MediaItem!;
         return new LibraryItem(
             u.Id, m.Title, m.Creator, m.MediaType,
-            m.LocalImagePath ?? m.ImageUrl,
+            m.DisplayImageUrl,
             m.ReleaseDate?.Year, u.Rating, u.IsFavorite, u.Status,
             m.Universe?.Name,
             m.Genres.Where(mg => mg.Genre is not null).Select(mg => mg.Genre!.Name).Order().ToList(),

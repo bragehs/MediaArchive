@@ -3,7 +3,7 @@ using MediaArchive.Data;
 using MediaArchive.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace MediaArchive.Services;
+namespace MediaArchive.Services.Queries;
 
 public record CoverCard(int UserMediaItemId, string Title, string? ImageUrl);
 
@@ -13,7 +13,6 @@ public record ResumablePass(int EntryId, DateOnly? EndDate, int? Effort);
 
 public record ItemDetail(
     int UserMediaItemId,
-    int MediaItemId,
     string Title,
     MediaType MediaType,
     string? Creator,
@@ -93,9 +92,7 @@ public class CommonQueries(IDbContextFactory<AppDbContext> dbContextFactory)
         var openPass = open is null
             ? null
             : new OpenPassSummary(open.Id, open.StartDate, open.Effort,
-                open.Effort is { } effort && media.Length is { } length
-                    ? (double)effort / length * 100
-                    : null);
+                EffortMath.ProgressPercent(open.Effort, media.Length));
 
         // Resuming is only offered while nothing is open.
         var resumable = open is not null
@@ -108,11 +105,10 @@ public class CommonQueries(IDbContextFactory<AppDbContext> dbContextFactory)
 
         return new ItemDetail(
             item.Id,
-            media.Id,
             media.Title,
             media.MediaType,
             media.Creator,
-            media.LocalImagePath ?? media.ImageUrl,
+            media.DisplayImageUrl,
             media.Description,
             media.ReleaseDate,
             media.Length,

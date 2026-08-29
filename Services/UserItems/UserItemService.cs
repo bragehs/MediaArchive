@@ -1,28 +1,26 @@
 using MediaArchive.Data;
 using MediaArchive.Models;
+using MediaArchive.Services.Import;
 using Microsoft.EntityFrameworkCore;
 
-namespace MediaArchive.Services;
+namespace MediaArchive.Services.UserItems;
 
 public class UserItemService(IDbContextFactory<AppDbContext> dbContextFactory)
 {
-    public async Task UpdateDetailsAsync(int mediaItemId, WorkDetails details,
+    public async Task UpdateDetailsAsync(int userMediaItemId, WorkDetails details,
         CancellationToken ct = default)
     {
         await using var db = await dbContextFactory.CreateDbContextAsync(ct);
 
-        var mediaItem = await db.MediaItems.FirstAsync(m => m.Id == mediaItemId, ct);
+        var userItem = await db.UserMediaItems
+            .Include(u => u.MediaItem)
+            .FirstAsync(u => u.Id == userMediaItemId, ct);
 
-        await VocabularyResolver.ApplyWorkDetailsAsync(db, mediaItem, details, true, ct);
+        await VocabularyResolver.ApplyWorkDetailsAsync(db, userItem.MediaItem!, details,
+            replace: true, ct);
 
         if (details.Discovery is { } discovery)
-        {
-            var userItem = await db.UserMediaItems
-                .FirstOrDefaultAsync(u => u.MediaItemId == mediaItemId, ct);
-
-            if (userItem is not null)
-                userItem.Discovery = discovery;
-        }
+            userItem.Discovery = discovery;
 
         await db.SaveChangesAsync(ct);
     }

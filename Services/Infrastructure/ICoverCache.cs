@@ -1,4 +1,4 @@
-namespace MediaArchive.Services;
+namespace MediaArchive.Services.Infrastructure;
 
 public interface ICoverCache
 {

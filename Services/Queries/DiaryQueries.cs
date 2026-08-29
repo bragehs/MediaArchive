@@ -3,7 +3,7 @@ using MediaArchive.Data;
 using MediaArchive.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace MediaArchive.Services;
+namespace MediaArchive.Services.Queries;
 
 public enum DiaryEventKind { Started, Resumed, Progress, Finished, Dropped }
 
@@ -200,7 +200,7 @@ public class DiaryQueries(IDbContextFactory<AppDbContext> dbContextFactory)
     private static IEnumerable<DiaryEvent> BuildEvents(ConsumptionEntry entry, bool isReread)
     {
         var media = entry.UserMediaItem!.MediaItem!;
-        var image = media.LocalImagePath ?? media.ImageUrl;
+        var image = media.DisplayImageUrl;
 
         DiaryEvent At(DiaryEventKind kind, DateOnly date, string? note,
             double? delta = null, double? effort = null) =>

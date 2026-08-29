@@ -1,8 +1,12 @@
 using System.Net.Http;
 using System.Net.Http.Headers;
 using MediaArchive.Data;
-using MediaArchive.Services;
+using MediaArchive.Services.Import;
+using MediaArchive.Services.Infrastructure;
+using MediaArchive.Services.Logging;
 using MediaArchive.Services.Providers;
+using MediaArchive.Services.Queries;
+using MediaArchive.Services.UserItems;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;

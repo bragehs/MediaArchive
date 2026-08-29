@@ -1,9 +1,10 @@
 using MediaArchive.Data;
 using MediaArchive.Models;
+using MediaArchive.Services.Import;
 using MediaArchive.Services.Providers;
 using Microsoft.EntityFrameworkCore;
 
-namespace MediaArchive.Services;
+namespace MediaArchive.Services.Logging;
 
 public class LoggingService(
     IDbContextFactory<AppDbContext> dbContextFactory,
@@ -22,17 +23,7 @@ public class LoggingService(
             throw new InvalidOperationException(
                 $"UserMediaItem {userMediaItemId} already has an open pass.");
 
-        var entry = new ConsumptionEntry
-        {
-            StartDate = start.StartDate ?? DateOnly.FromDateTime(DateTime.Today),
-            Context = start.Context
-        };
-
-        if (!string.IsNullOrWhiteSpace(start.Note))
-            entry.Notes.Add(new EntryNote { Kind = NoteKind.Start, Text = start.Note.Trim() });
-
-        userItem.Entries.Add(entry);
-        userItem.Status = MediaStatus.InProgress;
+        var entry = OpenPass(userItem, start);
 
         await db.SaveChangesAsync(ct);
 
@@ -59,13 +50,23 @@ public class LoggingService(
             throw new InvalidOperationException(
                 $"UserMediaItem {userItem.Id} already has an open pass.");
 
+        var entry = OpenPass(userItem, start, source);
+
+        await db.SaveChangesAsync(ct);
+
+        return entry.Id;
+    }
+
+    private static ConsumptionEntry OpenPass(UserMediaItem userItem, PassStart start,
+        ConsumptionEntry? resumes = null)
+    {
         var entry = new ConsumptionEntry
         {
             StartDate = start.StartDate ?? DateOnly.FromDateTime(DateTime.Today),
-            Context = start.Context ?? source.Context,
-            ResumesEntryId = source.Id,
-            StartingEffort = source.Effort,
-            Effort = source.Effort
+            Context = start.Context ?? resumes?.Context,
+            ResumesEntryId = resumes?.Id,
+            StartingEffort = resumes?.Effort,
+            Effort = resumes?.Effort
         };
 
         if (!string.IsNullOrWhiteSpace(start.Note))
@@ -74,9 +75,7 @@ public class LoggingService(
         userItem.Entries.Add(entry);
         userItem.Status = MediaStatus.InProgress;
 
-        await db.SaveChangesAsync(ct);
-
-        return entry.Id;
+        return entry;
     }
 
     public async Task AddNoteAsync(int entryId, NoteInput note, CancellationToken ct = default)

@@ -1,10 +1,11 @@
 using MediaArchive.Data;
 using MediaArchive.Models;
+using MediaArchive.Services.Infrastructure;
 using MediaArchive.Services.Providers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
-namespace MediaArchive.Services;
+namespace MediaArchive.Services.Import;
 
 public record Vocabulary(
     List<string> Genres,

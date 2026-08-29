@@ -15,8 +15,6 @@ public class TmdbProvider(HttpClient httpClient) : IMediaProvider
         PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
     };
 
-    private readonly HttpClient _httpClient = httpClient;
-
     public bool CanHandle(MediaType mediaType)
     {
         return mediaType is MediaType.Movie or MediaType.Show;
@@ -40,17 +38,17 @@ public class TmdbProvider(HttpClient httpClient) : IMediaProvider
     {
         return mediaType switch
         {
-            MediaType.Movie => GetByIdMoviesAsync(id, cancellationToken),
-            MediaType.Show => GetByIdShowsAsync(id, cancellationToken),
+            MediaType.Movie => GetMovieAsync(id, cancellationToken),
+            MediaType.Show => GetShowAsync(id, cancellationToken),
             _ => throw new ArgumentOutOfRangeException(nameof(mediaType), mediaType, null)
         };
     }
 
-    public async Task<MediaItemDto?> GetByIdMoviesAsync(string id, CancellationToken cancellationToken = default)
+    private async Task<MediaItemDto?> GetMovieAsync(string id, CancellationToken cancellationToken)
     {
         var url = $"movie/{id}?append_to_response=credits,keywords";
 
-        var response = await _httpClient.GetAsync(url, cancellationToken);
+        var response = await httpClient.GetAsync(url, cancellationToken);
 
         if (response.StatusCode == HttpStatusCode.NotFound)
             return null;
@@ -63,14 +61,14 @@ public class TmdbProvider(HttpClient httpClient) : IMediaProvider
         return volume is null ? null : MapToItem(volume);
     }
 
-    public async Task<IReadOnlyList<MediaSearchResultDto>> SearchMoviesAsync(string query,
-        CancellationToken cancellationToken = default)
+    private async Task<IReadOnlyList<MediaSearchResultDto>> SearchMoviesAsync(string query,
+        CancellationToken cancellationToken)
     {
         var encodedQuery = Uri.EscapeDataString(query);
         var url = $"search/movie?query={encodedQuery}&include_adult=false";
 
         var response =
-            await _httpClient.GetFromJsonAsync<TmdbResponse<TmdbMovieResult>>(url, JsonOptions, cancellationToken);
+            await httpClient.GetFromJsonAsync<TmdbResponse<TmdbMovieResult>>(url, JsonOptions, cancellationToken);
 
         if (response?.Results is null)
             return [];
@@ -123,14 +121,14 @@ public class TmdbProvider(HttpClient httpClient) : IMediaProvider
         );
     }
 
-    public async Task<IReadOnlyList<MediaSearchResultDto>> SearchShowsAsync(string query,
-        CancellationToken cancellationToken = default)
+    private async Task<IReadOnlyList<MediaSearchResultDto>> SearchShowsAsync(string query,
+        CancellationToken cancellationToken)
     {
         var encodedQuery = Uri.EscapeDataString(query);
         var url = $"search/tv?query={encodedQuery}&include_adult=false";
 
         var response =
-            await _httpClient.GetFromJsonAsync<TmdbResponse<TmdbTvResult>>(url, JsonOptions, cancellationToken);
+            await httpClient.GetFromJsonAsync<TmdbResponse<TmdbTvResult>>(url, JsonOptions, cancellationToken);
 
         if (response?.Results is null)
             return [];
@@ -152,11 +150,11 @@ public class TmdbProvider(HttpClient httpClient) : IMediaProvider
         );
     }
 
-    public async Task<MediaItemDto?> GetByIdShowsAsync(string id, CancellationToken cancellationToken = default)
+    private async Task<MediaItemDto?> GetShowAsync(string id, CancellationToken cancellationToken)
     {
         var url = $"tv/{id}?append_to_response=credits,keywords";
 
-        var response = await _httpClient.GetAsync(url, cancellationToken);
+        var response = await httpClient.GetAsync(url, cancellationToken);
 
         if (response.StatusCode == HttpStatusCode.NotFound)
             return null;
@@ -172,7 +170,7 @@ public class TmdbProvider(HttpClient httpClient) : IMediaProvider
     public async Task<IReadOnlyList<SeasonDto>> GetSeasonsAsync(string showExternalId,
         CancellationToken cancellationToken = default)
     {
-        var response = await _httpClient.GetAsync($"tv/{showExternalId}", cancellationToken);
+        var response = await httpClient.GetAsync($"tv/{showExternalId}", cancellationToken);
 
         if (response.StatusCode == HttpStatusCode.NotFound)
             return [];

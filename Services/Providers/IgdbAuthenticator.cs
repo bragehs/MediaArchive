@@ -7,9 +7,6 @@ public sealed class IgdbAuthenticator(IHttpClientFactory httpClientFactory, IOpt
 {
     private const string TokenUrl = "https://id.twitch.tv/oauth2/token";
 
-    private readonly IHttpClientFactory _httpClientFactory = httpClientFactory;
-    private readonly IgdbOptions _options = options.Value;
-
     private readonly SemaphoreSlim _gate = new(1, 1);
 
     private string? _token;
@@ -26,11 +23,11 @@ public sealed class IgdbAuthenticator(IHttpClientFactory httpClientFactory, IOpt
             if (IsValid())
                 return _token!;
 
-            var url = $"{TokenUrl}?client_id={_options.ClientId}"
-                    + $"&client_secret={_options.ClientSecret}"
+            var url = $"{TokenUrl}?client_id={options.Value.ClientId}"
+                    + $"&client_secret={options.Value.ClientSecret}"
                     + "&grant_type=client_credentials";
 
-            using var client = _httpClientFactory.CreateClient();
+            using var client = httpClientFactory.CreateClient();
             var response = await client.PostAsync(url, null, cancellationToken);
             response.EnsureSuccessStatusCode();
 

@@ -26,8 +26,6 @@ public partial class OpenLibraryProvider(HttpClient httpClient) : IMediaProvider
         PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
     };
 
-    private readonly HttpClient _httpClient = httpClient;
-
     public bool CanHandle(MediaType mediaType)
     {
         return mediaType == MediaType.Book;
@@ -60,7 +58,7 @@ public partial class OpenLibraryProvider(HttpClient httpClient) : IMediaProvider
         var encodedQuery = Uri.EscapeDataString(query);
         var url = $"{BaseUrl}/search.json?q={encodedQuery}&fields={SearchFields}&limit={SearchLimit}";
 
-        var response = await _httpClient
+        var response = await httpClient
             .GetFromJsonAsync<OpenLibrarySearchResponse>(url, JsonOptions, cancellationToken);
 
         if (response?.Docs is null)
@@ -76,7 +74,7 @@ public partial class OpenLibraryProvider(HttpClient httpClient) : IMediaProvider
         var encodedQuery = Uri.EscapeDataString($"key:/works/{workId}");
         var url = $"{BaseUrl}/search.json?q={encodedQuery}&fields={SearchFields}&limit=1";
 
-        var response = await _httpClient
+        var response = await httpClient
             .GetFromJsonAsync<OpenLibrarySearchResponse>(url, JsonOptions, cancellationToken);
 
         return response?.Docs?.FirstOrDefault();
@@ -86,7 +84,7 @@ public partial class OpenLibraryProvider(HttpClient httpClient) : IMediaProvider
     {
         var url = $"{BaseUrl}/works/{Uri.EscapeDataString(workId)}.json";
 
-        var response = await _httpClient.GetAsync(url, cancellationToken);
+        var response = await httpClient.GetAsync(url, cancellationToken);
 
         if (response.StatusCode == HttpStatusCode.NotFound)
             return null;

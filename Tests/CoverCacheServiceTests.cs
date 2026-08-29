@@ -1,6 +1,6 @@
 using System.Net;
 using System.Net.Http.Headers;
-using MediaArchive.Services;
+using MediaArchive.Services.Infrastructure;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace MediaArchive.Tests;

@@ -1,7 +1,7 @@
 using MediaArchive.Models;
 using MediaArchive.Services.Providers;
 
-namespace MediaArchive.Services;
+namespace MediaArchive.Services.Import;
 
 public static class MediaItemMapper
 {

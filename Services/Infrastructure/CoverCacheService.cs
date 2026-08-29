@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Logging;
 
-namespace MediaArchive.Services;
+namespace MediaArchive.Services.Infrastructure;
 
 public class CoverCacheService(
     HttpClient httpClient,
@@ -8,8 +8,6 @@ public class CoverCacheService(
     ILogger<CoverCacheService> logger) : ICoverCache
 {
     public const string UrlBase = "covers://c";
-
-    private readonly string _storageRoot = storageRoot;
 
     public async Task<string?> TryCacheAsync(string? imageUrl, string? externalSource,
         string? externalId, CancellationToken ct = default)
@@ -29,9 +27,9 @@ public class CoverCacheService(
             var fileName = FileName(externalSource, externalId,
                 response.Content.Headers.ContentType?.MediaType);
 
-            Directory.CreateDirectory(_storageRoot);
+            Directory.CreateDirectory(storageRoot);
 
-            var destination = Path.Combine(_storageRoot, fileName);
+            var destination = Path.Combine(storageRoot, fileName);
             var temp = destination + ".tmp";
 
             await using (var file = File.Create(temp))

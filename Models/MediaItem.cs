@@ -12,6 +12,10 @@ public abstract class MediaItem
 
     public string? LocalImagePath { get; set; }
 
+    // In-memory only — not translatable inside an EF projection.
+    [NotMapped]
+    public string? DisplayImageUrl => LocalImagePath ?? ImageUrl;
+
     // Partial provider dates are stored as Jan 1.
     public DateOnly? ReleaseDate { get; set; }
 

@@ -1,5 +1,5 @@
 using MediaArchive.Models;
-using MediaArchive.Services;
+using MediaArchive.Services.Queries;
 
 namespace MediaArchive;
 

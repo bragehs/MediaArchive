@@ -4,7 +4,7 @@ using MediaArchive.Models;
 using MediaArchive.Services.Providers;
 using Microsoft.EntityFrameworkCore;
 
-namespace MediaArchive.Services;
+namespace MediaArchive.Services.Import;
 
 public static class VocabularyResolver
 {

@@ -1,6 +1,6 @@
 using MediaArchive.Models;
 
-namespace MediaArchive.Services;
+namespace MediaArchive.Services.Queries;
 
 // Effort is stored cumulatively per note — a delta only exists relative to
 // the running total before it.
@@ -23,6 +23,9 @@ public static class EffortMath
 
     public static double UnitsLogged(ConsumptionEntry entry, DateTime from, DateTime toExclusive) =>
         Walk(entry).Where(s => s.When >= from && s.When < toExclusive).Sum(s => s.Delta);
+
+    public static double? ProgressPercent(int? effort, int? length) =>
+        effort is { } e && length is > 0 ? (double)e / length.Value * 100 : null;
 
     // Start/finish notes are filed under the pass's own date, so backfilled
     // entries land on the right day.

@@ -2,7 +2,7 @@ using MediaArchive.Data;
 using MediaArchive.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace MediaArchive.Services;
+namespace MediaArchive.Services.Queries;
 
 // A pass clipped to one calendar year, positioned in days.
 public record YearPass(

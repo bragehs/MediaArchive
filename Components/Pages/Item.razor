@@ -1,5 +1,4 @@
 @page "/item/{UserMediaItemId:int}"
-@using MediaArchive.Services
 @inject CommonQueries Common
 @inject MediaImportService ImportService
 @inject LoggingService Logging
@@ -301,7 +300,7 @@ else
                     : new TagInput(name, null, null))
                 .ToList();
 
-            await UserItems.UpdateDetailsAsync(_item.MediaItemId, new WorkDetails(
+            await UserItems.UpdateDetailsAsync(_item.UserMediaItemId, new WorkDetails(
                 _genres, tags,
                 _universe.FirstOrDefault(), _series.FirstOrDefault(),
                 _series.Count > 0 ? _seriesPosition : null,

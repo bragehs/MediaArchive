@@ -2,7 +2,7 @@ using MediaArchive.Data;
 using MediaArchive.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace MediaArchive.Services;
+namespace MediaArchive.Services.Queries;
 
 public record OpenNowItem(
     int UserMediaItemId,
@@ -51,9 +51,7 @@ public class HomeQueries(
             {
                 var media = u.MediaItem!;
                 var entry = u.Entries.SingleOrDefault();
-                double? progress = entry?.Effort is { } effort && media.Length is { } length
-                    ? (double)effort / length * 100
-                    : null;
+                var progress = EffortMath.ProgressPercent(entry?.Effort, media.Length);
                 var startDate = entry?.StartDate ?? today;
                 var daysOpen = today.DayNumber - startDate.DayNumber;
 
@@ -67,7 +65,7 @@ public class HomeQueries(
 
                 return new OpenNowItem(
                     u.Id, media.Title, media.MediaType, media.Creator ?? "",
-                    media.LocalImagePath ?? media.ImageUrl, progress, daysOpen, daysSinceTouched,
+                    media.DisplayImageUrl, progress, daysOpen, daysSinceTouched,
                     entry?.Id ?? 0,
                     isAudiobook, book?.AudioHours, book?.PageCount
                 );
@@ -102,7 +100,7 @@ public class HomeQueries(
     {
         await using var db = await dbContextFactory.CreateDbContextAsync(ct);
 
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var today = DateOnly.FromDateTime(DateTime.Today);
         var weekStart = today.AddDays(-(((int)today.DayOfWeek + 6) % 7));
         var weekEnd = weekStart.AddDays(6);
         var from = weekStart.ToDateTime(TimeOnly.MinValue);
