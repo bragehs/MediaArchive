@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace MediaArchive.Services;
 
-public enum DiaryEventKind { Started, Progress, Finished, Dropped }
+public enum DiaryEventKind { Started, Resumed, Progress, Finished, Dropped }
 
 // One entry per item touched in the month, carrying the loudest thing that
 // happened to it — covers are the primary object, so the state rides on the
@@ -184,14 +184,26 @@ public class DiaryQueries(IDbContextFactory<AppDbContext> dbContextFactory)
         var itemIds = entries.Select(e => e.UserMediaItemId).Distinct().ToList();
         var allPasses = await db.ConsumptionEntries
             .Where(e => itemIds.Contains(e.UserMediaItemId))
-            .Select(e => new { e.Id, e.UserMediaItemId, e.StartDate })
+            .Select(e => new { e.Id, e.UserMediaItemId, e.StartDate, e.ResumesEntryId })
             .AsNoTracking()
             .ToListAsync(ct);
 
+        // A reading is a chain of passes linked by ResumesEntryId, so the
+        // ordinal counts chains, not entries — picking a dropped book back up is
+        // a continuation, not a reread.
         var rereads = allPasses
             .GroupBy(p => p.UserMediaItemId)
-            .SelectMany(g => g.OrderBy(p => p.StartDate).Skip(1))
-            .Select(p => p.Id)
+            .SelectMany(g =>
+            {
+                var chain = -1;
+                return g.OrderBy(p => p.StartDate).Select(p =>
+                {
+                    if (p.ResumesEntryId is null) chain++;
+                    return (p.Id, IsReread: chain > 0);
+                });
+            })
+            .Where(x => x.IsReread)
+            .Select(x => x.Id)
             .ToHashSet();
 
         return entries
@@ -215,7 +227,9 @@ public class DiaryQueries(IDbContextFactory<AppDbContext> dbContextFactory)
         // only required on finish, so a note-driven feed would silently lose
         // most "started" events.
         if (entry.StartDate is { } start)
-            yield return At(DiaryEventKind.Started, start, TextOf(entry, NoteKind.Start));
+            yield return At(
+                entry.ResumesEntryId is null ? DiaryEventKind.Started : DiaryEventKind.Resumed,
+                start, TextOf(entry, NoteKind.Start));
 
         foreach (var step in EffortMath.Walk(entry))
         {
@@ -242,7 +256,8 @@ public class DiaryQueries(IDbContextFactory<AppDbContext> dbContextFactory)
         DiaryEventKind.Finished => 0,
         DiaryEventKind.Dropped => 1,
         DiaryEventKind.Started => 2,
-        _ => 3
+        DiaryEventKind.Resumed => 3,
+        _ => 4
     };
 
     private static string MonthName(int month) =>

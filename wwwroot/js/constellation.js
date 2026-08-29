@@ -5,6 +5,9 @@
 window.constellation = (function () {
   const PAL = { Book: ['#a9812f', '#7a5320'], Game: ['#4a6d63', '#2b4746'], Movie: ['#3b4a6b', '#26304a'], Show: ['#8c3f33', '#5e2620'] };
   const TL = { Book: 'Book', Game: 'Game', Movie: 'Film', Show: 'Show' };
+  // Search reaches the whole archive, but the map only draws what you finished —
+  // so a hit that isn't on it says so rather than looking like a dead end.
+  const OFFMAP = { InProgress: '▐▐ In progress', Interested: '○ Interested', Dropped: '✕ Dropped' };
   const HUES = [[200, 84, 150], [92, 196, 224], [214, 167, 74], [139, 190, 90], [236, 140, 88],
     [232, 140, 180], [150, 180, 210], [120, 200, 140], [176, 150, 110], [220, 96, 96], [236, 206, 92],
     [169, 198, 142], [180, 140, 220], [110, 200, 200], [210, 120, 140], [160, 200, 110]];
@@ -415,8 +418,10 @@ window.constellation = (function () {
     const cover = it.img
       ? `<span class="crcov" style="background-image:url('${it.img}')"></span>`
       : `<span class="crcov" style="background:linear-gradient(150deg,${p[0]},${p[1]})"></span>`;
-    return `<div class="crow crowitem" data-i="${it.id}">${cover}
-      <span class="crbody"><span class="crttl">${it.t}</span><span class="crsub">${it.c || ''}</span></span>
+    const off = OFFMAP[it.st];
+    const sub = [it.c, off].filter(Boolean).join(' · ');
+    return `<div class="crow crowitem${off ? ' croff' : ''}" data-i="${it.id}">${cover}
+      <span class="crbody"><span class="crttl">${it.t}</span><span class="crsub">${sub}</span></span>
       <span class="crmeta">${TL[it.ty] || it.ty}</span></div>`;
   }
   function runSearch() {

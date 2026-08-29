@@ -9,6 +9,9 @@ public record CoverCard(int UserMediaItemId, string Title, string? ImageUrl);
 
 public record OpenPassSummary(int EntryId, DateOnly? StartDate, int? Effort, double? Progress);
 
+// The most recent dropped pass, offered as a resume point when nothing is open.
+public record ResumablePass(int EntryId, DateOnly? EndDate, int? Effort);
+
 public record ItemDetail(
     int UserMediaItemId,
     int MediaItemId,
@@ -32,6 +35,7 @@ public record ItemDetail(
     DiscoverySource? Discovery,
     DateOnly AddedDate,
     OpenPassSummary? OpenPass,
+    ResumablePass? Resumable,
     int PassCount);
 
 public record PassNote(DateTime CreatedAt, NoteKind Kind, int? EffortAtTime, string? Text);
@@ -95,6 +99,16 @@ public class CommonQueries(IDbContextFactory<AppDbContext> dbContextFactory)
                     ? (double)effort / length * 100
                     : null);
 
+        // Only when nothing is open: picking up a dropped pass and running a
+        // second one at the same time are different things.
+        var resumable = open is not null
+            ? null
+            : item.Entries
+                .Where(e => e.Outcome == PassOutcome.Dropped)
+                .OrderByDescending(e => e.EndDate)
+                .Select(e => new ResumablePass(e.Id, e.EndDate, e.Effort))
+                .FirstOrDefault();
+
         return new ItemDetail(
             item.Id,
             media.Id,
@@ -124,6 +138,7 @@ public class CommonQueries(IDbContextFactory<AppDbContext> dbContextFactory)
             item.Discovery,
             item.AddedDate,
             openPass,
+            resumable,
             item.Entries.Count);
     }
 

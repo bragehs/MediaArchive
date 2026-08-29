@@ -11,7 +11,9 @@ public static class EffortMath
 
     public static IEnumerable<NoteStep> Walk(ConsumptionEntry entry)
     {
-        double previous = 0;
+        // A resumed pass starts where the one it continues left off, so its first
+        // note is a small delta rather than the whole running total.
+        double previous = entry.StartingEffort ?? 0;
         foreach (var note in entry.Notes.OrderBy(n => n.CreatedAt))
         {
             var cumulative = (double)(note.EffortAtTime ?? previous);

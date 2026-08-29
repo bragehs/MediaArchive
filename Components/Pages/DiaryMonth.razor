@@ -101,6 +101,7 @@ else
     private static string KindLabel(DiaryEventKind k) => k switch
     {
         DiaryEventKind.Started => "Started",
+        DiaryEventKind.Resumed => "Resumed",
         DiaryEventKind.Finished => "Finished",
         DiaryEventKind.Dropped => "Dropped",
         _ => "Logged"
@@ -109,6 +110,7 @@ else
     private static string KindClass(DiaryEventKind k) => k switch
     {
         DiaryEventKind.Started => "k-start",
+        DiaryEventKind.Resumed => "k-start",
         DiaryEventKind.Finished => "k-fin",
         DiaryEventKind.Dropped => "k-drop",
         _ => ""

@@ -113,3 +113,8 @@
 .ctag { padding: 6px 12px; border-radius: 16px; font-family: var(--f-display); font-size: 12px; letter-spacing: .03em; border: 1px solid var(--line); color: var(--muted); cursor: pointer; }
 .ctag:active { background: var(--panel); }
 .ctag i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 7px; vertical-align: 1px; }
+
+/* A search hit that isn't drawn on the map — dimmed cover, its state spelled out
+   in the subtitle so the absence reads as deliberate. */
+.croff .crcov { opacity: .55; }
+.croff .crsub { color: var(--ac2); }

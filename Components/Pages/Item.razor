@@ -133,9 +133,19 @@ else
     }
     else
     {
-        <button class="ibtn" @onclick="() => _startingPass = true">
-            @(item.PassCount == 0 ? "Start a pass" : "Start a new pass")
-        </button>
+        <div class="ipassbtns">
+            <button class="ibtn" @onclick="() => _startingPass = true">
+                @(item.PassCount == 0 ? "Start a pass" : "Start a new pass")
+            </button>
+            @if (item.Resumable is { } resumable)
+            {
+                <button class="ibtn ighost" @onclick="() => ResumePass(resumable)" disabled="@_saving">
+                    Pick up where you left off@(resumable.Effort is { } e
+                        ? $" · {e}{(item.Length is { } len ? $"/{len}" : "")} {UiHelpers.LengthUnit(item.MediaType)}"
+                        : "")
+                </button>
+            }
+        </div>
     }
 
     @if (!string.IsNullOrWhiteSpace(item.Description))
@@ -350,6 +360,31 @@ else
         var next = !_item.IsFavorite;
         await UserItems.SetFavoriteAsync(_item.UserMediaItemId, next);
         _item = _item with { IsFavorite = next };
+    }
+
+    // A new interval that begins at the dropped pass's effort — the dropped pass
+    // keeps its verdict, so the dormant stretch stays a visible gap.
+    private async Task ResumePass(ResumablePass resumable)
+    {
+        if (_item is null) return;
+
+        _saving = true;
+        _error = null;
+
+        try
+        {
+            await Logging.ResumePassAsync(resumable.EntryId,
+                new PassStart(DateOnly.FromDateTime(DateTime.Today), null, null));
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _saving = false;
+        }
     }
 
     private async Task StartPass()

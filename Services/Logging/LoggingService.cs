@@ -39,6 +39,47 @@ public class LoggingService(
         return entry.Id;
     }
 
+    // Picks up a dropped pass as a new interval that starts at the old one's
+    // effort. The dropped pass keeps its verdict — the dormant months stay a
+    // visible gap between two intervals rather than being swallowed by one.
+    public async Task<int> ResumePassAsync(int entryId, PassStart start,
+        CancellationToken ct = default)
+    {
+        await using var db = await dbContextFactory.CreateDbContextAsync(ct);
+
+        var source = await db.ConsumptionEntries
+            .Include(e => e.UserMediaItem!).ThenInclude(u => u.Entries)
+            .FirstAsync(e => e.Id == entryId, ct);
+
+        if (source.EndDate is null)
+            throw new InvalidOperationException($"Pass {entryId} is still open.");
+
+        var userItem = source.UserMediaItem!;
+
+        if (userItem.Entries.Any(e => e.EndDate is null))
+            throw new InvalidOperationException(
+                $"UserMediaItem {userItem.Id} already has an open pass.");
+
+        var entry = new ConsumptionEntry
+        {
+            StartDate = start.StartDate ?? DateOnly.FromDateTime(DateTime.Today),
+            Context = start.Context ?? source.Context,
+            ResumesEntryId = source.Id,
+            StartingEffort = source.Effort,
+            Effort = source.Effort
+        };
+
+        if (!string.IsNullOrWhiteSpace(start.Note))
+            entry.Notes.Add(new EntryNote { Kind = NoteKind.Start, Text = start.Note.Trim() });
+
+        userItem.Entries.Add(entry);
+        userItem.Status = MediaStatus.InProgress;
+
+        await db.SaveChangesAsync(ct);
+
+        return entry.Id;
+    }
+
     public async Task AddNoteAsync(int entryId, NoteInput note, CancellationToken ct = default)
     {
         await using var db = await dbContextFactory.CreateDbContextAsync(ct);

@@ -225,3 +225,5 @@
     color: var(--dim);
     margin-bottom: 2px;
 }
+
+.ipassbtns { display: flex; flex-direction: column; gap: 8px; }
