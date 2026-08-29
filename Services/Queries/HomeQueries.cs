@@ -127,14 +127,14 @@ public class HomeQueries(
         {
             var touchedThisWeek = entry.Notes.Any(n =>
             {
-                var when = ActivityDate(entry, n);
+                var when = EffortMath.ActivityDate(entry, n);
                 return when >= from && when < toExclusive;
             });
             if (!touchedThisWeek)
                 continue;
 
             var media = entry.UserMediaItem!.MediaItem!;
-            var units = UnitsLoggedInWeek(entry, from, toExclusive);
+            var units = EffortMath.UnitsLogged(entry, from, toExclusive);
             var minutes = media.MinutesPerUnit is { } perUnit ? units * perUnit : 0;
 
             switch (media.MediaType)
@@ -164,25 +164,4 @@ public class HomeQueries(
         return new WeeklyActivity(weekStart, weekEnd, buckets);
     }
 
-    private static double UnitsLoggedInWeek(ConsumptionEntry entry, DateTime from, DateTime toExclusive)
-    {
-        double previous = 0, units = 0;
-        foreach (var note in entry.Notes.OrderBy(n => n.CreatedAt))
-        {
-            double cumulative = note.EffortAtTime ?? previous;
-            var increment = Math.Max(0, cumulative - previous);
-            var when = ActivityDate(entry, note);
-            if (when >= from && when < toExclusive)
-                units += increment;
-            previous = cumulative;
-        }
-        return units;
-    }
-
-    private static DateTime ActivityDate(ConsumptionEntry entry, EntryNote note) => note.Kind switch
-    {
-        NoteKind.Finish => (entry.EndDate ?? DateOnly.FromDateTime(note.CreatedAt)).ToDateTime(TimeOnly.MinValue),
-        NoteKind.Start => (entry.StartDate ?? DateOnly.FromDateTime(note.CreatedAt)).ToDateTime(TimeOnly.MinValue),
-        _ => note.CreatedAt
-    };
 }

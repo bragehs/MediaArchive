@@ -1,0 +1,127 @@
+@page "/diary"
+@using MediaArchive.Services
+@inject DiaryQueries Feed
+@inject NavigationManager Nav
+
+<PageTitle>Diary · MediaArchive</PageTitle>
+
+@if (_years is null)
+{
+    <p class="dempty">Loading…</p>
+}
+else if (_years.Count == 0)
+{
+    <p class="dempty">Nothing logged yet — the diary fills in as you start things.</p>
+}
+else
+{
+    @if (_years.Count > 1)
+    {
+        <div class="dyears">
+            @foreach (var year in _years)
+            {
+                <button class="dyr @(year == _year ? "on" : "")" @onclick="() => ShowYearAsync(year)">@year</button>
+            }
+        </div>
+    }
+
+    @if (_data is null)
+    {
+        <p class="dempty">Loading…</p>
+    }
+    else if (_data.Months.Count == 0)
+    {
+        <p class="dempty">Nothing logged in @_year.</p>
+    }
+    else
+    {
+        @foreach (var month in _data.Months)
+        {
+            <div class="dmonth" @onclick="() => Open(month.Month)">
+                <div class="dmhead">
+                    <span class="dmn">@month.Name</span>
+                    <span class="dmc">
+                        <b>@month.FinishedCount</b> finished · <b>@month.LogCount</b>
+                        @(month.LogCount == 1 ? "log" : "logs")
+                    </span>
+                </div>
+
+                @* Relative to the busiest month of the year, so months compare
+                   against each other rather than against an absolute scale. *@
+                <div class="dbar"><i style="width:@(Share(month.LogCount))"></i></div>
+
+                <div class="drail">
+                    @foreach (var touch in month.Touched)
+                    {
+                        <span class="dcov" style="--t:@(UiHelpers.TypeColorVar(touch.MediaType))">
+                            @if (!string.IsNullOrWhiteSpace(touch.ImageUrl))
+                            {
+                                <img src="@touch.ImageUrl" alt="Cover of @touch.Title"/>
+                            }
+                            else
+                            {
+                                <span class="dfb">@touch.Title</span>
+                            }
+                            <span class="dgl @KindClass(touch.Kind)" title="@KindLabel(touch.Kind)">@Glyph(touch.Kind)</span>
+                        </span>
+                    }
+                </div>
+            </div>
+        }
+    }
+}
+
+@code {
+    private List<int>? _years;
+    private int _year;
+    private DiaryYear? _data;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _years = await Feed.GetYearsAsync();
+        if (_years.Count > 0)
+            await ShowYearAsync(_years[0]);
+    }
+
+    private async Task ShowYearAsync(int year)
+    {
+        _year = year;
+        _data = null;
+        _data = await Feed.GetYearAsync(year);
+    }
+
+    private void Open(int month) => Nav.NavigateTo($"/diary/{_year}/{month}");
+
+    private string Share(int logs)
+    {
+        var busiest = _data?.Months.Max(m => m.LogCount) ?? 0;
+        var value = busiest == 0 ? 0 : (double)logs / busiest * 100;
+        return value.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture) + "%";
+    }
+
+    // The archive's shared glyph set, riding on the cover rather than sitting in
+    // a column of its own.
+    private static string Glyph(DiaryEventKind kind) => kind switch
+    {
+        DiaryEventKind.Finished => "✓",
+        DiaryEventKind.Dropped => "✕",
+        DiaryEventKind.Started => "○",
+        _ => "▐▐"
+    };
+
+    private static string KindLabel(DiaryEventKind kind) => kind switch
+    {
+        DiaryEventKind.Finished => "Finished",
+        DiaryEventKind.Dropped => "Dropped",
+        DiaryEventKind.Started => "Started",
+        _ => "Logged"
+    };
+
+    private static string KindClass(DiaryEventKind kind) => kind switch
+    {
+        DiaryEventKind.Finished => "g-fin",
+        DiaryEventKind.Dropped => "g-drop",
+        DiaryEventKind.Started => "g-start",
+        _ => "g-log"
+    };
+}

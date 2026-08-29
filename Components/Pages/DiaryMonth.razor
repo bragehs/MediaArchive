@@ -1,0 +1,129 @@
+@page "/diary/{Year:int}/{Month:int}"
+@using MediaArchive.Services
+@inject DiaryQueries Diary
+@inject NavigationManager Nav
+
+<PageTitle>@(_data?.Name ?? "Diary") · MediaArchive</PageTitle>
+
+<div class="dcrumb" @onclick="Back">‹ Diary / <b>@(_data?.Name ?? "")</b></div>
+
+@if (_data is null)
+{
+    <p class="dempty">Loading…</p>
+}
+else if (_data.Days.Count == 0)
+{
+    <p class="dempty">Nothing logged in @_data.Name @Year.</p>
+}
+else
+{
+    <div class="dmhead dmhead-lg">
+        <span class="dmn">@_data.Name</span>
+        <span class="dmc"><b>@_data.LogCount</b> logs · <b>@_data.FinishedCount</b> finished</span>
+    </div>
+
+    @foreach (var day in _data.Days)
+    {
+        <div class="dday">@day.Date.ToString("ddd d")</div>
+
+        @foreach (var e in day.Events)
+        {
+            @if (e.IsMilestone)
+            {
+                <div class="dms" @onclick="() => OpenItem(e.UserMediaItemId)">
+                    <span class="dmscov" style="--t:@(UiHelpers.TypeColorVar(e.MediaType))">
+                        @if (!string.IsNullOrWhiteSpace(e.ImageUrl))
+                        {
+                            <img src="@e.ImageUrl" alt="Cover of @e.Title"/>
+                        }
+                        else
+                        {
+                            <span class="dfb">@e.Title</span>
+                        }
+                    </span>
+                    <div class="dmsbody">
+                        <div class="dmst">
+                            @e.Title
+                            @if (e.Rating is { } r)
+                            {
+                                <span class="dmsr">★ @(r / 2.0)</span>
+                            }
+                        </div>
+                        <div class="dmsk @KindClass(e.Kind)">
+                            @KindLabel(e.Kind)@(e.IsReread ? " · ↻ reread" : "")@(e.Context is { } c ? $" · {UiHelpers.ContextLabel(c).ToLowerInvariant()}" : "")
+                        </div>
+                        @if (!string.IsNullOrWhiteSpace(e.Note))
+                        {
+                            <div class="dmsn">@e.Note</div>
+                        }
+                    </div>
+                </div>
+            }
+            else
+            {
+                @* A tick that said something keeps its words — only silent ones collapse. *@
+                <div class="dtick dtick-said" @onclick="() => OpenItem(e.UserMediaItemId)">
+                    <div class="dtline">
+                        <span class="dtc" style="--t:@(UiHelpers.TypeColorVar(e.MediaType))"></span>
+                        <span class="dtn">@e.Title</span>
+                        <span class="dtd">@Progress(e)</span>
+                    </div>
+                    <div class="dtnote">@e.Note</div>
+                </div>
+            }
+        }
+
+        @foreach (var run in day.Runs)
+        {
+            <div class="dtick" @onclick="() => OpenItem(run.UserMediaItemId)">
+                <div class="dtline">
+                    <span class="dtc" style="--t:@(UiHelpers.TypeColorVar(run.MediaType))"></span>
+                    <span class="dtn">@run.Title@(run.Count > 1 ? $" — logged {run.Count}×" : "")</span>
+                    <span class="dtd">+@Trim(run.EffortDelta) @UiHelpers.LengthUnit(run.MediaType)</span>
+                </div>
+            </div>
+        }
+    }
+}
+
+@code {
+    [Parameter] public int Year { get; set; }
+    [Parameter] public int Month { get; set; }
+
+    private DiaryMonthDetail? _data;
+
+    protected override async Task OnParametersSetAsync() =>
+        _data = await Diary.GetMonthAsync(Year, Month);
+
+    private void Back() => Nav.NavigateTo("/diary");
+    private void OpenItem(int id) => Nav.NavigateTo($"/item/{id}");
+
+    private static string KindLabel(DiaryEventKind k) => k switch
+    {
+        DiaryEventKind.Started => "Started",
+        DiaryEventKind.Finished => "Finished",
+        DiaryEventKind.Dropped => "Dropped",
+        _ => "Logged"
+    };
+
+    private static string KindClass(DiaryEventKind k) => k switch
+    {
+        DiaryEventKind.Started => "k-start",
+        DiaryEventKind.Finished => "k-fin",
+        DiaryEventKind.Dropped => "k-drop",
+        _ => ""
+    };
+
+    private string Progress(DiaryEvent e)
+    {
+        var unit = UiHelpers.LengthUnit(e.MediaType);
+        var delta = e.EffortDelta is { } d && d > 0 ? $"+{Trim(d)} {unit}" : "";
+        var at = e.EffortAtTime is { } a
+            ? $"→ {Trim(a)}{(e.Length is { } len ? $"/{len}" : "")}"
+            : "";
+        return string.Join(" ", new[] { delta, at }.Where(s => s.Length > 0));
+    }
+
+    private static string Trim(double value) =>
+        value.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture);
+}
