@@ -9,9 +9,19 @@ window.constellation = (function () {
     [232, 140, 180], [150, 180, 210], [120, 200, 140], [176, 150, 110], [220, 96, 96], [236, 206, 92],
     [169, 198, 142], [180, 140, 220], [110, 200, 200], [210, 120, 140], [160, 200, 110]];
 
+  // Covers resolve in as you zoom: below FADE_LO an item is the coloured dot it
+  // always was, above FADE_HI it's its poster, and the band between cross-fades.
+  // Sizes are world units, so they scale with the camera like everything else.
+  const COVER_W = 22, COVER_H = 33, FADE_LO = 0.9, FADE_HI = 1.6;
+
   const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
   const rgb = a => `rgb(${a[0] | 0},${a[1] | 0},${a[2] | 0})`;
   const rgba = (a, o) => `rgba(${a[0] | 0},${a[1] | 0},${a[2] | 0},${o})`;
+
+  // One entry per distinct image, keyed on url — an item filed under three
+  // genres draws three nodes from a single texture. Populated lazily: nothing
+  // decodes until a node is both on screen and zoomed in far enough to show it.
+  const covers = new Map();
 
   let items = [], dotNet = null;
   let nodes = [], links = [], adj = new Map();
@@ -66,6 +76,9 @@ window.constellation = (function () {
         const rad = gn.r + 40;
         const n = mk('i:' + idx + '@' + g, {
           kind: 'item', name: it.t, item: it, idx, genre: g, col: hueOf[g], r,
+          // The dot stays small; separation uses the cover's half-diagonal so
+          // posters have room to resolve without colliding.
+          sepR: Math.hypot(COVER_W, COVER_H) / 2,
           x: gn.x + Math.cos(ang) * rad, y: gn.y + Math.sin(ang) * rad
         });
         link(n, gn, 'orbit');
@@ -91,6 +104,55 @@ window.constellation = (function () {
     return set;
   }
 
+  // Lazy: called only for nodes that passed the viewport cull with the cover
+  // layer visible. A missing or 404 cover resolves to 'failed' and falls back to
+  // the type-coloured tile, same as the HTML poster does.
+  function coverFor(it) {
+    if (!it.img) return null;
+    let entry = covers.get(it.img);
+    if (!entry) {
+      entry = { img: new Image(), state: 'loading' };
+      entry.img.decoding = 'async';
+      entry.img.onload = () => { entry.state = 'ready'; };
+      entry.img.onerror = () => { entry.state = 'failed'; };
+      entry.img.src = it.img;
+      covers.set(it.img, entry);
+    }
+    return entry;
+  }
+
+  function drawCover(a, alphaMul) {
+    const w = COVER_W, h = COVER_H, x = a.dx - w / 2, y = a.dy - h / 2;
+    const entry = coverFor(a.item);
+
+    ctx.save();
+    ctx.globalAlpha = alphaMul;
+    ctx.beginPath(); ctx.roundRect(x, y, w, h, 3); ctx.clip();
+
+    if (entry && entry.state === 'ready') {
+      // Crop to fill, like CSS background-size: cover.
+      const iw = entry.img.naturalWidth, ih = entry.img.naturalHeight;
+      const want = w / h;
+      let sw = iw, sh = ih, sx = 0, sy = 0;
+      if (iw / ih > want) { sw = ih * want; sx = (iw - sw) / 2; }
+      else { sh = iw / want; sy = (ih - sh) / 2; }
+      ctx.drawImage(entry.img, sx, sy, sw, sh, x, y, w, h);
+    } else {
+      const p = PAL[a.item.ty] || ['#3a4a34', '#26301f'];
+      const g = ctx.createLinearGradient(x, y, x + w, y + h);
+      g.addColorStop(0, p[0]); g.addColorStop(1, p[1]);
+      ctx.fillStyle = g; ctx.fillRect(x, y, w, h);
+    }
+    ctx.restore();
+
+    // Hairline in the genre hue so the colour coding survives the zoom-in.
+    ctx.save();
+    ctx.globalAlpha = alphaMul * 0.9;
+    ctx.beginPath(); ctx.roundRect(x, y, w, h, 3);
+    ctx.lineWidth = 1; ctx.strokeStyle = rgba(a.col, 0.85); ctx.stroke();
+    ctx.restore();
+  }
+
   function step() {
     if (alpha < 0.004) return;
     alpha *= 0.987;
@@ -102,7 +164,7 @@ window.constellation = (function () {
         let dx = a.x - b.x, dy = a.y - b.y, d2 = dx * dx + dy * dy || 0.01;
         const bothG = (a.kind === 'genre' && b.kind === 'genre');
         const rep = bothG ? 11000 : (a.kind === 'item' && b.kind === 'item' ? 1400 : 2000);
-        const minD = a.r + b.r + 22;
+        const minD = (a.sepR || a.r) + (b.sepR || b.r) + 22;
         let f = rep / d2;
         if (d2 < minD * minD) f += (minD * minD - d2) / d2 * 1.1;
         const d = Math.sqrt(d2); dx /= d; dy /= d;
@@ -170,13 +232,35 @@ window.constellation = (function () {
       ctx.beginPath(); ctx.moveTo(ax, ay);
       ctx.quadraticCurveTo(mx - vy / len * bow, my + vx / len * bow, bx, by); ctx.stroke();
     }
+    // World-space viewport, with a cover's margin so nothing pops at the edge.
+    // Culling here keeps decode work — and the draw call itself — proportional
+    // to what's actually on screen rather than to the size of the archive.
+    const mx = COVER_H, halfW = VW / 2, halfH = VH * 0.46;
+    const vx0 = (-halfW - cam.x) / cam.z - mx, vx1 = (VW - halfW - cam.x) / cam.z + mx;
+    const vy0 = (-halfH - cam.y) / cam.z - mx, vy1 = (VH - halfH - cam.y) / cam.z + mx;
+    const onScreen = a => a.x > vx0 && a.x < vx1 && a.y > vy0 && a.y < vy1;
+
+    const coverT = clamp((cam.z - FADE_LO) / (FADE_HI - FADE_LO), 0, 1);
+
     for (const a of nodes) {
-      if (a.kind !== 'item') continue;
+      if (a.kind !== 'item' || !onScreen(a)) continue;
       const on = active(a.id), dim = (hiSet || searchHits) && !on;
-      ctx.globalAlpha = dim ? 0.14 : 1;
-      ctx.beginPath(); ctx.arc(a.dx, a.dy, a.r, 0, 6.2832);
-      ctx.fillStyle = rgb(a.col); ctx.fill();
-      if (a === selected) { ctx.lineWidth = 2; ctx.strokeStyle = '#fafcf8'; ctx.stroke(); }
+      const base = dim ? 0.14 : 1;
+
+      if (coverT < 1) {
+        ctx.globalAlpha = base * (1 - coverT);
+        ctx.beginPath(); ctx.arc(a.dx, a.dy, a.r, 0, 6.2832);
+        ctx.fillStyle = rgb(a.col); ctx.fill();
+      }
+      if (coverT > 0) drawCover(a, base * coverT);
+
+      if (a === selected) {
+        ctx.globalAlpha = base;
+        ctx.beginPath();
+        if (coverT > 0.5) ctx.roundRect(a.dx - COVER_W / 2, a.dy - COVER_H / 2, COVER_W, COVER_H, 3);
+        else ctx.arc(a.dx, a.dy, a.r, 0, 6.2832);
+        ctx.lineWidth = 2; ctx.strokeStyle = '#fafcf8'; ctx.stroke();
+      }
     }
     ctx.globalAlpha = 1;
     for (const a of nodes) {
@@ -206,7 +290,15 @@ window.constellation = (function () {
   }
   function nodeAt(px, py) {
     const w = toWorld(px, py); let best = null, bd = 1e9;
-    for (const a of nodes) { const d = Math.hypot(a.x - w.x, a.y - w.y); const hr = a.r + (a.kind === 'item' ? 11 : 4); if (d < hr && d < bd) { bd = d; best = a; } }
+    const zoomedIn = cam.z > (FADE_LO + FADE_HI) / 2;
+    for (const a of nodes) {
+      const d = Math.hypot(a.x - w.x, a.y - w.y);
+      // Once the poster is showing, the tap target is the poster, not the dot.
+      const hr = a.kind === 'item'
+        ? (zoomedIn ? Math.max(COVER_W, COVER_H) / 2 : a.r + 11)
+        : a.r + 4;
+      if (d < hr && d < bd) { bd = d; best = a; }
+    }
     return best;
   }
 
@@ -383,7 +475,9 @@ window.constellation = (function () {
     raf = requestAnimationFrame(draw);
   }
 
-  function dispose() { if (raf) cancelAnimationFrame(raf); raf = 0; }
+  // Drop the decoded textures when the page goes away — Library is one tab of
+  // several and the bitmaps are the only meaningful memory this holds.
+  function dispose() { if (raf) cancelAnimationFrame(raf); raf = 0; covers.clear(); }
 
   return { init, dispose };
 })();
