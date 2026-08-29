@@ -34,6 +34,13 @@ SIM_DEFAULT="iPhone 17 Pro"
 STUB="$REPO/.provisioning"
 PROFILE_DIR="$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles"
 
+# The home-screen widget is a native Swift extension with its own bundle id
+# (and thus its own 7-day profile). xcodebuild compiles it; the .NET build
+# embeds the .appex via AdditionalAppExtensions in the csproj.
+WIDGET_DIR="$REPO/widget"
+WIDGET_BUNDLE_ID="no.norapps.mediaarchive.widget"
+APP_GROUP="group.no.norapps.mediaarchive"
+
 # Free profiles last 7 days; refresh once we're inside the last two.
 RENEW_THRESHOLD_DAYS=2
 
@@ -61,14 +68,17 @@ run_timeout() {
 
 # ---------------------------------------------------------------- provisioning
 
-# Days until the bundle's profile expires; -1 if there isn't a usable one.
+# Days until the given bundle's profile expires; -1 if there isn't a usable
+# one. "Usable" now also means it carries the App Group entitlement — an older
+# profile without it would make codesigning fail, so it counts as absent.
 profile_days_left() {
-    local tmp appid exp epoch now best=-1
+    local bundle="${1:-$BUNDLE_ID}" tmp appid exp epoch now best=-1
     tmp=$(mktemp)
     for p in "$PROFILE_DIR"/*.mobileprovision(N); do
         security cms -D -i "$p" >"$tmp" 2>/dev/null || continue
         appid=$(/usr/libexec/PlistBuddy -c "Print :Entitlements:application-identifier" "$tmp" 2>/dev/null) || continue
-        [[ "$appid" == *".$BUNDLE_ID" ]] || continue
+        [[ "$appid" == "$TEAM_ID.$bundle" ]] || continue
+        /usr/libexec/PlistBuddy -c "Print :Entitlements:com.apple.security.application-groups" "$tmp" >/dev/null 2>&1 || continue
         exp=$(/usr/libexec/PlistBuddy -c "Print :ExpirationDate" "$tmp" 2>/dev/null) || continue
         epoch=$(date -j -f "%a %b %d %H:%M:%S %Z %Y" "$exp" +%s 2>/dev/null) || continue
         now=$(date +%s)
@@ -83,6 +93,20 @@ profile_days_left() {
 write_stub() {
     mkdir -p "$STUB/MAProvision.xcodeproj"
     print 'print("provisioning stub")' > "$STUB/main.swift"
+    # The stub must request the same capabilities the real app signs with,
+    # or the reissued profile won't cover the App Group and codesign fails.
+    cat > "$STUB/stub.entitlements" <<EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>com.apple.security.application-groups</key>
+    <array>
+        <string>$APP_GROUP</string>
+    </array>
+</dict>
+</plist>
+EOF
     cat > "$STUB/MAProvision.xcodeproj/project.pbxproj" <<'PBXEOF'
 // !$*UTF8*$!
 {
@@ -211,6 +235,7 @@ write_stub() {
 		AA000000000000000000000D /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = stub.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = ZVNYY55W9L;
@@ -283,6 +308,23 @@ renew() {
 
 # ----------------------------------------------------------------------- build
 
+# Compile the widget .appex plus the WidgetLink.framework shim (the app's
+# C#-callable bridge to WidgetKit); the .NET build embeds both. Device builds
+# pass -allowProvisioningUpdates, which also creates/renews the widget's own
+# 7-day profile as a side effect — no separate stub needed.
+build_widget() {
+    local sdk="$1"; shift
+    say "building widget ($sdk)…"
+    if ! run_timeout 900 xcodebuild -project "$WIDGET_DIR/MediaArchiveWidget.xcodeproj" \
+            -alltargets -configuration Debug -sdk "$sdk" \
+            SYMROOT="$WIDGET_DIR/build" "$@" build \
+            >"$WIDGET_DIR/xcodebuild.log" 2>&1; then
+        warn "widget build failed — last lines of widget/xcodebuild.log:"
+        tail -15 "$WIDGET_DIR/xcodebuild.log" >&2
+        die "widget build failed"
+    fi
+}
+
 build() {
     local rid="$1"
     say "building ($rid)…"
@@ -311,6 +353,7 @@ sim_run() {
         fi
     fi
 
+    build_widget iphonesimulator
     app=$(build "$rid")
 
     say "booting simulator…"
@@ -352,6 +395,7 @@ phone_run() {
     renew
     [[ -n "$id" ]] || id=$(find_device)
     [[ -n "$id" ]] || die "no paired iPhone reachable — unlock it and check it's on the same Wi-Fi"
+    build_widget iphoneos -allowProvisioningUpdates
     app=$(build ios-arm64)
 
     say "installing to device…"

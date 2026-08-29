@@ -28,5 +28,17 @@
     </array>
     <key>XSAppIconAssets</key>
     <string>Assets.xcassets/appicon.appiconset</string>
+    <!-- Deep links from the home-screen widget (mediaarchive://log/{id}). -->
+    <key>CFBundleURLTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleURLName</key>
+            <string>no.norapps.mediaarchive</string>
+            <key>CFBundleURLSchemes</key>
+            <array>
+                <string>mediaarchive</string>
+            </array>
+        </dict>
+    </array>
 </dict>
 </plist>

@@ -7,10 +7,12 @@ using MediaArchive.Services.Logging;
 using MediaArchive.Services.Providers;
 using MediaArchive.Services.Queries;
 using MediaArchive.Services.UserItems;
+using Foundation;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Microsoft.Maui.LifecycleEvents;
 
 namespace MediaArchive.Mobile;
 
@@ -20,6 +22,19 @@ public static class MauiProgram
     {
         var builder = MauiApp.CreateBuilder();
         builder.UseMauiApp<App>();
+
+        // Widget taps arrive as mediaarchive:// URLs (scheme registered in
+        // Info.plist); translate them to Blazor routes and let the UI navigate.
+        builder.ConfigureLifecycleEvents(events =>
+            events.AddiOS(ios => ios.OpenUrl((_, url, _) =>
+            {
+                if (url.Scheme != "mediaarchive" || TryMapDeepLink(url) is not { } route)
+                    return false;
+
+                IPlatformApplication.Current?.Services
+                    .GetService<DeepLinkService>()?.Dispatch(route);
+                return true;
+            })));
 
         // appsettings.json ships as a MauiAsset (not auto-loaded like on the web),
         // so read it out of the app package and feed it to configuration.
@@ -85,6 +100,13 @@ public static class MauiProgram
         builder.Services.AddScoped<ProfileQueries>();
         builder.Services.AddScoped<DiaryQueries>();
 
+        builder.Services.AddSingleton<DeepLinkService>();
+        // Singletons (unlike the scoped queries above): both are stateless over
+        // the context factory, and App — created once, outside any scope —
+        // holds the publisher for the window lifecycle hooks.
+        builder.Services.AddSingleton<WidgetQueries>();
+        builder.Services.AddSingleton<WidgetSnapshotPublisher>();
+
 #if DEBUG
         builder.Services.AddBlazorWebViewDeveloperTools();
         builder.Logging.AddDebug();
@@ -99,4 +121,12 @@ public static class MauiProgram
 
         return app;
     }
+
+    // mediaarchive://log/{userMediaItemId} → the item page with the log dialog
+    // open. The open pass is resolved on the page, not here — an entry id baked
+    // into a stale widget snapshot could point at an already-closed pass.
+    private static string? TryMapDeepLink(NSUrl url) =>
+        url.Host == "log" && int.TryParse(url.Path?.TrimStart('/'), out var id)
+            ? $"/item/{id}?log=true"
+            : null;
 }

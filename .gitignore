@@ -29,3 +29,7 @@ covers/
 
 # Local snapshots pulled off the phone by ./ma pull
 backups/
+
+# Widget extension build output (xcodebuild SYMROOT, see ./ma)
+widget/build/
+widget/xcodebuild.log

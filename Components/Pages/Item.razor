@@ -221,6 +221,11 @@ else
 @code {
     [Parameter] public int UserMediaItemId { get; set; }
 
+    // Set by widget deep links (/item/{id}?log=true): open the log dialog as
+    // soon as the item loads, provided a pass is actually open right now.
+    [SupplyParameterFromQuery(Name = "log")]
+    public bool OpenLog { get; set; }
+
     private ItemDetail? _item;
     private List<PassSummary> _history = [];
     private Vocabulary _vocabulary = new([], [], [], []);
@@ -250,6 +255,9 @@ else
     {
         _vocabulary = await ImportService.GetVocabularyAsync();
         await LoadAsync();
+
+        if (OpenLog && _item?.OpenPass is not null)
+            _logging = true;
     }
 
     private async Task GoBack() => await JS.InvokeVoidAsync("history.back");
