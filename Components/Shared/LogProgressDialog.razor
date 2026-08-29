@@ -88,20 +88,7 @@
                 {
                     <div>
                         <div class="fl">Rating</div>
-                        <div class="stars">
-                            <span class="track">★★★★★</span>
-                            <span class="fill" style="width:@(_rating * 10)%">★★★★★</span>
-                            @for (var half = 1; half <= 10; half++)
-                            {
-                                var value = half;
-                                <button class="hit" style="left:@((half - 1) * 10)%"
-                                        title="@(value / 2.0)" @onclick="() => _rating = value"></button>
-                            }
-                        </div>
-                        @if (_rating > 0)
-                        {
-                            <button class="starclear" @onclick="() => _rating = 0">clear</button>
-                        }
+                        <StarRating @bind-Value="_rating"/>
                     </div>
                 }
             </div>

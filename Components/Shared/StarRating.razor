@@ -1,0 +1,21 @@
+<div class="stars">
+    <span class="track">★★★★★</span>
+    <span class="fill" style="width:@(Value * 10)%">★★★★★</span>
+    @for (var half = 1; half <= 10; half++)
+    {
+        var value = half;
+        <button class="hit" style="left:@((half - 1) * 10)%"
+                title="@(value / 2.0)" @onclick="() => ValueChanged.InvokeAsync(value)"></button>
+    }
+</div>
+@if (Value > 0)
+{
+    <button class="starclear" @onclick="() => ValueChanged.InvokeAsync(0)">@ClearLabel</button>
+}
+
+@code {
+    // Half-star scale: 0–10, where 10 is five stars. 0 means unrated.
+    [Parameter] public int Value { get; set; }
+    [Parameter] public EventCallback<int> ValueChanged { get; set; }
+    [Parameter] public string ClearLabel { get; set; } = "clear";
+}

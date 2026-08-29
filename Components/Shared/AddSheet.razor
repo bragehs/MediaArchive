@@ -58,7 +58,7 @@
         }
         else if (_results.Count > 0)
         {
-            <div class="scount">@_results.Count result@(_results.Count == 1 ? "" : "s")</div>
+            <div class="scount">@_results.Count @UiHelpers.Plural(_results.Count, "result")</div>
             @foreach (var result in _results)
             {
                 <button class="presult" @onclick="() => Select(result)">
@@ -346,20 +346,7 @@ else
                             {
                                 <div>
                                     <div class="fl">Rating</div>
-                                    <div class="stars">
-                                        <span class="track">★★★★★</span>
-                                        <span class="fill" style="width:@(_rating * 10)%">★★★★★</span>
-                                        @for (var half = 1; half <= 10; half++)
-                                        {
-                                            var value = half;
-                                            <button class="hit" style="left:@((half - 1) * 10)%"
-                                                    title="@(value / 2.0)" @onclick="() => _rating = value"></button>
-                                        }
-                                    </div>
-                                    @if (_rating > 0)
-                                    {
-                                        <button class="starclear" @onclick="() => _rating = 0">clear</button>
-                                    }
+                                    <StarRating @bind-Value="_rating"/>
                                 </div>
                             }
                         </div>
@@ -642,7 +629,7 @@ else
     private static string SeasonMeta(SeasonDto s)
     {
         var parts = new List<string>();
-        if (s.EpisodeCount is { } ec) parts.Add($"{ec} ep{(ec == 1 ? "" : "s")}");
+        if (s.EpisodeCount is { } ec) parts.Add($"{ec} {UiHelpers.Plural(ec, "ep")}");
         if (s.AirDate is { } d) parts.Add(d.Year.ToString());
         return string.Join(" · ", parts);
     }

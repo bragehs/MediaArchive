@@ -25,14 +25,7 @@ else
 
     <div class="ihero">
         <div class="icov" style="--t:@UiHelpers.TypeColorVar(item.MediaType)">
-            @if (!string.IsNullOrWhiteSpace(item.ImageUrl))
-            {
-                <img src="@item.ImageUrl" alt="Cover of @item.Title"/>
-            }
-            else
-            {
-                <span class="ifb">@item.Title</span>
-            }
+            <Cover ImageUrl="@item.ImageUrl" Title="@item.Title"/>
         </div>
         <div class="iherometa">
             <div class="ititle">@item.Title</div>
@@ -44,20 +37,9 @@ else
                 @UiHelpers.TypeLabel(item.MediaType) · @UiHelpers.StatusGlyph(item.Status) @UiHelpers.StatusLabel(item.Status)
             </div>
 
-            <div class="istars">
-                <span class="istrack">★★★★★</span>
-                <span class="isfill" style="width:@((item.Rating ?? 0) * 10)%">★★★★★</span>
-                @for (var half = 1; half <= 10; half++)
-                {
-                    var value = half;
-                    <button class="ihit" style="left:@((half - 1) * 10)%"
-                            title="@(value / 2.0)" @onclick="() => SetRating(value)"></button>
-                }
-            </div>
-            @if (item.Rating is { } r)
-            {
-                <button class="istarclear" @onclick="() => SetRating(null)">@(r / 2.0) — clear</button>
-            }
+            <StarRating Value="@(item.Rating ?? 0)"
+                        ValueChanged="v => SetRating(v == 0 ? null : v)"
+                        ClearLabel="@(item.Rating is { } r ? $"{r / 2.0} — clear" : "clear")"/>
         </div>
     </div>
 

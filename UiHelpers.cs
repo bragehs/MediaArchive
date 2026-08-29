@@ -1,4 +1,5 @@
 using MediaArchive.Models;
+using MediaArchive.Services;
 
 namespace MediaArchive;
 
@@ -98,4 +99,17 @@ public static class UiHelpers
         MediaType.Movie => "minutes",
         _ => "episodes"
     };
+
+    public static string KindLabel(DiaryEventKind kind) => kind switch
+    {
+        DiaryEventKind.Finished => "Finished",
+        DiaryEventKind.Dropped => "Dropped",
+        DiaryEventKind.Started => "Started",
+        DiaryEventKind.Resumed => "Resumed",
+        _ => "Logged"
+    };
+
+    public static string Plural(int n, string one) => n == 1 ? one : one + "s";
+
+    public static string Plural(int n, string one, string many) => n == 1 ? one : many;
 }

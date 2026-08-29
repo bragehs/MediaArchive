@@ -42,7 +42,7 @@ else
                     <span class="dmn">@month.Name</span>
                     <span class="dmc">
                         <b>@month.FinishedCount</b> finished · <b>@month.LogCount</b>
-                        @(month.LogCount == 1 ? "log" : "logs")
+                        @UiHelpers.Plural(month.LogCount, "log")
                     </span>
                 </div>
 
@@ -52,15 +52,8 @@ else
                     @foreach (var touch in month.Touched)
                     {
                         <span class="dcov" style="--t:@(UiHelpers.TypeColorVar(touch.MediaType))">
-                            @if (!string.IsNullOrWhiteSpace(touch.ImageUrl))
-                            {
-                                <img src="@touch.ImageUrl" alt="Cover of @touch.Title"/>
-                            }
-                            else
-                            {
-                                <span class="dfb">@touch.Title</span>
-                            }
-                            <span class="dgl @KindClass(touch.Kind)" title="@KindLabel(touch.Kind)">@Glyph(touch.Kind)</span>
+                            <Cover ImageUrl="@touch.ImageUrl" Title="@touch.Title"/>
+                            <span class="dgl @KindClass(touch.Kind)" title="@UiHelpers.KindLabel(touch.Kind)">@Glyph(touch.Kind)</span>
                         </span>
                     }
                 </div>
@@ -104,15 +97,6 @@ else
         DiaryEventKind.Started => "○",
         DiaryEventKind.Resumed => "▸",
         _ => "▐▐"
-    };
-
-    private static string KindLabel(DiaryEventKind kind) => kind switch
-    {
-        DiaryEventKind.Finished => "Finished",
-        DiaryEventKind.Dropped => "Dropped",
-        DiaryEventKind.Started => "Started",
-        DiaryEventKind.Resumed => "Resumed",
-        _ => "Logged"
     };
 
     private static string KindClass(DiaryEventKind kind) => kind switch

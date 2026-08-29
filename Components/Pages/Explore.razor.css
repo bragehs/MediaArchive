@@ -51,20 +51,6 @@
     background: linear-gradient(155deg, var(--panel), #131f10);
     overflow: hidden;
 }
-.xcov img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.xfb {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: flex-end;
-    padding: 6px;
-    font-family: var(--f-display);
-    font-weight: 600;
-    font-size: 8.5px;
-    line-height: 1.1;
-    color: var(--ink);
-    text-shadow: 0 1px 4px rgba(0, 0, 0, .5);
-}
 .xt {
     font-family: var(--f-title);
     font-weight: 600;

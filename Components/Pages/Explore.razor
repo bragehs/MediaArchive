@@ -31,14 +31,7 @@ else
         {
             <button class="xcard" @onclick="() => Open(item.UserMediaItemId)">
                 <span class="xcov">
-                    @if (!string.IsNullOrWhiteSpace(item.ImageUrl))
-                    {
-                        <img src="@item.ImageUrl" alt="Cover of @item.Title"/>
-                    }
-                    else
-                    {
-                        <span class="xfb">@item.Title</span>
-                    }
+                    <Cover ImageUrl="@item.ImageUrl" Title="@item.Title"/>
                 </span>
                 <span class="xt">@item.Title</span>
             </button>

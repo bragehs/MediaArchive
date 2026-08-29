@@ -32,14 +32,7 @@ else
             {
                 <div class="dms" @onclick="() => OpenItem(e.UserMediaItemId)">
                     <span class="dmscov" style="--t:@(UiHelpers.TypeColorVar(e.MediaType))">
-                        @if (!string.IsNullOrWhiteSpace(e.ImageUrl))
-                        {
-                            <img src="@e.ImageUrl" alt="Cover of @e.Title"/>
-                        }
-                        else
-                        {
-                            <span class="dfb">@e.Title</span>
-                        }
+                        <Cover ImageUrl="@e.ImageUrl" Title="@e.Title"/>
                     </span>
                     <div class="dmsbody">
                         <div class="dmst">
@@ -50,7 +43,7 @@ else
                             }
                         </div>
                         <div class="dmsk @KindClass(e.Kind)">
-                            @KindLabel(e.Kind)@(e.IsReread ? " · ↻ reread" : "")@(e.Context is { } c ? $" · {UiHelpers.ContextLabel(c).ToLowerInvariant()}" : "")
+                            @UiHelpers.KindLabel(e.Kind)@(e.IsReread ? " · ↻ reread" : "")@(e.Context is { } c ? $" · {UiHelpers.ContextLabel(c).ToLowerInvariant()}" : "")
                         </div>
                         @if (!string.IsNullOrWhiteSpace(e.Note))
                         {
@@ -96,15 +89,6 @@ else
 
     private void Back() => Nav.NavigateTo("/diary");
     private void OpenItem(int id) => Nav.NavigateTo($"/item/{id}");
-
-    private static string KindLabel(DiaryEventKind k) => k switch
-    {
-        DiaryEventKind.Started => "Started",
-        DiaryEventKind.Resumed => "Resumed",
-        DiaryEventKind.Finished => "Finished",
-        DiaryEventKind.Dropped => "Dropped",
-        _ => "Logged"
-    };
 
     private static string KindClass(DiaryEventKind k) => k switch
     {

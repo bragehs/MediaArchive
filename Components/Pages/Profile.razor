@@ -63,9 +63,9 @@ else
                     <span class="pyn">@year.Year</span>
                     <span class="pyt">@(isOpen ? "–" : "+")</span>
                     <span class="pym">
-                        <b>@year.PassCount</b> @Plural(year.PassCount, "pass", "passes")
+                        <b>@year.PassCount</b> @UiHelpers.Plural(year.PassCount, "pass", "passes")
                         · <b>@year.MaxConcurrent</b> deep
-                        · <b>@year.DaysRunning</b> @Plural(year.DaysRunning, "day", "days") running
+                        · <b>@year.DaysRunning</b> @UiHelpers.Plural(year.DaysRunning, "day", "days") running
                     </span>
                 </div>
 
@@ -203,6 +203,4 @@ else
         if (pass.CarriedOut) classes += " pout";
         return classes;
     }
-
-    private static string Plural(int n, string one, string many) => n == 1 ? one : many;
 }

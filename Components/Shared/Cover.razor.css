@@ -1,0 +1,16 @@
+img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+/* Wrappers tune size via --fb-pad / --fb-size. */
+.fb {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: flex-end;
+    padding: var(--fb-pad, 6px);
+    font-family: var(--f-display);
+    font-weight: 600;
+    font-size: var(--fb-size, 8.5px);
+    line-height: 1.1;
+    color: var(--ink);
+    text-shadow: 0 1px 4px rgba(0, 0, 0, .5);
+}

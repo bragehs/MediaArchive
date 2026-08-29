@@ -21,7 +21,7 @@ else
                 <div class="mwcell">
                     <div class="mwnum">@FormatValue(b)<i>@UnitShort(b.Unit)</i></div>
                     <div class="mwlab">@b.Bucket</div>
-                    <div class="mwitems">@b.ItemsTouched @Plural(b.ItemsTouched, "item")</div>
+                    <div class="mwitems">@b.ItemsTouched @UiHelpers.Plural(b.ItemsTouched, "item")</div>
                 </div>
             }
         </div>
@@ -39,14 +39,7 @@ else
             <div class="mnow">
                 <div class="mcov mnowcov" style="--t:@UiHelpers.TypeColorVar(item.MediaType)"
                      @onclick="() => OpenItem(item.UserMediaItemId)">
-                    @if (!string.IsNullOrWhiteSpace(item.ImageUrl))
-                    {
-                        <img src="@item.ImageUrl" alt="Cover of @item.Title"/>
-                    }
-                    else
-                    {
-                        <span class="mfb">@item.Title</span>
-                    }
+                    <Cover ImageUrl="@item.ImageUrl" Title="@item.Title"/>
                 </div>
                 <div class="mnowbody">
                     <div class="mnowt" @onclick="() => OpenItem(item.UserMediaItemId)">@item.Title</div>
@@ -56,7 +49,7 @@ else
                         <div class="mbar"><i style="width:@(pct.ToString("0"))%"></i></div>
                     }
                     <div class="mnowfoot">
-                        open <b>@item.DaysOpen</b> @Plural(item.DaysOpen, "day")
+                        open <b>@item.DaysOpen</b> @UiHelpers.Plural(item.DaysOpen, "day")
                         <button class="mlog" @onclick="() => _logTarget = item">Log →</button>
                     </div>
                 </div>
@@ -75,14 +68,7 @@ else
             @foreach (var item in _onDeck.Take(OnDeckCap))
             {
                 <div class="mcov" @onclick="() => OpenItem(item.UserMediaItemId)">
-                    @if (!string.IsNullOrWhiteSpace(item.ImageUrl))
-                    {
-                        <img src="@item.ImageUrl" alt="Cover of @item.Title"/>
-                    }
-                    else
-                    {
-                        <span class="mfb">@item.Title</span>
-                    }
+                    <Cover ImageUrl="@item.ImageUrl" Title="@item.Title"/>
                 </div>
             }
             @if (_onDeck.Count > OnDeckCap)
@@ -143,8 +129,6 @@ else
 
     private static string Ago(int days) =>
         days <= 0 ? "today" : days == 1 ? "yesterday" : $"{days} days ago";
-
-    private static string Plural(int n, string word) => n == 1 ? word : word + "s";
 
     private static string FormatValue(WeeklyBucketStat b) =>
         b.Unit == "pages" ? ((int)b.Value).ToString() : b.Value.ToString("0.#");
