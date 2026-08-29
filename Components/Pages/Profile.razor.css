@@ -82,14 +82,19 @@
     color: var(--dim);
 }
 
-/* ── hall of fame: the covers carry it, one badge each ── */
-.pfamerail { display: flex; gap: 9px; overflow-x: auto; padding-bottom: 4px; }
-.pfame { flex: none; background: none; border: 0; padding: 0; cursor: pointer; }
+/* ── hall of fame: the covers carry it, one badge each. A wrapping grid, four
+   to a row — the shelf is never scrollable, everything on it is in view. ── */
+.pfamerail {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 9px;
+}
+.pfame { background: none; border: 0; padding: 0; cursor: pointer; min-width: 0; }
 .pfcov {
     position: relative;
     display: block;
-    width: 74px;
-    height: 111px;
+    width: 100%;
+    aspect-ratio: 2 / 3;
     border-radius: 7px;
     overflow: hidden;
     border: 1px solid var(--line2);
@@ -121,8 +126,16 @@
     color: var(--ac2);
 }
 
-/* ── against the grain: one list, signed deltas ── */
-.pverdicts { display: flex; flex-direction: column; }
+/* ── against the grain: one list, signed deltas. Five rows in view, the rest
+   scroll — the biggest divergences are already sorted to the top. ── */
+.pverdicts {
+    display: flex;
+    flex-direction: column;
+    max-height: 201px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+}
 .pverdict {
     display: flex;
     align-items: baseline;
@@ -164,6 +177,7 @@
 }
 .pvd.up { color: var(--ac); }
 .pvd.down { color: var(--ac2); }
+.pvd.level { color: var(--dim); }
 
 .pfoot {
     font-family: var(--f-serif);
@@ -174,8 +188,16 @@
 }
 .pfoot b { font-style: normal; color: var(--ink); }
 
-/* ── the canon: the vault's one sanctioned text list ── */
-.pcanon { display: flex; flex-direction: column; }
+/* ── the canon: the vault's one sanctioned text list. Same viewport rule as
+   the verdicts — five rows, the rest scroll within the section. ── */
+.pcanon {
+    display: flex;
+    flex-direction: column;
+    max-height: 201px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+}
 .pcreator {
     display: flex;
     align-items: baseline;

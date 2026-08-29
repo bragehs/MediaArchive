@@ -78,14 +78,21 @@ else
                 <button class="pverdict" @onclick="() => Open(v.UserMediaItemId)">
                     <span class="pvt">@v.Title</span>
                     <span class="pvn">you <b>@Stars(v.Mine)</b> · them <b>@Stars(v.World)</b></span>
-                    <span class="pvd @(v.Delta >= 0 ? "up" : "down")">@Signed(v.Delta)</span>
+                    <span class="pvd @DeltaClass(v.Delta)">@Signed(v.Delta)</span>
                 </button>
             }
         </div>
         @if (_snapshot.AvgDelta is { } avgDelta)
         {
             <p class="pfoot">
-                On average you land <b>@Signed(avgDelta)</b> @(avgDelta >= 0 ? "above" : "below") the public.
+                @if (Math.Round(avgDelta / 2, 1) == 0)
+                {
+                    <text>On average you land <b>dead level</b> with the public.</text>
+                }
+                else
+                {
+                    <text>On average you land <b>@Signed(avgDelta)</b> @(avgDelta >= 0 ? "above" : "below") the public.</text>
+                }
             </p>
         }
     }
@@ -160,9 +167,23 @@ else
     private static string Stars(double tenScale) =>
         (tenScale / 2).ToString("0.#", CultureInfo.InvariantCulture);
 
-    private static string Signed(double tenScaleDelta) =>
-        (tenScaleDelta >= 0 ? "+" : "−") +
-        Math.Abs(tenScaleDelta / 2).ToString("0.0", CultureInfo.InvariantCulture);
+    // Rounded to display precision first, so a hair's-width disagreement can't
+    // render as the nonsense "−0.0".
+    private static string Signed(double tenScaleDelta)
+    {
+        var stars = Math.Round(tenScaleDelta / 2, 1);
+        if (stars == 0) return "0.0";
+        return (stars > 0 ? "+" : "−") +
+               Math.Abs(stars).ToString("0.0", CultureInfo.InvariantCulture);
+    }
+
+    private static string DeltaClass(double tenScaleDelta) =>
+        Math.Round(tenScaleDelta / 2, 1) switch
+        {
+            0 => "level",
+            > 0 => "up",
+            _ => "down"
+        };
 
     private static string Days(int days) => days switch
     {

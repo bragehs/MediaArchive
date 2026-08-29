@@ -38,9 +38,7 @@ public record ProfileSnapshot(
 
 public class ProfileQueries(IDbContextFactory<AppDbContext> dbContextFactory)
 {
-    private const int FameFloor = 9;      // 4.5★ and up make the shelf
-    private const int VerdictCap = 8;
-    private const int CanonCap = 6;
+    private const int FameFloor = 10;     // full marks only; favourites join regardless
 
     // One materialise, then every aggregate in memory: the archive is a single
     // local user's few hundred rows, and each section below is a different walk
@@ -74,7 +72,7 @@ public class ProfileQueries(IDbContextFactory<AppDbContext> dbContextFactory)
             Finished: items.Count(u => u.Status == MediaStatus.Completed),
             GenreCount: genreCount,
             HallOfFame: BuildHallOfFame(items),
-            Verdicts: verdicts.Take(VerdictCap).ToList(),
+            Verdicts: verdicts,
             AvgDelta: verdicts.Count > 0 ? verdicts.Average(v => v.Delta) : null,
             Canon: BuildCanon(items),
             LongestPass: BuildLongestPass(items),
@@ -83,8 +81,8 @@ public class ProfileQueries(IDbContextFactory<AppDbContext> dbContextFactory)
             BusiestMonth: BuildBusiestMonth(items));
     }
 
-    // Favourites always belong; ratings from the floor up join them. Favourites
-    // and full marks lead the shelf, the 4.5s trail it.
+    // The shelf is deliberately exclusive: favourites and full marks, nothing
+    // else — and favourites lead it.
     private static List<FameItem> BuildHallOfFame(List<UserMediaItem> items) => items
         .Where(u => u.IsFavorite || u.Rating >= FameFloor)
         .OrderByDescending(u => u.IsFavorite)
@@ -122,7 +120,6 @@ public class ProfileQueries(IDbContextFactory<AppDbContext> dbContextFactory)
         })
         .OrderByDescending(c => c.Works)
         .ThenByDescending(c => c.AvgRating ?? 0)
-        .Take(CanonCap)
         .ToList();
 
     private static IEnumerable<(UserMediaItem Item, ConsumptionEntry Entry, int Days)>
