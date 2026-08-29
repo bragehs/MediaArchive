@@ -212,8 +212,7 @@ else
                     {
                         <div class="cap-block newtags">
                             <div class="fl">
-                                New tag@(NewTags.Count == 1 ? "" : "s") — classify once<b>*</b>
-                                <span class="opt">picked again later, this is remembered</span>
+                                New @UiHelpers.Plural(NewTags.Count, "tag") — classify once<b>*</b>
                             </div>
                             @foreach (var tag in NewTags)
                             {
@@ -354,7 +353,7 @@ else
                             <div class="cap-block">
                                 <div class="fl">Start note <span class="opt">optional</span></div>
                                 <textarea class="area dim" @bind="_startNote" @bind:event="oninput"
-                                          placeholder="What you expected going in — leave blank if you don't recall."></textarea>
+                                          placeholder="What you expected going in…"></textarea>
                             </div>
                         }
 
@@ -494,16 +493,16 @@ else
     private string NotePlaceholder => _action switch
     {
         LogAction.Start => "Why you're picking it up, what you expect…",
-        _ => "How it landed — this is what the Diary shows."
+        _ => "How it landed…"
     };
 
     private string FootHint => NewTags.Any(t => FacetOf(t).Length == 0)
-        ? "Give every new tag a facet — it's only asked once, then it's just a pick."
+        ? "Pick a facet for each new tag."
         : _action switch
         {
-            LogAction.Interested => "Goes to the library unstarted. No note needed.",
-            LogAction.Start => "A start note is required — this is what the Diary shows.",
-            _ => "Backfilling? Rating, genres and moods are what Profile reads. Notes optional."
+            LogAction.Interested => "Saved to the library unstarted.",
+            LogAction.Start => "Start note required.",
+            _ => "Notes optional."
         };
 
     private static string ActionLabel(LogAction action) => action switch
@@ -550,7 +549,7 @@ else
         catch (NotSupportedException)
         {
             _results = [];
-            _error = $"No provider is wired up for {UiHelpers.TypeLabel(_mediaType)} yet — books only for now.";
+            _error = $"No provider available for {UiHelpers.TypeLabel(_mediaType)}.";
         }
         catch (Exception ex)
         {

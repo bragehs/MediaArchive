@@ -11,7 +11,7 @@
 }
 else if (_snapshot.ItemsLogged == 0)
 {
-    <p class="pempty">Nothing logged yet — the profile fills in as you add things.</p>
+    <p class="pempty">Nothing logged yet.</p>
 }
 else
 {
@@ -45,11 +45,11 @@ else
         </div>
     </div>
 
-    <div class="psec"><span class="psk">The year</span><span class="psr">Where it went</span></div>
+    <div class="psec"><span class="psk">The year</span></div>
 
     @if (_snapshot.Years.Count == 0)
     {
-        <p class="pempty">No dated passes yet — the ledger needs a start date to place.</p>
+        <p class="pempty">No dated passes yet.</p>
     }
     else
     {
@@ -95,7 +95,7 @@ else
         </div>
     }
 
-    <div class="psec"><span class="psk">By media type</span><span class="psr">What you log</span></div>
+    <div class="psec"><span class="psk">By media type</span></div>
     <div class="prows">
         @foreach (var type in _snapshot.ByType)
         {

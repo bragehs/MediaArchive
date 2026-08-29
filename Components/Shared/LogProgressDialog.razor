@@ -50,7 +50,7 @@
             <div class="cap-block">
                 <div class="fl">Progress note <span class="opt">optional</span></div>
                 <textarea class="area dim" @bind="_progressNote" @bind:event="oninput"
-                          placeholder="Anything to say? (optional — the number is enough)"></textarea>
+                          placeholder="Anything to say?"></textarea>
             </div>
         }
         else
@@ -95,7 +95,7 @@
             <div class="cap-block">
                 <div class="fl">@(_dropped ? "Why you dropped it" : "Finish note") <span class="opt">optional</span></div>
                 <textarea class="area dim" @bind="_finishNote" @bind:event="oninput"
-                          placeholder="How it landed — this is what the Diary shows."></textarea>
+                          placeholder="How it landed…"></textarea>
             </div>
         }
 
