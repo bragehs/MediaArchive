@@ -31,8 +31,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             .HasValue<Movie>(MediaType.Movie)
             .HasValue<Show>(MediaType.Show);
 
-        // Self-reference: deleting a pass must not cascade into the pass that
-        // continued it, so the link is simply cleared.
+        // Deleting a pass clears the link instead of cascading into its resumer.
         builder.Entity<ConsumptionEntry>()
             .HasOne(e => e.ResumesEntry)
             .WithMany()

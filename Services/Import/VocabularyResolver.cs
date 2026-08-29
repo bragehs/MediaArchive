@@ -32,10 +32,8 @@ public static class VocabularyResolver
         await ApplyTagsAsync(db, mediaItem, details.Tags, replace, ct);
     }
 
-    // Genres and tags are classification, not proper nouns, so they are stored
-    // lower case — one canonical key, with capitalisation left to whatever is
-    // rendering it. Applied at these two call sites only: ResolveNamedAsync also
-    // serves Person, Universe and Series, whose names carry real capitalisation.
+    // Genres and tags are stored lower case; Person, Universe and Series keep
+    // their real capitalisation.
     public static string NormaliseTerm(string name) => name.Trim().ToLowerInvariant();
 
     public static async Task ApplyGenresAsync(AppDbContext db, MediaItem mediaItem,

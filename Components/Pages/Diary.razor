@@ -46,8 +46,6 @@ else
                     </span>
                 </div>
 
-                @* Relative to the busiest month of the year, so months compare
-                   against each other rather than against an absolute scale. *@
                 <div class="dbar"><i style="width:@(Share(month.LogCount))"></i></div>
 
                 <div class="drail">
@@ -99,8 +97,6 @@ else
         return value.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture) + "%";
     }
 
-    // The archive's shared glyph set, riding on the cover rather than sitting in
-    // a column of its own.
     private static string Glyph(DiaryEventKind kind) => kind switch
     {
         DiaryEventKind.Finished => "✓",

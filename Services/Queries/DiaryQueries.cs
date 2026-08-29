@@ -7,9 +7,6 @@ namespace MediaArchive.Services;
 
 public enum DiaryEventKind { Started, Resumed, Progress, Finished, Dropped }
 
-// One entry per item touched in the month, carrying the loudest thing that
-// happened to it — covers are the primary object, so the state rides on the
-// cover as a glyph rather than in a separate column of marks.
 public record DiaryTouch(
     int UserMediaItemId, string Title, string? ImageUrl,
     MediaType MediaType, DiaryEventKind Kind);
@@ -38,14 +35,11 @@ public record DiaryEvent(
     int? Length,
     bool IsReread)
 {
-    // Milestones carry the cover and the note as a pull-quote; a progress log is
-    // a tick. A tick that has something to say still shows it — only the silent
-    // ones are allowed to collapse into a run.
     public bool IsMilestone => Kind != DiaryEventKind.Progress;
     public bool IsSilent => Kind == DiaryEventKind.Progress && string.IsNullOrWhiteSpace(Note);
 }
 
-// A run of consecutive wordless ticks for one item, folded into a single line.
+// Consecutive silent progress logs for one item, folded into one line.
 public record DiaryRun(
     int UserMediaItemId,
     string Title,
@@ -60,17 +54,13 @@ public record DiaryDay(DateOnly Date, IReadOnlyList<DiaryEvent> Events, IReadOnl
 public record DiaryMonthDetail(int Year, int Month, string Name,
     int LogCount, int FinishedCount, IReadOnlyList<DiaryDay> Days);
 
-// Unlike ProfileQueries, which aggregates over the whole archive by definition,
-// the diary is inherently windowed — one year or one month at a time. It is also
-// the fastest-growing surface, since every progress log is a row.
 public class DiaryQueries(IDbContextFactory<AppDbContext> dbContextFactory)
 {
     public async Task<List<int>> GetYearsAsync(CancellationToken ct = default)
     {
         await using var db = await dbContextFactory.CreateDbContextAsync(ct);
 
-        // Projected then walked in memory: DateOnly.Year translation is not worth
-        // relying on, and this is two short columns.
+        // DateOnly.Year doesn't translate reliably, so project and walk in memory.
         var spans = await db.ConsumptionEntries
             .Where(e => e.StartDate != null)
             .Select(e => new { e.StartDate, e.EndDate })
@@ -140,8 +130,6 @@ public class DiaryQueries(IDbContextFactory<AppDbContext> dbContextFactory)
             events.Count, events.Count(e => e.Kind == DiaryEventKind.Finished), days);
     }
 
-    // Within a day: milestones first (loudest), then ticks that said something,
-    // then the silent ones folded per item into a single run.
     private static DiaryDay BuildDay(DateOnly date, List<DiaryEvent> events)
     {
         var shown = events
@@ -167,7 +155,6 @@ public class DiaryQueries(IDbContextFactory<AppDbContext> dbContextFactory)
     {
         await using var db = await dbContextFactory.CreateDbContextAsync(ct);
 
-        // Any pass whose interval touches the window; its notes are inside it.
         var entries = await db.ConsumptionEntries
             .Where(e => e.StartDate != null && e.StartDate <= to
                         && (e.EndDate == null || e.EndDate >= from))
@@ -179,8 +166,7 @@ public class DiaryQueries(IDbContextFactory<AppDbContext> dbContextFactory)
 
         if (entries.Count == 0) return [];
 
-        // Pass ordinal has to come from an item's whole history, not the window,
-        // or the first pass inside a given month would look like the first ever.
+        // Reread detection needs the item's whole history, not just the window.
         var itemIds = entries.Select(e => e.UserMediaItemId).Distinct().ToList();
         var allPasses = await db.ConsumptionEntries
             .Where(e => itemIds.Contains(e.UserMediaItemId))
@@ -188,9 +174,8 @@ public class DiaryQueries(IDbContextFactory<AppDbContext> dbContextFactory)
             .AsNoTracking()
             .ToListAsync(ct);
 
-        // A reading is a chain of passes linked by ResumesEntryId, so the
-        // ordinal counts chains, not entries — picking a dropped book back up is
-        // a continuation, not a reread.
+        // Passes linked by ResumesEntryId form one reading, so count chains,
+        // not entries — resuming a dropped book is not a reread.
         var rereads = allPasses
             .GroupBy(p => p.UserMediaItemId)
             .SelectMany(g =>
@@ -223,9 +208,8 @@ public class DiaryQueries(IDbContextFactory<AppDbContext> dbContextFactory)
                 kind == DiaryEventKind.Finished ? entry.RatingAtTime : null,
                 entry.Context, delta, effort, media.Length, isReread);
 
-        // Milestones come from the pass's own dates, not from notes: a note is
-        // only required on finish, so a note-driven feed would silently lose
-        // most "started" events.
+        // Milestones come from the pass's dates, not its notes — only finish
+        // notes are guaranteed to exist.
         if (entry.StartDate is { } start)
             yield return At(
                 entry.ResumesEntryId is null ? DiaryEventKind.Started : DiaryEventKind.Resumed,
@@ -250,7 +234,6 @@ public class DiaryQueries(IDbContextFactory<AppDbContext> dbContextFactory)
         .Select(n => n.Text)
         .FirstOrDefault();
 
-    // Finishing beats dropping beats starting beats a bare log.
     private static int KindRank(DiaryEventKind kind) => kind switch
     {
         DiaryEventKind.Finished => 0,

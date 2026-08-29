@@ -151,8 +151,7 @@ else
     private readonly HashSet<int> _expanded = [];
     private bool _allGenres;
 
-    // Bars are relative to the biggest row, so the longest always fills the
-    // track. The property pattern doubles as the divide-by-zero guard.
+    // Bars are relative to the biggest row; the fallback guards divide-by-zero.
     private int TypeMax =>
         _snapshot is { ByType.Count: > 0 } s ? s.ByType.Max(t => t.Count) : 1;
 
@@ -166,8 +165,7 @@ else
     {
         _snapshot = await Stats.GetSnapshotAsync();
 
-        // Years come back newest-first, so this opens the current year — or the
-        // most recent one with anything in it, rather than an empty January.
+        // Years are newest-first, so this expands the most recent.
         if (_snapshot.Years.Count > 0)
             _expanded.Add(_snapshot.Years[0].Year);
     }
@@ -180,8 +178,7 @@ else
 
     private void OpenItem(int userMediaItemId) => Nav.NavigateTo($"/item/{userMediaItemId}");
 
-    // True month boundaries, not twelve equal columns — a stripe has to line up
-    // with the gridline of the month it actually started in.
+    // True month boundaries, not twelve equal columns.
     private static IEnumerable<(double Left, double Width, char Letter)> Months(int year)
     {
         double total = DateTime.IsLeapYear(year) ? 366 : 365;
@@ -194,13 +191,10 @@ else
         }
     }
 
-    // Invariant culture on purpose: a decimal comma would silently break the
-    // inline style on a Norwegian device.
+    // Invariant culture: a decimal comma would break the inline style.
     private static string Pct(double value) =>
         value.ToString("0.###", CultureInfo.InvariantCulture) + "%";
 
-    // Round caps mean "this is where the pass really started/ended", so the
-    // New Year crossings and the still-running fade are flags on the stripe.
     private static string StripeClass(YearPass pass)
     {
         var classes = "pstripe";

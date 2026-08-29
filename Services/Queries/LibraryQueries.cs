@@ -4,10 +4,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace MediaArchive.Services;
 
-public record LibrarySearchResult(
-    int UserMediaItemId, string Title, string? Creator,
-    MediaType MediaType, string? ImageUrl, MediaStatus Status);
-
 public record LibraryItem(
     int UserMediaItemId,
     string Title,
@@ -24,8 +20,6 @@ public record LibraryItem(
 
 public class LibraryQueries(IDbContextFactory<AppDbContext> dbContextFactory)
 {
-    // The completed collection with everything the constellation renders. Creator
-    // and the name lists need the graph loaded, so this materialises then projects.
     public async Task<List<LibraryItem>> GetLibraryAsync(CancellationToken ct = default)
     {
         await using var db = await dbContextFactory.CreateDbContextAsync(ct);
@@ -34,9 +28,7 @@ public class LibraryQueries(IDbContextFactory<AppDbContext> dbContextFactory)
         return items.Select(ToLibraryItem).ToList();
     }
 
-    // Deliberately unfiltered by status, unlike the constellation itself: the map
-    // is the record of what you finished, but a dropped or half-read item still
-    // has to be findable — otherwise it is reachable only through the Diary.
+    // Unfiltered by status: dropped and in-progress items must stay findable.
     public async Task<List<LibraryItem>> SearchArchiveAsync(string query,
         CancellationToken ct = default)
     {
@@ -82,31 +74,4 @@ public class LibraryQueries(IDbContextFactory<AppDbContext> dbContextFactory)
             m.Tags.Where(mt => mt.Tag is not null).Select(mt => mt.Tag!.Name).Order().ToList());
     }
 
-    // Credits are Included because Creator is [NotMapped] and only resolves once
-    // the rows are in memory.
-    public async Task<List<LibrarySearchResult>> SearchLibraryAsync(string query,
-        CancellationToken ct = default)
-    {
-        var q = query.Trim().ToLower();
-        if (q.Length == 0) return [];
-
-        await using var db = await dbContextFactory.CreateDbContextAsync(ct);
-
-        var matches = await db.UserMediaItems
-            .Where(u => u.MediaItem!.Title.ToLower().Contains(q)
-                        || u.MediaItem.Credits.Any(c => c.Person!.Name.ToLower().Contains(q)))
-            .Include(u => u.MediaItem).ThenInclude(m => m!.Credits).ThenInclude(c => c.Person)
-            .ToListAsync(ct);
-
-        return matches
-            .OrderBy(u => u.MediaItem!.Title.ToLower().StartsWith(q) ? 0 : 1)
-            .ThenBy(u => u.MediaItem!.Title)
-            .Take(10)
-            .Select(u => new LibrarySearchResult(
-                u.Id, u.MediaItem!.Title, u.MediaItem.Creator,
-                u.MediaItem.MediaType,
-                u.MediaItem.LocalImagePath ?? u.MediaItem.ImageUrl,
-                u.Status))
-            .ToList();
-    }
 }

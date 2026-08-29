@@ -6,8 +6,6 @@
 @inject UserItemService UserItems
 @inject IJSRuntime JS
 
-@* The record for one logged item: the work, my classification, the pass log. *@
-
 <PageTitle>@(_item?.Title ?? "Item") · MediaArchive</PageTitle>
 
 @if (_item is null)
@@ -85,7 +83,6 @@ else
         </div>
     </div>
 
-    @* ── action: continue an open pass, or start one ── *@
     @if (item.OpenPass is { } open)
     {
         <div class="iopen">
@@ -153,7 +150,6 @@ else
         <div class="idesc">@item.Description</div>
     }
 
-    @* ── classification ── *@
     <div class="isec">
         <span class="ik">Classification</span>
         @if (_dirty)
@@ -199,7 +195,6 @@ else
         @(_saving ? "…" : "Save classification")
     </button>
 
-    @* ── the pass log ── *@
     <div class="isec">
         <span class="ik">Passes</span>
         <span class="ir">@_history.Count total</span>
@@ -266,12 +261,10 @@ else
     private string _startContext = "";
     private string _startNote = "";
 
-    // The classification (facet/appliesTo) of tags the item already had, so
-    // re-saving doesn't strip it. Tags created here start unclassified.
+    // Facet/AppliesTo of the item's existing tags, so re-saving keeps them.
     private Dictionary<string, TagInput> _knownTags = new(StringComparer.OrdinalIgnoreCase);
 
-    // Runs again when the route parameter changes — navigating item→item reuses
-    // this component instance rather than building a new one.
+    // Item→item navigation reuses this instance, so load on parameter change.
     protected override async Task OnParametersSetAsync()
     {
         _vocabulary = await ImportService.GetVocabularyAsync();
@@ -362,8 +355,6 @@ else
         _item = _item with { IsFavorite = next };
     }
 
-    // A new interval that begins at the dropped pass's effort — the dropped pass
-    // keeps its verdict, so the dormant stretch stays a visible gap.
     private async Task ResumePass(ResumablePass resumable)
     {
         if (_item is null) return;

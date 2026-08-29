@@ -143,8 +143,7 @@ public partial class OpenLibraryProvider(HttpClient httpClient) : IMediaProvider
         return coverId is > 0 ? $"{CoverBaseUrl}/{coverId}-{size}.jpg" : null;
     }
 
-    // The subject feed mixes real topics with machine tags like
-    // "award:hugo_award=1966" or "nyt:trade-fiction-paperback=2021-11-07".
+    // The subject feed mixes real topics with machine tags like "award:hugo_award=1966".
     private static IEnumerable<string> CleanSubjects(List<string>? subjects)
     {
         if (subjects is null)

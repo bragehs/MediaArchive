@@ -6,7 +6,6 @@ using Microsoft.Extensions.Logging;
 
 namespace MediaArchive.Services;
 
-// The controlled vocabulary as it currently exists, for pick-or-create inputs.
 public record Vocabulary(
     List<string> Genres,
     List<string> Tags,
@@ -22,7 +21,6 @@ public class MediaImportService(
     {
         await using var db = await dbContextFactory.CreateDbContextAsync(ct);
 
-        // Single-user archive: these lists stay small enough to load whole.
         var genres = await db.Genres.OrderBy(g => g.Name).Select(g => g.Name).ToListAsync(ct);
         var tags = await db.Tags.OrderBy(t => t.Name).Select(t => t.Name).ToListAsync(ct);
         var universes = await db.Universes.OrderBy(u => u.Name).Select(u => u.Name).ToListAsync(ct);
@@ -41,8 +39,8 @@ public class MediaImportService(
         if (mediaItem is Book book && details.AudioHours is { } audioHours)
             book.AudioHours = audioHours;
 
-        // false = additive: re-importing must not drop hand-added vocabulary.
-        await VocabularyResolver.ApplyWorkDetailsAsync(db, mediaItem, details, false, ct);
+        // Additive so a re-import can't drop hand-added vocabulary.
+        await VocabularyResolver.ApplyWorkDetailsAsync(db, mediaItem, details, replace: false, ct);
         await VocabularyResolver.ApplyCreditsAsync(db, mediaItem, item.Credits, ct);
 
         var userItem = await ResolveUserMediaItemAsync(db, mediaItem, ct);

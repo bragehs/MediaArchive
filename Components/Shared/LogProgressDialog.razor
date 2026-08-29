@@ -3,9 +3,6 @@
 @inject CommonQueries Queries
 @inject IJSRuntime JS
 
-@* Blocking modal for an already-open pass: log progress (AddNote) or finish it
-   (FinishPass). Invoked from Home's open-now rows. *@
-
 <div class="modal-scrim" @onclick="Close">
     <div class="modal" @onclick:stopPropagation="true">
         <div class="cap-head">
@@ -134,12 +131,10 @@
 @code {
     private enum Mode { Progress, Finish }
 
-    // Takes the open pass by id rather than a whole row DTO, so both the home
-    // page and the item detail modal can open it.
     [Parameter, EditorRequired] public int EntryId { get; set; }
     [Parameter, EditorRequired] public string Title { get; set; } = "";
     [Parameter, EditorRequired] public MediaType MediaType { get; set; }
-    // Audiobook: effort is entered in hours and converted to pages before saving.
+    // Audiobook effort is entered in hours and stored as pages.
     [Parameter] public bool Audiobook { get; set; }
     [Parameter] public double? AudioHours { get; set; }
     [Parameter] public int? PageCount { get; set; }
@@ -149,7 +144,7 @@
     private Mode _mode = Mode.Progress;
     private int? _previousEffort;
 
-    // Audiobook effort is stored as pages; show it back in the hours the user logs in.
+    // Shown back in hours even though effort is stored as pages.
     private double? _previousHours => _previousEffort is { } pe && PageCount is > 0 && AudioHours is > 0
         ? Math.Round((double)pe / PageCount.Value * AudioHours.Value, 1)
         : null;
@@ -173,12 +168,10 @@
 
     private bool CanSubmit => _mode switch
     {
-        // Progress logs a data point for stats; the number is required, the note isn't.
         Mode.Progress => Audiobook ? _progressHours is > 0 : _progressEffort is > 0,
         _ => _endDate is not null
     };
 
-    // Audiobook hours → canonical pages; falls through to the plain page effort.
     private int? ToPages(double? hours) => Book.PagesFromHours(hours, AudioHours, PageCount);
 
     private async Task Submit()
@@ -202,7 +195,6 @@
                     new PassFinish(_endDate!.Value, _rating == 0 ? null : _rating,
                         effort, note, _dropped));
 
-                // Completing a logged pass is worth celebrating — not dropping it.
                 if (!_dropped)
                     await JS.InvokeVoidAsync("confetti.burst");
             }

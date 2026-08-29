@@ -118,7 +118,7 @@ public class IgdbProvider(HttpClient httpClient, IgdbAuthenticator authenticator
             hoursToBeat,
             game.Summary,
             Studios(game).ToList(),
-            // Per the mapping choice: IGDB themes are our genres, IGDB genres become tags.
+            // IGDB themes map to our genres; IGDB genres and keywords become tags.
             game.Themes?.Select(t => t.Name).ToList() ?? [],
             RatingScale.FromHundred(game.TotalRating),
             game.TotalRatingCount,

@@ -4,8 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace MediaArchive.Services;
 
-// A pass clipped to one calendar year. Positions are in days, not percentages —
-// turning days into CSS widths is the view's job.
+// A pass clipped to one calendar year, positioned in days.
 public record YearPass(
     int UserMediaItemId,
     string Title,
@@ -26,8 +25,6 @@ public record YearActivity(
     int LaneCount,
     IReadOnlyList<YearPass> Passes);
 
-// Kept as the enum, not a pre-formatted label: the view already owns type
-// labels and colours via UiHelpers.
 public record TypeCount(MediaType MediaType, int Count);
 
 public record GenreCount(string Name, int Count);
@@ -44,14 +41,10 @@ public record ProfileSnapshot(
 
 public class ProfileQueries(IDbContextFactory<AppDbContext> dbContextFactory)
 {
-    // Stripes closer than this share no lane, so two short passes a few days
-    // apart stay visually separate once widths are floored to a few pixels.
+    // Passes closer than this share no lane, so short stripes stay separate.
     private const int LaneGapDays = 3;
 
-    // One materialise, then every aggregate in memory. The archive is a single
-    // local user's few hundred rows, so one round trip beats a SQL aggregate per
-    // panel — and the year ledger walks consumption intervals, which is C# work
-    // either way.
+    // A few hundred rows total: one round trip, every aggregate in memory.
     public async Task<ProfileSnapshot> GetSnapshotAsync(CancellationToken ct = default)
     {
         await using var db = await dbContextFactory.CreateDbContextAsync(ct);
@@ -68,8 +61,6 @@ public class ProfileQueries(IDbContextFactory<AppDbContext> dbContextFactory)
             .Select(u => u.Rating!.Value)
             .ToList();
 
-        // GenreId lives on the join entity, so counting the vocabulary never
-        // needs the Genre rows themselves loaded.
         var genreCount = items
             .SelectMany(u => u.MediaItem!.Genres)
             .Select(mg => mg.GenreId)
@@ -89,9 +80,7 @@ public class ProfileQueries(IDbContextFactory<AppDbContext> dbContextFactory)
                 .OrderByDescending(t => t.Count)
                 .ThenBy(t => t.MediaType)
                 .ToList(),
-            // An item counts once per genre it carries, so these sum to more
-            // than the archive total — a genre row is "items tagged this", not
-            // a partition of the library.
+            // An item counts once per genre, so rows sum past the archive total.
             ByGenre: items
                 .SelectMany(u => u.MediaItem!.Genres)
                 .Where(mg => mg.Genre is not null)
@@ -102,10 +91,7 @@ public class ProfileQueries(IDbContextFactory<AppDbContext> dbContextFactory)
                 .ToList());
     }
 
-    // One band per calendar year, newest first. A pass that spans New Year is
-    // drawn in every year it touches, clipped to each — the band answers "what
-    // was running during this year", so dropping the carried-over part would
-    // leave months looking idle that weren't.
+    // A pass spanning New Year is drawn in every year it touches, clipped to each.
     private static List<YearActivity> BuildYears(List<UserMediaItem> items, DateOnly today)
     {
         var passes = items
@@ -114,7 +100,6 @@ public class ProfileQueries(IDbContextFactory<AppDbContext> dbContextFactory)
             .Select(p => (
                 p.Item,
                 Start: p.Entry.StartDate!.Value,
-                // An unfinished pass runs to today and never past it.
                 End: p.Entry.EndDate ?? today,
                 IsOpen: p.Entry.EndDate is null))
             .Where(p => p.End >= p.Start)
@@ -149,17 +134,14 @@ public class ProfileQueries(IDbContextFactory<AppDbContext> dbContextFactory)
 
             if (inYear.Count == 0) continue;
 
-            // Coverage sweep. Peak depth is true concurrency; the non-zero count
-            // is the union of the intervals. Summing pass lengths instead would
-            // double-count every day two things were open.
+            // Coverage sweep: peak depth is concurrency, non-zero days the union.
             var cover = new int[daysInYear];
             foreach (var p in inYear)
                 for (var d = p.StartDay; d < p.StartDay + p.Days; d++)
                     cover[d]++;
 
-            // Greedy lane packing, purely so stripes don't overlap. LaneGapDays
-            // makes LaneCount drift above MaxConcurrent, so it drives the band's
-            // height and never the "deep at its busiest" figure.
+            // Greedy lane packing; LaneGapDays can push LaneCount above
+            // MaxConcurrent, so it drives band height only.
             var laneEnds = new List<int>();
             var laid = new List<YearPass>(inYear.Count);
             foreach (var p in inYear)

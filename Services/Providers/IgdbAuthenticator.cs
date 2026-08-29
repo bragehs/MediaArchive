@@ -23,7 +23,6 @@ public sealed class IgdbAuthenticator(IHttpClientFactory httpClientFactory, IOpt
         await _gate.WaitAsync(cancellationToken);
         try
         {
-            // Another caller may have refreshed while we waited on the gate.
             if (IsValid())
                 return _token!;
 

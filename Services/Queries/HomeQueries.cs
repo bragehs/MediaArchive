@@ -108,9 +108,8 @@ public class HomeQueries(
         var from = weekStart.ToDateTime(TimeOnly.MinValue);
         var toExclusive = weekStart.AddDays(7).ToDateTime(TimeOnly.MinValue);
 
-        // Load each pass's full note history so the cumulative-effort walk has its
-        // running baseline — filtering the Include to this week would silently
-        // corrupt the running total.
+        // The effort walk needs each pass's full note history as its baseline —
+        // filtering the Include to this week would corrupt the deltas.
         var entries = await db.ConsumptionEntries
             .Where(e => e.Notes.Any(n => n.CreatedAt >= from && n.CreatedAt < toExclusive))
             .Include(e => e.Notes)

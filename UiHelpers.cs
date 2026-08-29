@@ -22,15 +22,6 @@ public static class UiHelpers
         _ => s.ToString()
     };
 
-    public static string StatusClass(MediaStatus s) => s switch
-    {
-        MediaStatus.Completed => "st-completed",
-        MediaStatus.InProgress => "st-inprogress",
-        MediaStatus.Interested => "st-interested",
-        MediaStatus.Dropped => "st-dropped",
-        _ => ""
-    };
-
     public static string TypeKey(MediaType t) => t.ToString().ToLowerInvariant();
 
     public static string TypeLabel(MediaType t) => t switch
@@ -76,7 +67,6 @@ public static class UiHelpers
         _ => "Other"
     };
 
-    // Context is inherently type-specific — an audiobook isn't a console.
     public static ConsumptionContext[] ContextsFor(MediaType t) => t switch
     {
         MediaType.Book =>

@@ -9,7 +9,6 @@ public record CoverCard(int UserMediaItemId, string Title, string? ImageUrl);
 
 public record OpenPassSummary(int EntryId, DateOnly? StartDate, int? Effort, double? Progress);
 
-// The most recent dropped pass, offered as a resume point when nothing is open.
 public record ResumablePass(int EntryId, DateOnly? EndDate, int? Effort);
 
 public record ItemDetail(
@@ -50,10 +49,9 @@ public record PassSummary(
     ConsumptionContext? Context,
     List<PassNote> Notes);
 
-// Reads shared across surfaces (Home, Library, Explore, item page).
 public class CommonQueries(IDbContextFactory<AppDbContext> dbContextFactory)
 {
-    // Reusable projection: surface queries drop this into their own .Select.
+    // An Expression so surface queries can embed it in their own Select.
     public static readonly Expression<Func<UserMediaItem, CoverCard>> ToCoverCard =
         u => new CoverCard(u.Id, u.MediaItem!.Title,
             u.MediaItem.LocalImagePath ?? u.MediaItem.ImageUrl);
@@ -99,8 +97,7 @@ public class CommonQueries(IDbContextFactory<AppDbContext> dbContextFactory)
                     ? (double)effort / length * 100
                     : null);
 
-        // Only when nothing is open: picking up a dropped pass and running a
-        // second one at the same time are different things.
+        // Resuming is only offered while nothing is open.
         var resumable = open is not null
             ? null
             : item.Entries

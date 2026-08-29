@@ -39,9 +39,8 @@ public class LoggingService(
         return entry.Id;
     }
 
-    // Picks up a dropped pass as a new interval that starts at the old one's
-    // effort. The dropped pass keeps its verdict — the dormant months stay a
-    // visible gap between two intervals rather than being swallowed by one.
+    // A new interval starting at the dropped pass's effort — the source pass
+    // keeps its verdict and the dormant gap stays visible.
     public async Task<int> ResumePassAsync(int entryId, PassStart start,
         CancellationToken ct = default)
     {

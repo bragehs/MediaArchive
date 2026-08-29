@@ -1,7 +1,3 @@
-@* Pick-from-existing-or-create-new input. Selected values render as removable chips;
-   typing filters known values and Enter commits either the highlighted match or the
-   raw text as a new term. *@
-
 <div class="vp">
     <div class="vp-selected">
         @foreach (var value in Selected)
@@ -38,14 +34,12 @@
 </div>
 
 @code {
-    // Values already chosen. Two-way bound so the parent owns the list.
     [Parameter] public List<string> Selected { get; set; } = [];
     [Parameter] public EventCallback<List<string>> SelectedChanged { get; set; }
 
-    // Existing vocabulary from the DB — the whole point of the control.
     [Parameter] public List<string> Suggestions { get; set; } = [];
 
-    // Cap on selections. 1 makes it single-valued (a new pick replaces the old).
+    // Max = 1 makes it single-valued: a new pick replaces the old.
     [Parameter] public int? Max { get; set; }
 
     [Parameter] public string? Placeholder { get; set; }
@@ -67,7 +61,6 @@
         if (trimmed.Length == 0 || Selected.Contains(trimmed, StringComparer.OrdinalIgnoreCase))
             return;
 
-        // Single-valued mode: the new pick replaces whatever was there.
         if (Max is { } max && Selected.Count >= max)
             Selected.RemoveRange(0, Selected.Count - max + 1);
 

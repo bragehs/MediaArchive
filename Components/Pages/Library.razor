@@ -51,7 +51,7 @@
     public async Task<List<object>> Search(string query) =>
         (await Lib.SearchArchiveAsync(query)).Select(ToJs).ToList();
 
-    // Shape the canvas JS reads (the design draft's short keys; media type as a string).
+    // The shape constellation.js expects.
     private static object ToJs(LibraryItem i) => new
     {
         id = i.UserMediaItemId,
