@@ -60,26 +60,6 @@
     padding: 13px 16px 20px;
 }
 
-.ehead { margin: 6px 0 12px; }
-.ekick { color: var(--dim); }
-.etitle {
-    font-family: var(--f-title);
-    font-weight: 700;
-    color: var(--ac);
-    font-size: 30px;
-    line-height: 1.05;
-    letter-spacing: -.01em;
-    margin: 6px 0;
-    outline: none;
-}
-.esub {
-    font-family: var(--f-serif);
-    font-style: italic;
-    color: var(--dim);
-    font-size: 13px;
-    line-height: 1.45;
-}
-
 .sfield {
     display: flex;
     align-items: center;

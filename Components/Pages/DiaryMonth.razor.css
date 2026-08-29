@@ -38,8 +38,6 @@
     margin: 22px 0 4px;
 }
 
-/* ── Milestone: the loud tier. Cover, a rule above the row, note as a serif
-   pull-quote — the same contrast Home draws between .mnow and its metadata. ── */
 .dms {
     display: flex;
     gap: 12px;
