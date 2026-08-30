@@ -34,13 +34,14 @@
 
 @code {
     private DotNetObjectReference<Library>? _ref;
+    private int _gen;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender) return;
         var items = (await Lib.GetLibraryAsync()).Select(ToJs).ToList();
         _ref = DotNetObjectReference.Create(this);
-        await JS.InvokeVoidAsync("constellation.init", items, _ref);
+        _gen = await JS.InvokeAsync<int>("constellation.init", items, _ref);
     }
 
     [JSInvokable]
@@ -69,7 +70,7 @@
 
     public async ValueTask DisposeAsync()
     {
-        try { await JS.InvokeVoidAsync("constellation.dispose"); } catch { }
+        try { await JS.InvokeVoidAsync("constellation.dispose", _gen); } catch { }
         _ref?.Dispose();
     }
 }

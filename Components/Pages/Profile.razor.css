@@ -272,3 +272,52 @@
     text-overflow: ellipsis;
     white-space: nowrap;
 }
+
+/* ── records: one pane per medium ── */
+.prtabs { display: flex; gap: 6px; margin-bottom: 14px; }
+.prtab {
+    padding: 5px 11px;
+    border: 1px solid var(--line);
+    border-radius: var(--r-sm);
+    background: none;
+    font-family: var(--f-display);
+    font-size: 10.5px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--dim);
+    cursor: pointer;
+}
+.prtab.on { color: var(--on-ac); background: var(--ac); border-color: var(--ac); }
+
+/* The progression: one bar per week, normalised to the busiest week shown. */
+.prchart {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: 74px;
+    border-bottom: 1px solid var(--line2);
+}
+.prwk { position: relative; flex: 1; height: 100%; display: flex; align-items: flex-end; }
+.prwk i {
+    display: block;
+    width: 100%;
+    min-height: 1px;
+    background: var(--ac);
+    opacity: .85;
+    border-radius: 2px 2px 0 0;
+}
+.prwm {
+    position: absolute;
+    bottom: -15px;
+    left: 0;
+    font-family: var(--f-display);
+    font-size: 8px;
+    color: var(--dim);
+}
+.prchl {
+    font-family: var(--f-serif);
+    font-style: italic;
+    font-size: 11px;
+    color: var(--dim);
+    margin: 18px 0 6px;
+}

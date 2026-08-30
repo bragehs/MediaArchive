@@ -120,44 +120,68 @@ else
     }
 
     <div class="psec"><span class="psk">Records</span><span class="psr">The extremes</span></div>
-    <div class="precs">
-        @if (_snapshot.LongestPass is { } longest)
+
+    @if (_snapshot.Panels.Count > 0)
+    {
+        <div class="prtabs">
+            @foreach (var panel in _snapshot.Panels)
+            {
+                <button class="prtab @(panel.MediaType == _recordsTab ? "on" : "")"
+                        @onclick="() => _recordsTab = panel.MediaType">
+                    @UiHelpers.TypeLabel(panel.MediaType)s
+                </button>
+            }
+        </div>
+
+        @if (Current is { } current)
         {
-            <button class="prec" @onclick="() => Open(longest.UserMediaItemId)">
-                <span class="prl">Longest pass</span>
-                <span class="prv">@Days(longest.Days)</span>
-                <span class="prt">@longest.Title</span>
-            </button>
-        }
-        @if (_snapshot.FastestFinish is { } fastest)
-        {
-            <button class="prec" @onclick="() => Open(fastest.UserMediaItemId)">
-                <span class="prl">Fastest finish</span>
-                <span class="prv">@Days(fastest.Days)</span>
-                <span class="prt">@fastest.Title</span>
-            </button>
-        }
-        @if (_snapshot.DeepestBail is { } bail)
-        {
-            <button class="prec" @onclick="() => Open(bail.UserMediaItemId)">
-                <span class="prl">Deepest bail</span>
-                <span class="prv">@bail.Share.ToString("P0", CultureInfo.InvariantCulture) in</span>
-                <span class="prt">@bail.Title</span>
-            </button>
-        }
-        @if (_snapshot.BusiestMonth is { } busiest)
-        {
-            <div class="prec">
-                <span class="prl">Busiest month</span>
-                <span class="prv">@busiest.Logs logs</span>
-                <span class="prt">@MonthName(busiest.Month) @busiest.Year</span>
+            @if (current.Weekly.Any(w => w.Value > 0))
+            {
+                var max = current.Weekly.Max(w => w.Value);
+                <div class="prchart">
+                    @foreach (var week in current.Weekly)
+                    {
+                        <div class="prwk" title="week of @week.WeekStart.ToString("d MMM") · @Trim(week.Value) @current.Unit">
+                            <i style="height:@(Pct(week.Value, max))"></i>
+                            @if (week.WeekStart.Day <= 7)
+                            {
+                                <span class="prwm">@week.WeekStart.ToString("MMM")[0]</span>
+                            }
+                        </div>
+                    }
+                </div>
+                <div class="prchl">@current.Unit / week · last 6 months</div>
+            }
+
+            <div class="precs">
+                @foreach (var record in current.Records)
+                {
+                    <button class="prec" @onclick="() => Open(record.UserMediaItemId)">
+                        <span class="prl">@record.Label</span>
+                        <span class="prv">@record.Value</span>
+                        <span class="prt">@record.Title</span>
+                    </button>
+                }
+                @if (_snapshot.BusiestMonth is { } busiest)
+                {
+                    <div class="prec">
+                        <span class="prl">Busiest month</span>
+                        <span class="prv">@busiest.Logs logs</span>
+                        <span class="prt">@MonthName(busiest.Month) @busiest.Year · everything</span>
+                    </div>
+                }
             </div>
         }
-    </div>
+    }
 }
 
 @code {
     private ProfileSnapshot? _snapshot;
+    private MediaType _recordsTab = MediaType.Book;
+
+    private TypePanel? Current =>
+        _snapshot?.Panels.FirstOrDefault(p => p.MediaType == _recordsTab)
+        ?? _snapshot?.Panels.FirstOrDefault();
 
     protected override async Task OnInitializedAsync() =>
         _snapshot = await Stats.GetSnapshotAsync();
@@ -171,12 +195,8 @@ else
     private static string Trim(double value) =>
         value.ToString("#,0.#", CultureInfo.InvariantCulture);
 
-    private static string Days(int days) => days switch
-    {
-        0 => "same day",
-        1 => "1 day",
-        _ => $"{days} days"
-    };
+    private static string Pct(double value, double max) =>
+        (max <= 0 ? 0 : value / max * 100).ToString("0.#", CultureInfo.InvariantCulture) + "%";
 
     private static string MonthName(int month) =>
         CultureInfo.InvariantCulture.DateTimeFormat.GetMonthName(month);

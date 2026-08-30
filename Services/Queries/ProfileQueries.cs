@@ -20,9 +20,14 @@ public record UniverseCard(string Name, int Works, double? AvgRating, bool Still
 public record CreatorLine(string Name, int Works, double? AvgRating,
     IReadOnlyList<MediaType> Types);
 
-public record PassRecord(int UserMediaItemId, string Title, MediaType MediaType, int Days);
+public record TypeRecord(string Label, string Value, int UserMediaItemId, string Title);
 
-public record BailRecord(int UserMediaItemId, string Title, MediaType MediaType, double Share);
+public record WeekBucket(DateOnly WeekStart, double Value);
+
+// One toggle pane per media type: an effort-per-week progression in the type's
+// native unit, and the extremes that make sense for that medium.
+public record TypePanel(MediaType MediaType, string Unit,
+    IReadOnlyList<WeekBucket> Weekly, IReadOnlyList<TypeRecord> Records);
 
 public record MonthRecord(int Year, int Month, int Logs);
 
@@ -35,9 +40,7 @@ public record ProfileSnapshot(
     IReadOnlyList<FameItem> HallOfFame,
     IReadOnlyList<UniverseCard> Universes,
     IReadOnlyList<CreatorLine> Canon,
-    PassRecord? LongestPass,
-    PassRecord? FastestFinish,
-    BailRecord? DeepestBail,
+    IReadOnlyList<TypePanel> Panels,
     MonthRecord? BusiestMonth);
 
 public class ProfileQueries(IDbContextFactory<AppDbContext> dbContextFactory)
@@ -77,9 +80,7 @@ public class ProfileQueries(IDbContextFactory<AppDbContext> dbContextFactory)
             HallOfFame: BuildHallOfFame(items),
             Universes: BuildUniverses(items),
             Canon: BuildCanon(items),
-            LongestPass: BuildLongestPass(items),
-            FastestFinish: BuildFastestFinish(items),
-            DeepestBail: BuildDeepestBail(items),
+            Panels: BuildPanels(items, DateOnly.FromDateTime(DateTime.Today)),
             BusiestMonth: BuildBusiestMonth(items));
     }
 
@@ -164,6 +165,86 @@ public class ProfileQueries(IDbContextFactory<AppDbContext> dbContextFactory)
         .ThenByDescending(c => c.AvgRating ?? 0)
         .ToList();
 
+    private const int WeeklyWindow = 26;
+
+    private static List<TypePanel> BuildPanels(List<UserMediaItem> items, DateOnly today) =>
+        new[] { MediaType.Book, MediaType.Game, MediaType.Movie, MediaType.Show }
+            .Select(t => BuildPanel(items.Where(u => u.MediaItem!.MediaType == t).ToList(), t, today))
+            .Where(p => p.Records.Count > 0 || p.Weekly.Any(w => w.Value > 0))
+            .ToList();
+
+    private static TypePanel BuildPanel(List<UserMediaItem> items, MediaType type, DateOnly today)
+    {
+        var records = type switch
+        {
+            MediaType.Book => BookRecords(items),
+            MediaType.Game => GameRecords(items),
+            MediaType.Movie => MovieRecords(items),
+            _ => ShowRecords(items)
+        };
+
+        return new TypePanel(type, UiHelpers.LengthUnit(type), BuildWeekly(items, today), records);
+    }
+
+    // Effort between two dated points is spread evenly across the days between
+    // them — piecewise-linear, not a spike on the note's day. Where progress was
+    // logged often the curve is sharp; a pass known only by its endpoints
+    // degrades to its average pace instead of a cliff on the finish week.
+    private static List<WeekBucket> BuildWeekly(List<UserMediaItem> items, DateOnly today)
+    {
+        var windowStart = StartOfWeek(today).AddDays(-7 * (WeeklyWindow - 1));
+        var buckets = new double[WeeklyWindow];
+
+        foreach (var entry in items.SelectMany(u => u.Entries))
+        {
+            var points = EffortPoints(entry, today);
+            for (var k = 1; k < points.Count; k++)
+            {
+                var (fromDay, fromVal) = points[k - 1];
+                var (toDay, toVal) = points[k];
+                var delta = toVal - fromVal;
+                if (delta <= 0) continue;
+
+                var days = Math.Max(1, toDay.DayNumber - fromDay.DayNumber);
+                var perDay = delta / days;
+                for (var d = 0; d < days; d++)
+                {
+                    var day = toDay.AddDays(-d);
+                    var week = (StartOfWeek(day).DayNumber - windowStart.DayNumber) / 7;
+                    if (week >= 0 && week < WeeklyWindow)
+                        buckets[week] += perDay;
+                }
+            }
+        }
+
+        return Enumerable.Range(0, WeeklyWindow)
+            .Select(i => new WeekBucket(windowStart.AddDays(7 * i), Math.Round(buckets[i], 1)))
+            .ToList();
+    }
+
+    // The dated cumulative-effort points of one pass: its start (at the resumed
+    // baseline), every note that carries effort, and — for passes that recorded
+    // no notes, like a film logged in one sitting — the closing total itself.
+    private static List<(DateOnly Day, double Value)> EffortPoints(ConsumptionEntry entry, DateOnly today)
+    {
+        var points = new List<(DateOnly, double)>();
+        if (entry.StartDate is not { } start) return points;
+
+        points.Add((start, entry.StartingEffort ?? 0));
+
+        foreach (var step in EffortMath.Walk(entry))
+            if (step.Note.EffortAtTime is not null)
+                points.Add((DateOnly.FromDateTime(step.When), step.Cumulative));
+
+        if (entry.Effort is { } total && total > points[^1].Item2)
+            points.Add((entry.EndDate ?? today, total));
+
+        return points;
+    }
+
+    private static DateOnly StartOfWeek(DateOnly day) =>
+        day.AddDays(-(((int)day.DayOfWeek + 6) % 7));
+
     private static IEnumerable<(UserMediaItem Item, ConsumptionEntry Entry, int Days)>
         ClosedPasses(List<UserMediaItem> items) => items
         .SelectMany(u => u.Entries, (u, e) => (Item: u, Entry: e))
@@ -171,33 +252,124 @@ public class ProfileQueries(IDbContextFactory<AppDbContext> dbContextFactory)
         .Select(p => (p.Item, p.Entry,
             Days: p.Entry.EndDate!.Value.DayNumber - p.Entry.StartDate!.Value.DayNumber));
 
-    private static PassRecord? BuildLongestPass(List<UserMediaItem> items) =>
-        ClosedPasses(items)
-            .OrderByDescending(p => p.Days)
-            .Select(p => new PassRecord(p.Item.Id, p.Item.MediaItem!.Title,
-                p.Item.MediaItem.MediaType, p.Days))
-            .FirstOrDefault();
-
-    // Films finish in a sitting by nature, so they'd hold this record forever;
-    // it only means something for media consumed across days.
-    private static PassRecord? BuildFastestFinish(List<UserMediaItem> items) =>
-        ClosedPasses(items)
-            .Where(p => p.Entry.Outcome == PassOutcome.Completed
-                        && p.Item.MediaItem!.MediaType != MediaType.Movie)
-            .OrderBy(p => p.Days)
-            .Select(p => new PassRecord(p.Item.Id, p.Item.MediaItem!.Title,
-                p.Item.MediaItem.MediaType, p.Days))
-            .FirstOrDefault();
-
-    private static BailRecord? BuildDeepestBail(List<UserMediaItem> items) => items
+    private static TypeRecord? Bail(List<UserMediaItem> items, string per) => items
         .SelectMany(u => u.Entries, (u, e) => (Item: u, Entry: e))
         .Where(p => p.Entry.Outcome == PassOutcome.Dropped
                     && p.Entry.Effort is not null && p.Item.MediaItem!.Length is not null)
-        .Select(p => new BailRecord(p.Item.Id, p.Item.MediaItem!.Title,
-            p.Item.MediaItem.MediaType,
-            (double)p.Entry.Effort!.Value / p.Item.MediaItem.Length!.Value))
-        .OrderByDescending(b => b.Share)
+        .OrderByDescending(p => (double)p.Entry.Effort! / p.Item.MediaItem!.Length!.Value)
+        .Select(p => new TypeRecord("Deepest bail",
+            $"{(double)p.Entry.Effort! / p.Item.MediaItem!.Length!.Value:P0} in",
+            p.Item.Id, p.Item.MediaItem.Title))
         .FirstOrDefault();
+
+    private static List<TypeRecord> BookRecords(List<UserMediaItem> items)
+    {
+        var records = new List<TypeRecord?>();
+        var finished = ClosedPasses(items)
+            .Where(p => p.Entry.Outcome == PassOutcome.Completed
+                        && p.Item.MediaItem!.Length is not null)
+            .ToList();
+
+        records.Add(finished
+            .OrderByDescending(p => (double)p.Item.MediaItem!.Length! / Math.Max(1, p.Days))
+            .Select(p => new TypeRecord("Fastest pace",
+                $"{(double)p.Item.MediaItem!.Length! / Math.Max(1, p.Days):0.#} pages/day",
+                p.Item.Id, p.Item.MediaItem.Title))
+            .FirstOrDefault());
+
+        records.Add(ClosedPasses(items)
+            .OrderByDescending(p => p.Days)
+            .Select(p => new TypeRecord("Longest read", $"{p.Days} days",
+                p.Item.Id, p.Item.MediaItem!.Title))
+            .FirstOrDefault());
+
+        records.Add(finished
+            .OrderByDescending(p => p.Item.MediaItem!.Length)
+            .Select(p => new TypeRecord("Doorstop", $"{p.Item.MediaItem!.Length:#,0} pages",
+                p.Item.Id, p.Item.MediaItem.Title))
+            .FirstOrDefault());
+
+        records.Add(Bail(items, "pages"));
+        return records.Where(r => r is not null).Select(r => r!).ToList();
+    }
+
+    private static List<TypeRecord> GameRecords(List<UserMediaItem> items)
+    {
+        var records = new List<TypeRecord?>();
+
+        records.Add(items
+            .Select(u => (u, Hours: u.Entries.Sum(e => (e.Effort ?? 0) - (e.StartingEffort ?? 0))))
+            .Where(x => x.Hours > 0)
+            .OrderByDescending(x => x.Hours)
+            .Select(x => new TypeRecord("Deepest sink", $"{x.Hours:#,0} h",
+                x.u.Id, x.u.MediaItem!.Title))
+            .FirstOrDefault());
+
+        records.Add(ClosedPasses(items)
+            .OrderByDescending(p => p.Days)
+            .Select(p => new TypeRecord("Longest campaign", $"{p.Days} days",
+                p.Item.Id, p.Item.MediaItem!.Title))
+            .FirstOrDefault());
+
+        // Your hours against the community estimate: rusher or completionist.
+        records.Add(ClosedPasses(items)
+            .Where(p => p.Entry.Outcome == PassOutcome.Completed
+                        && p.Entry.Effort is not null && p.Item.MediaItem!.Length is > 0)
+            .OrderByDescending(p => (double)p.Entry.Effort! / p.Item.MediaItem!.Length!.Value)
+            .Select(p => new TypeRecord("Against the clock",
+                $"{p.Entry.Effort} h vs {p.Item.MediaItem!.Length} h",
+                p.Item.Id, p.Item.MediaItem.Title))
+            .FirstOrDefault());
+
+        records.Add(Bail(items, "hours"));
+        return records.Where(r => r is not null).Select(r => r!).ToList();
+    }
+
+    private static List<TypeRecord> MovieRecords(List<UserMediaItem> items)
+    {
+        var records = new List<TypeRecord?>();
+
+        records.Add(items
+            .Where(u => u.MediaItem!.Length is not null && u.Entries.Any(e => e.EndDate is not null))
+            .OrderByDescending(u => u.MediaItem!.Length)
+            .Select(u => new TypeRecord("Longest sitting", $"{u.MediaItem!.Length} min",
+                u.Id, u.MediaItem.Title))
+            .FirstOrDefault());
+
+        records.Add(items
+            .Select(u => (u, Passes: u.Entries.Count(e => e.EndDate is not null)))
+            .Where(x => x.Passes > 1)
+            .OrderByDescending(x => x.Passes)
+            .Select(x => new TypeRecord("Most rewatched", $"{x.Passes}×",
+                x.u.Id, x.u.MediaItem!.Title))
+            .FirstOrDefault());
+
+        return records.Where(r => r is not null).Select(r => r!).ToList();
+    }
+
+    private static List<TypeRecord> ShowRecords(List<UserMediaItem> items)
+    {
+        var records = new List<TypeRecord?>();
+
+        records.Add(items
+            .Select(u => (u, Episodes: u.Entries.Sum(e => (e.Effort ?? 0) - (e.StartingEffort ?? 0))))
+            .Where(x => x.Episodes > 0)
+            .OrderByDescending(x => x.Episodes)
+            .Select(x => new TypeRecord("Episode mountain", $"{x.Episodes:#,0} episodes",
+                x.u.Id, x.u.MediaItem!.Title))
+            .FirstOrDefault());
+
+        records.Add(ClosedPasses(items)
+            .Where(p => p.Entry.Outcome == PassOutcome.Completed && p.Entry.Effort is > 0)
+            .OrderByDescending(p => (double)p.Entry.Effort! / Math.Max(1, p.Days))
+            .Select(p => new TypeRecord("Fastest binge",
+                $"{(double)p.Entry.Effort! / Math.Max(1, p.Days):0.#} eps/day",
+                p.Item.Id, p.Item.MediaItem!.Title))
+            .FirstOrDefault());
+
+        records.Add(Bail(items, "episodes"));
+        return records.Where(r => r is not null).Select(r => r!).ToList();
+    }
 
     // A "log" here matches the Diary's event grammar: a start, a finish, and
     // every progress note each count once, on their own dates.

@@ -32,6 +32,11 @@ window.constellation = (function () {
   let el = {}, VW = 0, VH = 0, DPR = 1, cam = { x: 0, y: 0, z: 0.66 };
   let alpha = 1, dragging = null, selected = null, hiSet = null, searchHits = null;
   let raf = 0, wiredWindow = false, searchTimer = 0, camTo = null;
+  // `gen` pairs each init with its dispose: Blazor's dispose interop can land
+  // after the next visit's init, and without the token it would cancel the new
+  // frame loop. `sig` detects unchanged data so a revisit reuses the laid-out
+  // graph (and camera/selection) instead of rebuilding cold.
+  let gen = 0, sig = '';
 
   const genresOf = it => [...new Set(it.g || [])];
   // Genres are stored lower case as one canonical key; capitalising is the
@@ -454,8 +459,9 @@ window.constellation = (function () {
   }
 
   function init(data, ref) {
+    gen++;
     if (raf) cancelAnimationFrame(raf);
-    items = data || []; dotNet = ref;
+    dotNet = ref;
     el = {
       stage: document.getElementById('cstage'), canvas: document.getElementById('ccanvas'),
       panel: document.getElementById('cpanel'), scrim: document.getElementById('cscrim'),
@@ -463,14 +469,23 @@ window.constellation = (function () {
       reset: document.getElementById('creset'), cnt: document.getElementById('ccnt'),
       q: document.getElementById('cq'), res: document.getElementById('cres'), clr: document.getElementById('cclr')
     };
-    if (!el.canvas) return;
+    if (!el.canvas) return gen;
     ctx = el.canvas.getContext('2d');
-    cam = { x: 0, y: 0, z: 0.66 }; selected = null; hiSet = null; searchHits = null; dragging = null;
+    pts.clear(); pinch = null; dragging = null; panning = false; searchHits = null;
 
-    build();
-    resize();
-    alpha = 1; let guard = 0; while (alpha > 0.02 && guard++ < 4000) step();
-    fitView();
+    const s = JSON.stringify(data);
+    const reuse = s === sig && nodes.length > 0;
+    if (!reuse) {
+      sig = s; items = data || [];
+      cam = { x: 0, y: 0, z: 0.66 }; selected = null; hiSet = null;
+      build();
+      resize();
+      alpha = 1; let guard = 0; while (alpha > 0.02 && guard++ < 4000) step();
+      fitView();
+      alpha = 1;
+    } else {
+      resize();
+    }
 
     if (!wiredWindow) { addEventListener('resize', () => { if (el.canvas) resize(); }); wiredWindow = true; }
     wirePointer();
@@ -481,13 +496,20 @@ window.constellation = (function () {
     el.clr.onclick = () => { el.q.value = ''; runSearch(); el.q.focus(); };
     el.cnt.textContent = `${items.length} works · ${Object.keys(genreNode).length} genres`;
 
-    alpha = 1;
+    // The panel DOM is fresh each visit; re-select restores it and the classes.
+    if (reuse && selected) select(selected);
+
     raf = requestAnimationFrame(draw);
+    return gen;
   }
 
-  // Drop the decoded textures when the page goes away — Library is one tab of
-  // several and the bitmaps are the only meaningful memory this holds.
-  function dispose() { if (raf) cancelAnimationFrame(raf); raf = 0; covers.clear(); }
+  // Stops the frame loop but keeps the graph, camera and decoded covers so a
+  // revisit with unchanged data resumes where the user left. Ignores a stale
+  // token — a dispose that arrives after the next init must not cancel it.
+  function dispose(g) {
+    if (g !== gen) return;
+    if (raf) cancelAnimationFrame(raf); raf = 0;
+  }
 
   return { init, dispose };
 })();
