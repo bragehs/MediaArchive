@@ -149,6 +149,8 @@ body::before {
     overflow-y: auto;
 }
 .modal {
+    /* auto margins centre it vertically while staying scrollable when tall */
+    margin: auto 0;
     width: 100%;
     max-width: 720px;
     background: var(--bg);

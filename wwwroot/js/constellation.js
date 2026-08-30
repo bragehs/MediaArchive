@@ -351,11 +351,11 @@ window.constellation = (function () {
   function centerOn(node) { camTo = { x: -node.x * cam.z, y: -node.y * cam.z }; alpha = Math.max(alpha, 0.2); }
 
   function fitView(pad) {
-    pad = pad || 60;
+    pad = pad || 90;
     let minx = 1e9, maxx = -1e9, miny = 1e9, maxy = -1e9;
     for (const n of nodes) { minx = Math.min(minx, n.x - n.r); maxx = Math.max(maxx, n.x + n.r); miny = Math.min(miny, n.y - n.r); maxy = Math.max(maxy, n.y + n.r); }
     const gw = maxx - minx || 1, gh = maxy - miny || 1;
-    cam.z = clamp(Math.min((VW - pad * 2) / gw, (VH - pad * 2) / gh), 0.3, 1.4);
+    cam.z = clamp(Math.min((VW - pad * 2) / gw, (VH - pad * 2) / gh), 0.26, 1.15);
     cam.x = -((minx + maxx) / 2) * cam.z; cam.y = -((miny + maxy) / 2) * cam.z;
   }
 
@@ -365,6 +365,10 @@ window.constellation = (function () {
   function wirePointer() {
     const stage = el.stage;
     stage.onpointerdown = e => {
+      // WKWebView can drop pointerup/cancel when a system gesture steals the
+      // touch, leaving a ghost id in `pts` that turns every later tap into a
+      // phantom pinch. A new primary pointer means a fresh gesture — reset.
+      if (e.isPrimary) { pts.clear(); pinch = null; dragging = null; panning = false; }
       stage.setPointerCapture(e.pointerId); pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
       if (pts.size === 2) {
         const p = [...pts.values()];
@@ -381,7 +385,7 @@ window.constellation = (function () {
         const p = [...pts.values()];
         const d = Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y);
         const mx = (p[0].x + p[1].x) / 2, my = (p[0].y + p[1].y) / 2;
-        cam.z = clamp(pinch.z * d / pinch.d, 0.32, 3);
+        cam.z = clamp(pinch.z * d / pinch.d, 0.26, 3);
         camTo = null;
         const r = el.stage.getBoundingClientRect();
         cam.x = (mx - r.left - VW / 2) - pinch.w.x * cam.z;
@@ -405,7 +409,8 @@ window.constellation = (function () {
       dragging = null; if (pts.size === 0) panning = false;
     };
     stage.onpointerup = up; stage.onpointercancel = up;
-    stage.onwheel = e => { e.preventDefault(); cam.z = clamp(cam.z * (e.deltaY < 0 ? 1.1 : 0.9), 0.32, 3); };
+    stage.onlostpointercapture = e => { pts.delete(e.pointerId); if (pts.size < 2) pinch = null; };
+    stage.onwheel = e => { e.preventDefault(); cam.z = clamp(cam.z * (e.deltaY < 0 ? 1.1 : 0.9), 0.26, 3); };
   }
 
   // ---- search: genres client-side, items from the server ----

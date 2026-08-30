@@ -55,6 +55,7 @@
     color: var(--ink);
 }
 .sheethead .x { flex: none; color: var(--dim); font-size: 17px; }
+.sheethead .hback { flex: none; color: var(--muted); font-size: 24px; line-height: 1; padding: 0 6px 2px 0; }
 .sheetbody {
     overflow-y: auto;
     padding: 13px 16px 20px;

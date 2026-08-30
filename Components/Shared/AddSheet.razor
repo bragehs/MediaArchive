@@ -12,6 +12,10 @@
         <div class="grabber"></div>
     }
     <div class="sheethead">
+        @if (_selected is not null)
+        {
+            <button class="hback" @onclick="Reset" aria-label="Back to search">‹</button>
+        }
         <span class="stt">@(_selected is null ? "Add anything" : (_detail?.Title ?? "Loading…"))</span>
         @if (!Embedded)
         {
