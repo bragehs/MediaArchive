@@ -339,8 +339,7 @@ window.constellation = (function () {
     const related = Object.entries(co).sort((a, b) => b[1] - a[1]);
     el.phead.innerHTML = `<div class="cpdot" style="background:${rgb(node.col)};color:${rgb(node.col)}"></div>
       <div class="cpmeta"><div class="cpkick">Genre · ${idxs.length} works</div>
-      <div class="cptitle">${node.kind === 'genre' ? cap(node.name) : node.name}</div>
-      <div class="cpsub">${node.count >= 6 ? 'A hub of the archive — many works pass through it.' : 'Tap a cover to open it.'}</div></div>`;
+      <div class="cptitle">${node.kind === 'genre' ? cap(node.name) : node.name}</div></div>`;
     let d = 0;
     const relHTML = related.length ? `<div class="cpgroup">Threads into</div>
       <div class="ctags" style="margin-bottom:4px">${related.map(([g, c]) => `<span class="ctag" data-g="${g}">

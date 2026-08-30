@@ -321,3 +321,48 @@
     color: var(--dim);
     margin: 18px 0 6px;
 }
+
+/* Panel totals — the identity strip's grammar at panel scale. */
+.prstats {
+    display: flex;
+    border-top: 1px solid var(--line2);
+    margin-bottom: 16px;
+}
+.prstat {
+    flex: 1;
+    padding: 10px 14px 0;
+    border-right: 1px solid var(--line2);
+}
+.prstat:first-child { padding-left: 0; }
+.prstat:last-child { border-right: 0; }
+.prsv {
+    font-family: var(--f-title);
+    font-weight: 700;
+    color: var(--ac);
+    font-size: 21px;
+    line-height: 1;
+}
+.prsl {
+    font-family: var(--f-display);
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    font-size: 8px;
+    color: var(--dim);
+    margin-top: 5px;
+}
+
+/* Chart scope: this year week-by-week, or the whole archive year-by-year. */
+.prscope { display: flex; gap: 5px; justify-content: flex-end; margin-bottom: 10px; }
+.prsc {
+    padding: 3px 9px;
+    border: 1px solid var(--line2);
+    border-radius: var(--r-sm);
+    background: none;
+    font-family: var(--f-display);
+    font-size: 9px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--dim);
+    cursor: pointer;
+}
+.prsc.on { color: var(--ink); border-color: var(--ac); }

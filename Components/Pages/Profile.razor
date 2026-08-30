@@ -48,7 +48,7 @@ else
 
     @if (_snapshot.HallOfFame.Count > 0)
     {
-        <div class="psec"><span class="psk">Hall of fame</span><span class="psr">The keepers</span></div>
+        <div class="psec"><span class="psk">Hall of fame</span></div>
         <div class="pfamerail">
             @foreach (var fame in _snapshot.HallOfFame)
             {
@@ -78,7 +78,7 @@ else
             </span>
         </div>
         <p class="puefx">
-            @string.Join(" · ", universe.Effort.Select(e => $"{Trim(e.Value)} {e.Unit}"))@(universe.StillInside ? " · still there" : "")
+            @string.Join(" · ", universe.Effort.Select(e => $"{Trim(e.Value)} {e.Unit}"))
         </p>
         <div class="purail">
             @foreach (var cover in universe.Covers)
@@ -100,7 +100,7 @@ else
 
     @if (_snapshot.Canon.Count > 0)
     {
-        <div class="psec"><span class="psk">The canon</span><span class="psr">Creators you return to</span></div>
+        <div class="psec"><span class="psk">The canon</span></div>
         <div class="pcanon">
             @foreach (var creator in _snapshot.Canon)
             {
@@ -119,7 +119,7 @@ else
         </div>
     }
 
-    <div class="psec"><span class="psk">Records</span><span class="psr">The extremes</span></div>
+    <div class="psec"><span class="psk">Records</span></div>
 
     @if (_snapshot.Panels.Count > 0)
     {
@@ -135,22 +135,61 @@ else
 
         @if (Current is { } current)
         {
-            @if (current.Weekly.Any(w => w.Value > 0))
+            @if (current.Stats.Count > 0)
             {
-                var max = current.Weekly.Max(w => w.Value);
-                <div class="prchart">
-                    @foreach (var week in current.Weekly)
+                <div class="prstats">
+                    @foreach (var stat in current.Stats)
                     {
-                        <div class="prwk" title="week of @week.WeekStart.ToString("d MMM") · @Trim(week.Value) @current.Unit">
-                            <i style="height:@(Pct(week.Value, max))"></i>
-                            @if (week.WeekStart.Day <= 7)
-                            {
-                                <span class="prwm">@week.WeekStart.ToString("MMM")[0]</span>
-                            }
+                        <div class="prstat">
+                            <div class="prsv">@stat.Value</div>
+                            <div class="prsl">@stat.Label</div>
                         </div>
                     }
                 </div>
-                <div class="prchl">@current.Unit / week · last 6 months</div>
+            }
+
+            @if (current.Weekly.Any(w => w.Value > 0) || current.Yearly.Any(y => y.Value > 0))
+            {
+                <div class="prscope">
+                    <button class="prsc @(!_allTime ? "on" : "")" @onclick="() => _allTime = false">@DateTime.Today.Year</button>
+                    <button class="prsc @(_allTime ? "on" : "")" @onclick="() => _allTime = true">All time</button>
+                </div>
+
+                @if (!_allTime)
+                {
+                    var max = Math.Max(1, current.Weekly.Max(w => w.Value));
+                    <div class="prchart">
+                        @foreach (var week in current.Weekly)
+                        {
+                            <div class="prwk" title="week of @week.WeekStart.ToString("d MMM") · @Trim(week.Value) @current.Unit">
+                                <i style="height:@(Pct(week.Value, max))"></i>
+                                @if (week.WeekStart.Day <= 7)
+                                {
+                                    <span class="prwm">@week.WeekStart.ToString("MMM")[0]</span>
+                                }
+                            </div>
+                        }
+                    </div>
+                    <div class="prchl">@current.Unit / week · @DateTime.Today.Year</div>
+                }
+                else
+                {
+                    var max = Math.Max(1, current.Yearly.Max(y => y.Value));
+                    var step = Math.Max(1, (int)Math.Ceiling(current.Yearly.Count / 8.0));
+                    <div class="prchart">
+                        @foreach (var year in current.Yearly)
+                        {
+                            <div class="prwk" title="@year.Year · @Trim(year.Value) @current.Unit">
+                                <i style="height:@(Pct(year.Value, max))"></i>
+                                @if ((year.Year - current.Yearly[0].Year) % step == 0)
+                                {
+                                    <span class="prwm">@year.Year.ToString()[2..]</span>
+                                }
+                            </div>
+                        }
+                    </div>
+                    <div class="prchl">@current.Unit / year · all time</div>
+                }
             }
 
             <div class="precs">
@@ -178,6 +217,7 @@ else
 @code {
     private ProfileSnapshot? _snapshot;
     private MediaType _recordsTab = MediaType.Book;
+    private bool _allTime;
 
     private TypePanel? Current =>
         _snapshot?.Panels.FirstOrDefault(p => p.MediaType == _recordsTab)
