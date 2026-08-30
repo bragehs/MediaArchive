@@ -27,12 +27,12 @@
                 <div>
                     @if (Audiobook)
                     {
-                        <div class="fl">Hours listened so far <b>required</b></div>
-                        <input class="in" type="number" min="0" step="0.1" @bind="_progressHours"
-                               placeholder="@(_previousHours?.ToString() ?? "")"/>
-                        @if (_previousHours is { } ph)
+                        <div class="fl">Hours left <b>required</b></div>
+                        <input class="in" type="number" min="0" step="0.1" @bind="_progressHoursLeft"
+                               placeholder="@(_previousHoursLeft?.ToString() ?? "")"/>
+                        @if (_previousHoursLeft is { } left)
                         {
-                            <div class="fl opt">Last logged at @ph hours</div>
+                            <div class="fl opt">Last logged with @left h left</div>
                         }
                     }
                     else
@@ -130,16 +130,17 @@
     private Mode _mode = Mode.Progress;
     private int? _previousEffort;
 
-    // Shown back in hours even though effort is stored as pages.
-    private double? _previousHours => _previousEffort is { } pe && PageCount is > 0 && AudioHours is > 0
-        ? Math.Round((double)pe / PageCount.Value * AudioHours.Value, 1)
+    // Audible shows the remaining time, so that is what gets typed — the stored
+    // effort stays cumulative pages, converted at this boundary and no deeper.
+    private double? _previousHoursLeft => _previousEffort is { } pe && PageCount is > 0 && AudioHours is > 0
+        ? Math.Round(AudioHours.Value - (double)pe / PageCount.Value * AudioHours.Value, 1)
         : null;
 
     protected override async Task OnInitializedAsync() =>
         _previousEffort = await Queries.GetEntryEffortAsync(EntryId);
 
     private int? _progressEffort;
-    private double? _progressHours;
+    private double? _progressHoursLeft;
     private string _progressNote = "";
 
     private DateOnly? _endDate = DateOnly.FromDateTime(DateTime.Today);
@@ -154,7 +155,9 @@
 
     private bool CanSubmit => _mode switch
     {
-        Mode.Progress => Audiobook ? _progressHours is > 0 : _progressEffort is > 0,
+        Mode.Progress => Audiobook
+            ? _progressHoursLeft is { } left && left >= 0 && AudioHours is { } total && left <= total
+            : _progressEffort is > 0,
         _ => _endDate is not null
     };
 
@@ -169,7 +172,9 @@
         {
             if (_mode == Mode.Progress)
             {
-                var effort = Audiobook ? ToPages(_progressHours) : _progressEffort;
+                var effort = Audiobook
+                    ? ToPages(AudioHours - _progressHoursLeft)
+                    : _progressEffort;
                 await LogService.AddNoteAsync(EntryId,
                     new NoteInput(_progressNote.Trim(), effort));
             }
