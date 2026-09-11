@@ -21,7 +21,8 @@
 # it reads the same ~/Library/Developer/Xcode/UserData/Provisioning Profiles
 # that Xcode writes to, so nothing needs copying.
 #
-# Exit codes: 0 ok, 1 usage, 2 build/deploy failure.
+# Exit codes: 0 ok, 1 usage, 2 build/deploy failure, 3 installed but the
+# certificate still needs trusting on the phone.
 
 set -euo pipefail
 
@@ -41,12 +42,35 @@ WIDGET_DIR="$REPO/widget"
 WIDGET_BUNDLE_ID="no.norapps.mediaarchive.widget"
 APP_GROUP="group.no.norapps.mediaarchive"
 
-# Free profiles last 7 days; refresh once we're inside the last two.
-RENEW_THRESHOLD_DAYS=2
+# Free profiles last 7 days and the unattended job runs every 7 days, so any
+# threshold below that guarantees a dead window: a run finding 3 days left would
+# skip renewal, sign a build that expires in 3 days, and not return for 7. Renew
+# on every run instead — reissuing early costs nothing.
+RENEW_THRESHOLD_DAYS=7
+
+# The weekly job runs unattended, and its only signal used to be a notification
+# banner that is trivial to miss — so a failed week looked identical to a quiet
+# one until the app died. Record the outcome and surface it the next time a
+# human runs anything.
+STATUS_FILE="$HOME/Library/Logs/mediaarchive-weekly.status"
 
 say()  { print -P "%F{green}→%f $*" >&2; }
 warn() { print -P "%F{yellow}!%f $*" >&2; }
 die()  { print -P "%F{red}✗%f $*" >&2; exit "${2:-2}"; }
+
+write_status() {
+    mkdir -p "${STATUS_FILE:h}"
+    print -- "$1|$(date '+%Y-%m-%d %H:%M')|$2" > "$STATUS_FILE"
+}
+
+report_last_weekly() {
+    [[ -f "$STATUS_FILE" ]] || return 0
+    local line state
+    line=$(<"$STATUS_FILE")
+    state=${line%%|*}
+    [[ "$state" == ok ]] && return 0
+    warn "last weekly run (${${line#*|}%%|*}) ended in '$state': ${line##*|}"
+}
 
 # macOS ships no coreutils `timeout`, and every devicectl call can block forever
 # when the phone drops off mid-transfer — which is exactly what an unattended
@@ -274,8 +298,24 @@ EOF
 PBXEOF
 }
 
+# Turn the two provisioning failures that need a human into one actionable
+# line each; everything else still gets the raw log tail.
+diagnose_provisioning() {
+    local log="$1"
+    if grep -q "No Accounts:" "$log"; then
+        warn "Xcode is signed out of your Apple ID."
+        warn "  Fix: Xcode → Settings → Accounts → + → Apple ID, then rerun."
+    elif grep -q "has no devices" "$log"; then
+        warn "Your team has no registered device, so Apple won't issue a free profile."
+        warn "  Fix: connect and unlock the iPhone, then rerun — renewal registers it."
+    else
+        warn "provisioning failed — last lines of $log:"
+        tail -15 "$log" >&2
+    fi
+}
+
 renew() {
-    local force="${1:-}" days
+    local force="${1:-}" id="${2:-}" days dest
     days=$(profile_days_left)
 
     if [[ "$force" != "--force" ]] && (( days > RENEW_THRESHOLD_DAYS )); then
@@ -289,16 +329,26 @@ renew() {
         say "profile expires in $days day(s) — renewing…"
     fi
 
+    # A free Personal Team only gets device-scoped development profiles, so Apple
+    # refuses to issue one while the team has no registered device — and a
+    # generic destination names no device, so it can never register the first
+    # one. Point xcodebuild at the real iPhone: the reissue registers it too.
+    [[ -n "$id" ]] || id=$(find_device)
+    if [[ -n "$id" ]]; then
+        dest="platform=iOS,id=$id"
+    else
+        dest='generic/platform=iOS'
+        warn "no iPhone reachable — falling back to a generic destination, which"
+        warn "only works if the team already has a registered device."
+    fi
+
     write_stub
     # Xcode reissues the profile as a side effect of signing this stub target.
-    # If the Apple ID session has lapsed this is where it fails, and the fix is
-    # a GUI one: Xcode → Settings → Accounts, re-enter the 2FA code.
     if ! run_timeout 900 xcodebuild -project "$STUB/MAProvision.xcodeproj" -scheme MAProvision \
-            -destination 'generic/platform=iOS' -allowProvisioningUpdates build \
+            -destination "$dest" -allowProvisioningUpdates build \
             >"$STUB/xcodebuild.log" 2>&1; then
-        warn "provisioning failed — last lines of $STUB/xcodebuild.log:"
-        tail -15 "$STUB/xcodebuild.log" >&2
-        die "could not renew the provisioning profile (is your Apple ID still signed in to Xcode?)"
+        diagnose_provisioning "$STUB/xcodebuild.log"
+        die "could not renew the provisioning profile"
     fi
 
     days=$(profile_days_left)
@@ -380,12 +430,14 @@ sim_run() {
 
 # The first reachable paired device, or nothing. Callers decide whether that's fatal.
 #
-# `devicectl list devices` reports "available" straight from the cached pairing
-# record, so it says yes for a phone that is asleep or off the network. Only an
-# actual query proves there's a live tunnel, so each candidate gets probed.
+# `devicectl list devices` reports state from the cached pairing record, so it
+# says yes for a phone that is asleep or off the network. The wording also varies
+# — "available (paired)" over the network, "connected" over USB — so filtering
+# on it silently drops a plugged-in phone. Only an actual query proves there's a
+# live tunnel, so every listed device gets probed instead.
 find_device() {
     local id
-    for id in ${(f)"$(xcrun devicectl list devices 2>/dev/null | grep -i 'available' | grep -oE '[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}')"}; do
+    for id in ${(f)"$(xcrun devicectl list devices 2>/dev/null | grep -oE '[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}')"}; do
         if run_timeout 60 xcrun devicectl device info details --device "$id" >/dev/null 2>&1; then
             print -- "$id"
             return 0
@@ -400,9 +452,11 @@ notify() {
 
 phone_run() {
     local id="${1:-}" app
-    renew
+    # Resolve the device before renewing: renewal needs it to register the team's
+    # first device, and resolving once avoids probing twice.
     [[ -n "$id" ]] || id=$(find_device)
     [[ -n "$id" ]] || die "no paired iPhone reachable — unlock it and check it's on the same Wi-Fi"
+    renew "" "$id"
     build_widget iphoneos -allowProvisioningUpdates
     app=$(build ios-arm64)
 
@@ -415,7 +469,10 @@ phone_run() {
         warn "installed, but iOS refused to launch it."
         warn "Trust the certificate once on the phone, then tap the app:"
         warn "  Settings → General → VPN & Device Management → Apple Development → Trust"
-        exit 0
+        # Not a failure — the install worked — but not done either: only a
+        # human can trust the certificate. Its own code so the unattended job
+        # stops retrying yet still reports the app as unusable.
+        return 3
     fi
     say "running on device"
 }
@@ -465,21 +522,27 @@ $(ls "$snap/covers" 2>/dev/null | wc -l | tr -d ' ') covers"
 # reinstall so the 7-day signature never lapses into a dead app on the phone.
 #
 # A fixed clock time will regularly find the phone asleep, locked, or off the
-# network, so this waits rather than failing — up to WEEKLY_RETRIES attempts,
-# WEEKLY_RETRY_WAIT apart. Backup runs BEFORE deploy: if the install goes wrong,
-# the snapshot is already on disk.
+# network, so this waits rather than failing. Backup runs BEFORE deploy: if the
+# install goes wrong, the snapshot is already on disk.
+#
+# The window is wall-clock, not a retry count: `sleep` does not advance while the
+# Mac is asleep, so counting twelve 10-minute naps once smeared a "2-hour window"
+# across three days of stray wakeups. A deadline gives up when two hours of real
+# time have passed, whatever the machine did in between.
 # Overridable so the loop can be exercised without waiting hours.
-WEEKLY_RETRIES=${WEEKLY_RETRIES:-12}
-WEEKLY_RETRY_WAIT=${WEEKLY_RETRY_WAIT:-600}   # 10 min × 12 = a 2-hour window
+WEEKLY_WINDOW=${WEEKLY_WINDOW:-7200}          # 2 hours of wall clock
+WEEKLY_RETRY_WAIT=${WEEKLY_RETRY_WAIT:-600}   # 10 min between attempts
 
 weekly() {
-    local tries=0 id
-    while (( tries < WEEKLY_RETRIES )); do
+    local tries=0 id rc deadline
+    deadline=$(( $(date +%s) + WEEKLY_WINDOW ))
+
+    while (( $(date +%s) < deadline )); do
         tries=$(( tries + 1 ))
 
         id=$(find_device)
         if [[ -z "$id" ]]; then
-            say "phone not reachable (attempt $tries/$WEEKLY_RETRIES) — waiting $(( WEEKLY_RETRY_WAIT / 60 ))m"
+            say "phone not reachable (attempt $tries) — waiting $(( WEEKLY_RETRY_WAIT / 60 ))m"
             sleep "$WEEKLY_RETRY_WAIT"
             continue
         fi
@@ -487,17 +550,25 @@ weekly() {
         say "=== weekly run $(date '+%Y-%m-%d %H:%M') (attempt $tries) ==="
         # A phone can drop off mid-copy when it locks, so retry the whole run,
         # not just the discovery. Subshell keeps `die` from killing the loop.
-        if ( pull_from_phone "$id" && phone_run "$id" ); then
-            return 0
-        fi
+        rc=0
+        ( pull_from_phone "$id" && phone_run "$id" ) || rc=$?
 
-        warn "run failed (attempt $tries/$WEEKLY_RETRIES) — phone may have slept; waiting $(( WEEKLY_RETRY_WAIT / 60 ))m"
+        case $rc in
+            0) write_status ok "synced and redeployed"
+               return 0 ;;
+            3) write_status trust "installed, but the certificate needs trusting on the phone"
+               return 0 ;;
+        esac
+
+        warn "run failed (attempt $tries) — phone may have slept; waiting $(( WEEKLY_RETRY_WAIT / 60 ))m"
         sleep "$WEEKLY_RETRY_WAIT"
     done
     die "phone never stayed reachable long enough — skipping this week"
 }
 
 # ------------------------------------------------------------------------ main
+
+[[ "${1:-sim}" == weekly ]] || report_last_weekly
 
 case "${1:-sim}" in
     sim)   sim_run "${2:-}" ;;
@@ -506,8 +577,13 @@ case "${1:-sim}" in
     weekly)
         # Subshell so `die`'s exit is a status we can report, not a silent death.
         if ( weekly ); then
-            notify "MediaArchive" "Weekly sync + deploy complete"
+            if [[ "$(cut -d'|' -f1 "$STATUS_FILE" 2>/dev/null)" == trust ]]; then
+                notify "MediaArchive" "Installed — trust the certificate on the phone to finish"
+            else
+                notify "MediaArchive" "Weekly sync + deploy complete"
+            fi
         else
+            write_status fail "see ~/Library/Logs/mediaarchive-weekly.log"
             notify "MediaArchive" "Weekly sync failed — see ~/Library/Logs/mediaarchive-weekly.log"
             exit 2
         fi
