@@ -113,5 +113,6 @@ public class Show : MediaItem
     public int? EpisodeRuntime { get; set; }
 
     [NotMapped] public override int? Length => EpisodeCount;
-    [NotMapped] public override double? MinutesPerUnit => EpisodeRuntime;
+    // A stored 0 would silently cost every episode nothing; missing is the honest reading.
+    [NotMapped] public override double? MinutesPerUnit => EpisodeRuntime is > 0 ? EpisodeRuntime : null;
 }

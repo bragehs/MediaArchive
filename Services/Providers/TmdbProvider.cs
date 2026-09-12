@@ -211,8 +211,21 @@ public class TmdbProvider(HttpClient httpClient) : IMediaProvider
             RatingScale.FromTen(show.VoteAverage),
             show.VoteCount,
             [.. show.Keywords?.Results?.Select(k => k.Name).OfType<string>() ?? []],
-            show.EpisodeRunTime?.FirstOrDefault(r => r > 0) ?? show.LastEpisodeToAir?.Runtime
+            ShowEpisodeRuntime(show)
         );
+    }
+
+    // episode_run_time is frequently empty on newer shows; FirstOrDefault over List<int> would hand back 0, not null.
+    private static int? ShowEpisodeRuntime(TmdbTvDetail show)
+    {
+        var runtimes = show.EpisodeRunTime?.Where(r => r > 0).ToList() ?? [];
+
+        if (runtimes.Count > 0)
+            return (int)Math.Round(runtimes.Average());
+
+        var lastAired = show.LastEpisodeToAir?.Runtime;
+
+        return lastAired > 0 ? lastAired : null;
     }
 
     // Shows have no series-level director; TMDB's created_by is the headline credit.

@@ -1,0 +1,55 @@
+{
+  "id": 95396,
+  "name": "Severance",
+  "overview": "Mark leads a team of office workers whose memories have been surgically divided between their work and personal lives.",
+  "first_air_date": "2022-02-18",
+  "poster_path": "/lFf6LLrQjYldcZItzOkGmMMigP7.jpg",
+  "number_of_episodes": 19,
+  "episode_run_time": [90, 45, 45, 45],
+  "last_episode_to_air": {
+    "id": 5443561,
+    "name": "Cold Harbor",
+    "runtime": 76
+  },
+  "genres": [
+    { "id": 18, "name": "Drama" },
+    { "id": 9648, "name": "Mystery" }
+  ],
+  "created_by": [
+    { "id": 2318300, "name": "Dan Erickson" }
+  ],
+  "networks": [
+    { "id": 2552, "name": "Apple TV+" }
+  ],
+  "vote_average": 8.4,
+  "vote_count": 1873,
+  "keywords": {
+    "results": [
+      { "id": 1701, "name": "workplace" },
+      { "id": 9951, "name": "dystopia" }
+    ]
+  },
+  "seasons": [
+    {
+      "season_number": 0,
+      "name": "Specials",
+      "episode_count": 3,
+      "air_date": "2022-04-01",
+      "poster_path": null
+    },
+    {
+      "season_number": 1,
+      "name": "Season 1",
+      "episode_count": 9,
+      "air_date": "2022-02-18",
+      "poster_path": "/lVDRlGdoblVuZKP8LGBJHbQPWNP.jpg"
+    },
+    {
+      "season_number": 2,
+      "name": "Season 2",
+      "episode_count": 10,
+      "air_date": "2025-01-17",
+      "poster_path": "/l0P0Tzn2ObFQXcUSL2AnJd3nyzO.jpg"
+    }
+  ]
+}
