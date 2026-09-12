@@ -79,14 +79,25 @@ else
         }
         <button class="ibtn" @onclick="() => _logging = true">Log progress →</button>
     }
-    else if (_startingPass)
+    else if (_form is not PassForm.None)
     {
+        var finished = _form is PassForm.Finished;
+
         <div class="istart">
             <div class="irow">
                 <div>
                     <div class="il2">Start date</div>
                     <input class="iin" type="date" @bind="_startDate"/>
                 </div>
+                @if (finished)
+                {
+                    <div>
+                        <div class="il2">End date</div>
+                        <input class="iin" type="date" @bind="_endDate"/>
+                    </div>
+                }
+            </div>
+            <div class="irow">
                 <div>
                     <div class="il2">How <span class="iopt">optional</span></div>
                     <select class="iin" @bind="_startContext">
@@ -97,14 +108,23 @@ else
                         }
                     </select>
                 </div>
+                @if (finished)
+                {
+                    <div>
+                        <div class="il2">Rating <span class="iopt">optional</span></div>
+                        <StarRating @bind-Value="_passRating"/>
+                    </div>
+                }
             </div>
-            <div class="il2">Opening note <span class="iopt">optional</span></div>
+            <div class="il2">
+                @(finished ? "Finish note" : "Opening note") <span class="iopt">optional</span>
+            </div>
             <textarea class="iarea" @bind="_startNote" @bind:event="oninput"
-                      placeholder="Why now, what you expect…"></textarea>
+                      placeholder="@(finished ? "How it landed…" : "Why now, what you expect…")"></textarea>
             <div class="istartfoot">
-                <button class="ibtn ighost" @onclick="() => _startingPass = false">Cancel</button>
-                <button class="ibtn" @onclick="StartPass" disabled="@_saving">
-                    @(_saving ? "…" : "Open the pass")
+                <button class="ibtn ighost" @onclick="() => _form = PassForm.None">Cancel</button>
+                <button class="ibtn" @onclick="SavePass" disabled="@_saving">
+                    @(_saving ? "…" : finished ? "Log the pass" : "Open the pass")
                 </button>
             </div>
         </div>
@@ -112,8 +132,11 @@ else
     else
     {
         <div class="ipassbtns">
-            <button class="ibtn" @onclick="() => _startingPass = true">
+            <button class="ibtn" @onclick="() => _form = PassForm.Start">
                 @(item.PassCount == 0 ? "Start a pass" : "Start a new pass")
+            </button>
+            <button class="ibtn ighost" @onclick="() => _form = PassForm.Finished">
+                Log a finished pass
             </button>
             @if (item.Resumable is { } resumable)
             {
@@ -241,11 +264,15 @@ else
     private bool _dirty;
     private string? _error;
 
+    private enum PassForm { None, Start, Finished }
+
     private bool _logging;
-    private bool _startingPass;
+    private PassForm _form = PassForm.None;
     private DateOnly? _startDate = DateOnly.FromDateTime(DateTime.Today);
+    private DateOnly? _endDate = DateOnly.FromDateTime(DateTime.Today);
     private string _startContext = "";
     private string _startNote = "";
+    private int _passRating;
 
     // Facet/AppliesTo of the item's existing tags, so re-saving keeps them.
     private Dictionary<string, TagInput> _knownTags = new(StringComparer.OrdinalIgnoreCase);
@@ -367,7 +394,8 @@ else
         }
     }
 
-    private async Task StartPass()
+    // A pass consumed before it was logged is opened and closed in one go.
+    private async Task SavePass()
     {
         if (_item is null) return;
 
@@ -380,12 +408,26 @@ else
                 ? parsed
                 : (ConsumptionContext?)null;
 
-            await Logging.StartPassAsync(_item.UserMediaItemId,
-                new PassStart(_startDate, context,
-                    _startNote.Trim().Length == 0 ? null : _startNote));
+            var note = _startNote.Trim().Length == 0 ? null : _startNote.Trim();
+            var finished = _form is PassForm.Finished;
 
-            _startingPass = false;
+            var entryId = await Logging.StartPassAsync(_item.UserMediaItemId,
+                new PassStart(_startDate, context, finished ? null : note),
+                allowConcurrent: finished);
+
+            if (finished)
+            {
+                await Logging.FinishPassAsync(entryId, new PassFinish(
+                    _endDate ?? DateOnly.FromDateTime(DateTime.Today),
+                    _passRating == 0 ? null : _passRating,
+                    null, note));
+
+                await JS.InvokeVoidAsync("confetti.burst");
+            }
+
+            _form = PassForm.None;
             _startNote = "";
+            _passRating = 0;
             await LoadAsync();
         }
         catch (Exception ex)
