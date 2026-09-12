@@ -5,9 +5,14 @@
 # An Obsidian vault is just Markdown on disk, so "branch from an issue" means:
 # find the note, slugify its title, and create the branch off the latest main.
 #
+# The note's `kind:` picks the branch prefix — feature -> feat/, bug -> fix/,
+# refactor -> refactor/ — so the branch name is derived entirely from the note.
+#
 # Usage:
-#   scripts/new-branch.sh "Log and capture"     # fuzzy name -> branch "log-and-capture"
+#   scripts/new-branch.sh "profile page"        # -> "feat/build-the-profile-page"
 #   scripts/new-branch.sh /abs/path/to/note.md  # full path (used by an Obsidian hotkey)
+#
+# Override the vault location with MEDIAARCHIVE_VAULT if it ever moves again.
 #
 # Exit codes: 0 ok, 1 usage/lookup error, 2 not an issue note.
 
@@ -15,7 +20,9 @@ set -euo pipefail
 
 # Derived, not hardcoded — the repo has moved once already.
 REPO="${0:A:h:h}"
-ISSUES_DIR="/Users/bragehs/Desktop/vault/Personal Projects/MediaArchive/Issues"
+VAULT="${MEDIAARCHIVE_VAULT:-$HOME/Documents/vault_personal}"
+ISSUES_DIR="$VAULT/Issues"
+[[ -d "$ISSUES_DIR" ]] || { echo "no Issues folder at $ISSUES_DIR — set MEDIAARCHIVE_VAULT" >&2; exit 1; }
 
 query="${1:-}"
 if [[ -z "$query" ]]; then
@@ -51,12 +58,28 @@ if ! print -r -- "$frontmatter" | grep -qiE '^(fileClass|type):[[:space:]]*issue
   exit 2
 fi
 
+# --- prefix from the note's kind ---------------------------------------------
+kind="$(print -r -- "$frontmatter" | sed -nE 's/^kind:[[:space:]]*([a-z]+).*/\1/p' | head -1)"
+case "$kind" in
+  bug)      prefix="fix" ;;
+  refactor) prefix="refactor" ;;
+  *)        prefix="feat" ;;
+esac
+
 # --- slugify the filename ----------------------------------------------------
-# "Log and capture.md" -> "log-and-capture"
+# "Build the profile page.md" -> "build-the-profile-page"
 title="${file##*/}"; title="${title%.md}"
 slug="$(print -r -- "$title" \
   | tr '[:upper:]' '[:lower:]' \
   | sed -E 's/[^a-z0-9]+/-/g; s/^-+//; s/-+$//')"
+
+# Drop a leading verb that just repeats the prefix: a bug note called "Fix the
+# weekly deploy job" becomes fix/weekly-deploy-job, not fix/fix-the-weekly-....
+slug="${slug#${prefix}-the-}"
+slug="${slug#${prefix}-}"
+[[ "$prefix" == "fix" ]] && { slug="${slug#fix-the-}"; slug="${slug#fix-}"; }
+
+slug="$prefix/$slug"
 
 # --- create / switch off the latest main -------------------------------------
 cd "$REPO"

@@ -39,6 +39,18 @@ starts with no context beyond what's on disk.
 4. No issue note for the work? Create one from `_Templates/issue.md` first, with
    `project: "[[MediaArchive]]"`, and get it agreed before writing code.
 
+**Every piece of work starts as a note and a branch, in that order.** No exceptions for
+"this is small" — small things are exactly what gets lost. The note comes first because
+it settles the scope; the branch comes from the note, so the two can't drift:
+
+```bash
+scripts/new-branch.sh "build the profile page"
+```
+
+That reads the note's `kind:` and cuts the branch off the latest `main` —
+`feature → feat/`, `bug → fix/`, `refactor → refactor/`. Never commit to `main`
+directly.
+
 **While working:** the issue note is where the design lands.
 - `## Done when` — acceptance criteria. The scope gate; agree this before code.
 - `## Approach` — the chosen path **and why**, including options rejected.
