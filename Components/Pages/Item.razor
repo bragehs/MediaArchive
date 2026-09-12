@@ -86,16 +86,16 @@ else
         <div class="istart">
             @* A date field has a fixed intrinsic width here, so it never shares a row. *@
             <div class="il2">Start date</div>
-            <input class="iin" type="date" @bind="_startDate"/>
+            <input class="iin" type="date" @bind="_passStart"/>
             @if (finished)
             {
                 <div class="il2">End date</div>
-                <input class="iin" type="date" @bind="_endDate"/>
+                <input class="iin" type="date" @bind="_passEnd"/>
             }
             <div class="irow">
                 <div>
                     <div class="il2">How <span class="iopt">optional</span></div>
-                    <select class="iin" @bind="_startContext">
+                    <select class="iin" @bind="_passContext">
                         <option value="">—</option>
                         @foreach (var context in UiHelpers.ContextsFor(item.MediaType))
                         {
@@ -114,7 +114,7 @@ else
             <div class="il2">
                 @(finished ? "Finish note" : "Opening note") <span class="iopt">optional</span>
             </div>
-            <textarea class="iarea" @bind="_startNote" @bind:event="oninput"
+            <textarea class="iarea" @bind="_passNote" @bind:event="oninput"
                       placeholder="@(finished ? "How it landed…" : "Why now, what you expect…")"></textarea>
             <div class="istartfoot">
                 <button class="ibtn ighost" @onclick="() => _form = PassForm.None">Cancel</button>
@@ -263,10 +263,10 @@ else
 
     private bool _logging;
     private PassForm _form = PassForm.None;
-    private DateOnly? _startDate = DateOnly.FromDateTime(DateTime.Today);
-    private DateOnly? _endDate = DateOnly.FromDateTime(DateTime.Today);
-    private string _startContext = "";
-    private string _startNote = "";
+    private DateOnly? _passStart = DateOnly.FromDateTime(DateTime.Today);
+    private DateOnly? _passEnd = DateOnly.FromDateTime(DateTime.Today);
+    private string _passContext = "";
+    private string _passNote = "";
     private int _passRating;
 
     // Facet/AppliesTo of the item's existing tags, so re-saving keeps them.
@@ -399,21 +399,21 @@ else
 
         try
         {
-            var context = Enum.TryParse<ConsumptionContext>(_startContext, out var parsed)
+            var context = Enum.TryParse<ConsumptionContext>(_passContext, out var parsed)
                 ? parsed
                 : (ConsumptionContext?)null;
 
-            var note = _startNote.Trim().Length == 0 ? null : _startNote.Trim();
+            var note = _passNote.Trim().Length == 0 ? null : _passNote.Trim();
             var finished = _form is PassForm.Finished;
 
             var entryId = await Logging.StartPassAsync(_item.UserMediaItemId,
-                new PassStart(_startDate, context, finished ? null : note),
+                new PassStart(_passStart, context, finished ? null : note),
                 allowConcurrent: finished);
 
             if (finished)
             {
                 await Logging.FinishPassAsync(entryId, new PassFinish(
-                    _endDate ?? DateOnly.FromDateTime(DateTime.Today),
+                    _passEnd ?? DateOnly.FromDateTime(DateTime.Today),
                     _passRating == 0 ? null : _passRating,
                     null, note));
 
@@ -421,8 +421,9 @@ else
             }
 
             _form = PassForm.None;
-            _startNote = "";
+            _passNote = "";
             _passRating = 0;
+            _passStart = _passEnd = DateOnly.FromDateTime(DateTime.Today);
             await LoadAsync();
         }
         catch (Exception ex)
