@@ -184,5 +184,23 @@
     border-radius: 9px;
     margin-top: 10px;
 }
-.enote.good { background: rgba(139, 190, 90, .15); border: 1px solid var(--ac); color: var(--ac); }
+.enote.good {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    background: rgba(139, 190, 90, .15);
+    border: 1px solid var(--ac);
+    color: var(--ac);
+}
+.sopen {
+    margin-left: auto;
+    font-family: var(--f-display);
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    font-size: 9.5px;
+    font-weight: 700;
+    color: var(--ac);
+    text-decoration: underline;
+}
 .enote.bad { background: rgba(190, 90, 90, .15); border: 1px solid #be5a5a; color: #e8a0a0; }

@@ -1,6 +1,7 @@
 @inject MediaSearchService Search
 @inject MediaImportService ImportService
 @inject LoggingService LogService
+@inject NavigationManager Nav
 
 @if (!Embedded)
 {
@@ -44,7 +45,13 @@
 
 @if (_savedMessage is not null)
 {
-    <div class="enote good">@_savedMessage</div>
+    <div class="enote good">
+        @_savedMessage
+        @if (_savedItemId is not null)
+        {
+            <button class="sopen" @onclick="OpenSaved">Open it →</button>
+        }
+    </div>
 }
 
 @if (_selected is null && (_searching || _searched))
@@ -74,7 +81,7 @@
                         <div class="prt">@result.Title</div>
                         <div class="pra">@UiHelpers.TypeLabel(result.MediaType)@(result.ReleaseYear is { } year ? " · " + year : "")</div>
                     </div>
-                    <span class="pradd">+ Log</span>
+                    <span class="pradd">+ Add</span>
                 </button>
             }
         }
@@ -178,22 +185,10 @@ else
 
                 <div class="capture">
                     <div class="cap-head">
-                        <span class="label">Logging</span>
+                        <span class="label">Adding</span>
                         <span class="cap-sel">
                             @_detail.Title · @UiHelpers.TypeLabel(_detail.MediaType)@(_detail.Creator is null ? "" : " · " + _detail.Creator)
                         </span>
-                    </div>
-
-                    <div class="cap-block">
-                        <div class="fl">What are you recording?</div>
-                        <div class="segs">
-                            @foreach (var action in Enum.GetValues<LogAction>())
-                            {
-                                <button class="seg @(action == _action ? "on" : "")" @onclick="() => _action = action">
-                                    @ActionLabel(action)
-                                </button>
-                            }
-                        </div>
                     </div>
 
                     <div class="cap-row">
@@ -284,47 +279,35 @@ else
                                 </button>
                             }
                         </div>
+                        @if (_detail.MediaType == MediaType.Book)
+                        {
+                            <div>
+                                <div class="fl">Audiobook length (hrs) <span class="opt">optional</span></div>
+                                <input class="in" type="number" min="0" step="0.1" @bind="_audioHours"
+                                       placeholder="e.g. 24.5"/>
+                            </div>
+                        }
                     </div>
 
-                    @if (_action is not LogAction.Interested)
+                    <div class="cap-block">
+                        <button class="hintbtn" @onclick="() => _backfill = !_backfill">
+                            @(_backfill
+                                ? "← never mind, just add it to the library"
+                                : "Consumed this already? Log a finished pass →")
+                        </button>
+                    </div>
+
+                    @if (_backfill)
                     {
                         <div class="cap-row">
                             <div>
                                 <div class="fl">Start</div>
                                 <input class="in" type="date" @bind="_startDate"/>
                             </div>
-                            @if (_action is LogAction.Completed)
-                            {
-                                <div>
-                                    <div class="fl">End</div>
-                                    <input class="in" type="date" @bind="_endDate"/>
-                                </div>
-                                @if (IsAudiobook)
-                                {
-                                    <div>
-                                        <div class="fl">Hours listened</div>
-                                        <input class="in" type="number" min="0" step="0.1" @bind="_hoursListened"
-                                               placeholder="@(_audioHours?.ToString() ?? "")"/>
-                                    </div>
-                                }
-                                else
-                                {
-                                    <div>
-                                        <div class="fl">Effort (@UiHelpers.LengthUnit(_detail.MediaType))</div>
-                                        <input class="in" type="number" min="0" @bind="_effort"
-                                               placeholder="@(_detail.Length?.ToString() ?? "")"/>
-                                        @if (_detail.Length is { } suggested && _effort != suggested)
-                                        {
-                                            <button class="hintbtn" @onclick="() => _effort = suggested">
-                                                use @suggested @UiHelpers.LengthUnit(_detail.MediaType) from @_detail.ExternalSource
-                                            </button>
-                                        }
-                                    </div>
-                                }
-                            }
-                        </div>
-
-                        <div class="cap-row">
+                            <div>
+                                <div class="fl">End</div>
+                                <input class="in" type="date" @bind="_endDate"/>
+                            </div>
                             <div>
                                 <div class="fl">Context</div>
                                 <select class="in" @bind="_context">
@@ -335,46 +318,47 @@ else
                                     }
                                 </select>
                             </div>
+                        </div>
+
+                        <div class="cap-row">
                             @if (IsAudiobook)
                             {
                                 <div>
-                                    <div class="fl">Audiobook length (hrs)</div>
-                                    <input class="in" type="number" min="0" step="0.1" @bind="_audioHours"
-                                           placeholder="e.g. 24.5"/>
+                                    <div class="fl">Hours listened</div>
+                                    <input class="in" type="number" min="0" step="0.1" @bind="_hoursListened"
+                                           placeholder="@(_audioHours?.ToString() ?? "")"/>
                                 </div>
                             }
-                            @if (_action is LogAction.Completed)
+                            else
                             {
                                 <div>
-                                    <div class="fl">Rating</div>
-                                    <StarRating @bind-Value="_rating"/>
+                                    <div class="fl">Effort (@UiHelpers.LengthUnit(_detail.MediaType))</div>
+                                    <input class="in" type="number" min="0" @bind="_effort"
+                                           placeholder="@(_detail.Length?.ToString() ?? "")"/>
+                                    @if (_detail.Length is { } suggested && _effort != suggested)
+                                    {
+                                        <button class="hintbtn" @onclick="() => _effort = suggested">
+                                            use @suggested @UiHelpers.LengthUnit(_detail.MediaType) from @_detail.ExternalSource
+                                        </button>
+                                    }
                                 </div>
                             }
+                            <div>
+                                <div class="fl">Rating</div>
+                                <StarRating @bind-Value="_rating"/>
+                            </div>
                         </div>
 
-                        @if (_action is LogAction.Completed)
-                        {
-                            <div class="cap-block">
-                                <div class="fl">Start note <span class="opt">optional</span></div>
-                                <textarea class="area dim" @bind="_startNote" @bind:event="oninput"
-                                          placeholder="What you expected going in…"></textarea>
-                            </div>
-                        }
+                        <div class="cap-block">
+                            <div class="fl">Start note <span class="opt">optional</span></div>
+                            <textarea class="area dim" @bind="_startNote" @bind:event="oninput"
+                                      placeholder="What you expected going in…"></textarea>
+                        </div>
 
                         <div class="cap-block">
-                            <div class="fl">
-                                @NoteLabel
-                                @if (NoteRequired)
-                                {
-                                    <b>required</b>
-                                }
-                                else
-                                {
-                                    <span class="opt">optional</span>
-                                }
-                            </div>
-                            <textarea class="area @(NoteRequired ? "" : "dim")" @bind="_note" @bind:event="oninput"
-                                      placeholder="@NotePlaceholder"></textarea>
+                            <div class="fl">Finish note <span class="opt">optional</span></div>
+                            <textarea class="area dim" @bind="_note" @bind:event="oninput"
+                                      placeholder="How it landed…"></textarea>
                         </div>
                     }
 
@@ -387,7 +371,7 @@ else
                         <span class="req">@FootHint</span>
                         <button class="btn ghost" @onclick="Reset">Cancel</button>
                         <button class="btn" @onclick="Submit" disabled="@(_saving || !CanSubmit)">
-                            @(_saving ? "…" : ActionButton(_action))
+                            @(_saving ? "…" : _backfill ? "Log it as finished" : "Add to library")
                         </button>
                     </div>
                 </div>
@@ -403,13 +387,6 @@ else
     [Parameter] public bool Embedded { get; set; }
 
     private async Task CloseAsync() => await OnClose.InvokeAsync();
-
-    private enum LogAction
-    {
-        Start,
-        Completed,
-        Interested
-    }
 
     private string _query = "";
     private MediaType _mediaType = MediaType.Book;
@@ -427,7 +404,7 @@ else
 
     private Vocabulary _vocab = new([], [], [], []);
 
-    private LogAction _action = LogAction.Start;
+    private bool _backfill;
     private List<string> _genres = [];
     private List<string> _tags = [];
     private readonly Dictionary<string, TagInput> _newTags = new(StringComparer.OrdinalIgnoreCase);
@@ -449,6 +426,7 @@ else
     private bool _saving;
     private string? _error;
     private string? _savedMessage;
+    private int? _savedItemId;
 
     protected override Task OnInitializedAsync() => RefreshVocabulary();
 
@@ -457,16 +435,20 @@ else
         _vocab = await ImportService.GetVocabularyAsync();
     }
 
-    private bool IsAudiobook => _detail?.MediaType == MediaType.Book
-                                && _context == ConsumptionContext.Audiobook;
+    // Hours only convert back to pages when both lengths are known, so the
+    // pages input stands in when they aren't — same rule as LogProgressDialog.
+    private bool IsAudiobook => _detail is { MediaType: MediaType.Book, Length: > 0 }
+                                && _context == ConsumptionContext.Audiobook
+                                && _audioHours is > 0;
+
+    private void OpenSaved() => Nav.NavigateTo($"/item/{_savedItemId}");
+
+    private static string? Trimmed(string text) => text.Trim().Length == 0 ? null : text.Trim();
 
     private int? EffortToStore() =>
         IsAudiobook ? Book.PagesFromHours(_hoursListened, _audioHours, _detail?.Length) : _effort;
 
-    private bool NoteRequired => _action is LogAction.Start;
-
-    private bool CanSubmit =>
-        (!NoteRequired || _note.Trim().Length > 0) && NewTags.All(t => FacetOf(t).Length > 0);
+    private bool CanSubmit => NewTags.All(t => FacetOf(t).Length > 0);
 
     private List<string> NewTags =>
         [.. _tags.Where(t => !_vocab.Tags.Contains(t, StringComparer.OrdinalIgnoreCase))];
@@ -492,36 +474,11 @@ else
     private TagInput Existing(string tag) =>
         _newTags.TryGetValue(tag, out var input) ? input : new TagInput(tag, null, null);
 
-    private string NoteLabel => _action is LogAction.Start ? "Start note" : "Finish note";
-
-    private string NotePlaceholder => _action switch
-    {
-        LogAction.Start => "Why you're picking it up, what you expect…",
-        _ => "How it landed…"
-    };
-
     private string FootHint => NewTags.Any(t => FacetOf(t).Length == 0)
         ? "Pick a facet for each new tag."
-        : _action switch
-        {
-            LogAction.Interested => "Saved to the library unstarted.",
-            LogAction.Start => "Start note required.",
-            _ => "Notes optional."
-        };
-
-    private static string ActionLabel(LogAction action) => action switch
-    {
-        LogAction.Start => "Start a pass",
-        LogAction.Completed => "Already finished",
-        _ => "Just interested"
-    };
-
-    private static string ActionButton(LogAction action) => action switch
-    {
-        LogAction.Start => "Start it",
-        LogAction.Completed => "Log it",
-        _ => "Save to library"
-    };
+        : _backfill
+            ? "Logged as one finished pass."
+            : "Saved unstarted — start it from the item.";
 
     private async Task SetType(MediaType type)
     {
@@ -545,6 +502,7 @@ else
         _searched = true;
         _error = null;
         _savedMessage = null;
+        _savedItemId = null;
 
         try
         {
@@ -576,6 +534,7 @@ else
         _loadingDetail = true;
         _error = null;
         _savedMessage = null;
+        _savedItemId = null;
 
         try
         {
@@ -652,38 +611,30 @@ else
             _series.FirstOrDefault(),
             _seriesPosition,
             _discovery,
-            IsAudiobook ? _audioHours : null);
+            _audioHours);
 
-        var note = _note.Trim().Length == 0 ? null : _note.Trim();
-        var startNote = _startNote.Trim().Length == 0 ? null : _startNote.Trim();
-
-        var start = new PassStart(_startDate, _context,
-            _action is LogAction.Start ? note : startNote);
+        var title = _detail.Title;
 
         try
         {
-            switch (_action)
+            if (_backfill)
             {
-                case LogAction.Interested:
-                    await ImportService.AddItemAsync(item, details);
-                    break;
+                var start = new PassStart(_startDate, _context, Trimmed(_startNote));
+                var finish = new PassFinish(
+                    _endDate ?? DateOnly.FromDateTime(DateTime.Today),
+                    _rating == 0 ? null : _rating,
+                    EffortToStore(),
+                    Trimmed(_note));
 
-                case LogAction.Start:
-                    var userMediaItemId = await ImportService.AddItemAsync(item, details);
-                    await LogService.StartPassAsync(userMediaItemId, start);
-                    break;
-
-                default:
-                    var finish = new PassFinish(
-                        _endDate ?? DateOnly.FromDateTime(DateTime.Today),
-                        _rating == 0 ? null : _rating,
-                        EffortToStore(),
-                        note);
-                    await LogService.LogCompletedAsync(item, details, start, finish);
-                    break;
+                _savedItemId = await LogService.LogCompletedAsync(item, details, start, finish);
+                _savedMessage = $"“{title}” — logged as finished.";
+            }
+            else
+            {
+                _savedItemId = await ImportService.AddItemAsync(item, details);
+                _savedMessage = $"“{title}” — added to the library, unstarted.";
             }
 
-            _savedMessage = $"“{_detail.Title}” — {ActionLabel(_action).ToLowerInvariant()}.";
             await RefreshVocabulary();
             Reset();
             await OnAdded.InvokeAsync();
@@ -705,7 +656,7 @@ else
         _seasons = [];
         _seasonChosen = false;
         _showTitle = null;
-        _action = LogAction.Start;
+        _backfill = false;
         _genres = [];
         _tags = [];
         _newTags.Clear();
