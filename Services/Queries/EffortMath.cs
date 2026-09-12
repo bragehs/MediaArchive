@@ -24,6 +24,10 @@ public static class EffortMath
     public static double UnitsLogged(ConsumptionEntry entry, DateTime from, DateTime toExclusive) =>
         Walk(entry).Where(s => s.When >= from && s.When < toExclusive).Sum(s => s.Delta);
 
+    // Precedence: a logged Effort wins, above a resumed pass's baseline; else full Length.
+    public static double? UnitsSpent(MediaItem media, ConsumptionEntry entry) =>
+        entry.Effort is { } effort ? effort - (entry.StartingEffort ?? 0) : media.Length;
+
     // Null, never zero: a type that can't convert its unit (a show with no
     // episode runtime) has to leave an aggregate rather than deflate it.
     public static double? ToMinutes(MediaItem media, double units) =>

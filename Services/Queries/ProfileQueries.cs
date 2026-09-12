@@ -36,7 +36,13 @@ public record TypePanel(MediaType MediaType, string Unit, IReadOnlyList<PanelSta
 
 public record MonthRecord(int Year, int Month, int Logs);
 
+// Measured and derived minutes stay apart so a largely estimated figure renders
+// as "≈352 h" rather than passing itself off as counted.
+public record TimeSpent(double ActualMinutes, double EstimatedMinutes,
+    int Items, int WithoutLength);
+
 public record ProfileSnapshot(
+    TimeSpent TimeSpent,
     int ItemsLogged,
     double? AvgRating,
     int RatedCount,
@@ -77,6 +83,7 @@ public class ProfileQueries(IDbContextFactory<AppDbContext> dbContextFactory)
             .Count();
 
         return new ProfileSnapshot(
+            TimeSpent: BuildTimeSpent(items),
             ItemsLogged: items.Count,
             AvgRating: ratings.Count > 0 ? ratings.Average() : null,
             RatedCount: ratings.Count,
@@ -87,6 +94,37 @@ public class ProfileQueries(IDbContextFactory<AppDbContext> dbContextFactory)
             Canon: BuildCanon(items),
             Panels: BuildPanels(items, DateOnly.FromDateTime(DateTime.Today)),
             BusiestMonth: BuildBusiestMonth(items));
+    }
+
+    // Minutes is the one unit all four types convert to. An item whose length
+    // won't convert leaves the total AND the denominator: counted as zero it
+    // would quietly deflate every average built on this.
+    private static TimeSpent BuildTimeSpent(List<UserMediaItem> items)
+    {
+        double actual = 0, estimated = 0;
+        int counted = 0, dropped = 0;
+
+        foreach (var item in items)
+        {
+            var media = item.MediaItem!;
+            var contributed = false;
+
+            foreach (var entry in item.Entries)
+            {
+                if (EffortMath.UnitsSpent(media, entry) is not { } units
+                    || EffortMath.ToMinutes(media, units) is not { } minutes)
+                    continue;
+
+                if (entry.Effort is null) estimated += minutes;
+                else actual += minutes;
+                contributed = true;
+            }
+
+            if (contributed) counted++;
+            else if (item.Entries.Count > 0) dropped++;
+        }
+
+        return new TimeSpent(actual, estimated, counted, dropped);
     }
 
     // The shelf is deliberately exclusive: favourites and full marks, nothing
@@ -112,9 +150,7 @@ public class ProfileQueries(IDbContextFactory<AppDbContext> dbContextFactory)
             foreach (var u in g)
             {
                 var media = u.MediaItem!;
-                // A resumed pass carries its predecessor's total forward, so its
-                // own contribution is the part above the baseline.
-                var units = u.Entries.Sum(e => (e.Effort ?? 0) - (e.StartingEffort ?? 0));
+                var units = u.Entries.Sum(e => EffortMath.UnitsSpent(media, e) ?? 0);
                 var minutes = EffortMath.ToMinutes(media, units) ?? 0;
 
                 switch (media.MediaType)
