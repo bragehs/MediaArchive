@@ -3,9 +3,9 @@
 ## What this project is
 
 A personal, locally-run **media OS** — one place tracking everything I've consumed
-(books, games, films, shows, anime) with taste insights. It owns the DB and
-business logic directly: no separate API over HTTP, no auth, single local user.
-See `README.md` for the full layout and `Migrations/` for schema history.
+(books, games, films, shows) with taste insights. It owns the DB and business logic
+directly: no separate API over HTTP, no auth, single local user. See `README.md` for
+the full layout and `Migrations/` for schema history.
 
 **There is no web app.** `MediaArchive.csproj` is a **Razor class library** —
 components, services, models, EF Core — with exactly one head on top of it:
@@ -20,73 +20,92 @@ mediaarchive.db`. The `mediaarchive.db` in the repo root is **design-time only**
 it exists so `dotnet ef migrations` has a schema to diff against. `./ma pull`
 refreshes it from the phone; treat the phone as the source of truth.
 
-## Important
+## The Obsidian vault is the memory
 
-Dont write so many comments when coding, only when necessary.
+Project memory lives in the vault at `~/Documents/vault_personal`, **not** in this
+file and not in the chat. Hub note: `Projects/MediaArchive.md`. Read
+`~/Documents/vault_personal/CLAUDE.md` for the vault's schema (note types,
+frontmatter, tags, templates).
 
-## This is a learning project — read this before writing code
+The rule: **a decision that isn't written in the vault didn't happen.** Next session
+starts with no context beyond what's on disk.
 
-I'm **new to C#** and building this to learn. My day job is **backend ASP.NET Core
-with controller APIs**, so the transferable skills — the C# language, EF Core, DI,
-the service layer, async, LINQ, architecture — matter to me far more than the Blazor
-UI. Optimize our collaboration for *me learning*, not for you shipping fast.
+**Before starting any task:**
+1. Read the hub `Projects/MediaArchive.md` — scope, surfaces, open decisions.
+2. Find the matching note in `Issues/` (they're flat; `status` there is the real
+   roadmap, not a list in this file). Read it.
+3. Read the `Reference/` notes it links — `Data model`, `External data providers`,
+   `UI - Surfaces and navigation` — before touching anything they cover.
+4. No issue note for the work? Create one from `_Templates/issue.md` first, with
+   `project: "[[MediaArchive]]"`, and get it agreed before writing code.
 
-**Now that I've started the job, I get plenty of hands-on C# typing every day at
-work.** So this project's role has shifted: the learning I want from it is the
-*design reasoning* and the *code review* reps, not the keyboard time. Optimize for
-energy-to-learning ratio — I'm doing this in addition to a full workday.
+**While working:** the issue note is where the design lands.
+- `## Done when` — acceptance criteria. The scope gate; agree this before code.
+- `## Approach` — the chosen path **and why**, including options rejected.
+- `## Open questions` — unknowns and blockers. Non-empty means not ready to ship.
 
-### The learning split — this is the important part
+**When work lands:** tick `Done when` + `Before merge`, set `status`, file follow-ups
+as new issue notes rather than leaving them in the chat, and update the `Reference/`
+note if the shape of the data or the IA changed. **Commit the vault** — it's a git
+repo and its own CLAUDE.md asks for it.
 
-Treat these two zones of the codebase differently:
+**The vault describes what exists, not what was once planned.** It has drifted behind
+the code before — a surface specced one way and built another, fields that were
+renamed or dropped, plans marked `todo` long after they shipped. So:
 
-**Zone A — the C# I care about (design together, you implement, I review):**
-`Services/`, `Models/`, `Data/` (EF Core config, `DbContext`, migrations), business
-logic, LINQ queries, DI wiring in `Program.cs`, and any external-API import clients.
-For this code:
+- **The code wins.** When a note and the codebase disagree, the note is wrong. Fix the
+  note as part of the task; don't implement to a stale spec, and don't leave a spec
+  standing that describes something else.
+- **Verify before you trust a note.** A note naming a field, service, or migration is
+  a claim to check against the source, not a fact.
+- **Issues are events; `Reference/` notes are state.** An issue records one unit of
+  work at a point in time: once it is `completed` it is **closed and never rewritten**.
+  Work that changes that surface later is a **new issue**, so the sequence of issues
+  *is* the project's history — which is why they carry `started:` / `completed:` dates
+  and are named for the work ("Build the profile page", "Redesign the profile page"),
+  not for the surface. A `Reference/` note is the opposite: it describes what is true
+  **now**, so a superseded decision there gets rewritten, not appended to. Keep the
+  reasoning that still explains the code; the chain of issues holds how it got there.
+- **Don't carry dead weight.** Speculative specs, provider comparisons that were
+  settled, and migration plans that ran are noise once they're true or false. Cut them.
+- **Real features get a note.** Something shipped with no note in the vault is the
+  same drift in the other direction.
 
-- **Discuss the design first.** When a decision comes up (where a responsibility
-  lives, service boundaries, how to model data, sync vs async, how to structure an
-  import service), **stop and lay out the options and trade-offs with a
-  recommendation** before any code. This architectural thinking is the primary
-  learning goal, not overhead.
-- **Once we've agreed on the approach, you write the implementation.** Keep it in
-  small, readable slices (see Small diffs) so I can review each one.
-- **Explain as you go.** Name the C#/.NET concepts in play so I build the mental
-  model from reading your code (see Explain the C#).
-- **Expect me to review and push back.** Treat my review comments as the main event:
-  answer them, and flag anything in your own diff worth a second look — naming,
-  correctness, idiomatic C#, EF Core pitfalls (N+1, context lifetime, tracking).
-- If something is a genuinely new concept I say I want in my fingers, I'll ask to
-  hand-write that piece — offer to guide me instead of writing it then.
+## How we work
 
-**Zone B — the Blazor front-end (lower priority, you can drive):**
-`Components/`, `.razor` files, `wwwroot/`, CSS, `UiHelpers.cs`. Learning the Razor
-component model is not my focus. You may write this more freely — but still keep
-diffs readable and tell me briefly what you did so I can follow the wiring between
-UI and services.
+**Draft the solution before implementing it.** For anything touching `Services/`,
+`Models/`, `Data/` (EF config, `DbContext`, migrations), DI wiring, or the external
+provider clients: stop, lay out the options with trade-offs and a recommendation, and
+settle it with me first. Write the agreed approach into the issue note, then build.
+I want to be an active part of these choices — don't collapse a fork on your own.
 
-### Working rules
+**You can drive the UI.** `Components/`, `.razor`, `wwwroot/`, CSS, `UiHelpers.cs` —
+implement directly and tell me briefly how it wires to the services. Still flag it if
+a UI need implies a service or schema change; that's back to the paragraph above.
 
-- **Explain the C#.** When you write or review Zone-A code, name the language/
-  framework concepts in play (async/await, LINQ, generics, DI lifetimes, EF Core
-  relationships, nullable reference types) so I build the mental model.
-- **Small diffs.** Never drop a large feature in one go. Work in slices I can read
-  and explain back — this is what keeps the review valuable now that you write it.
-- **Design before code.** Surface architectural forks explicitly with a
-  recommendation *and* the reasoning, and settle the approach with me before
-  implementing a Zone-A feature.
-- **Design choices**. Look in the Obsidian vault at `~/Documents/vault_personal`
-  (hub note: `Projects/MediaArchive.md`) for relevant design choices before
-  implementing a task.
-- Dont write to much comments in the code, only when necessary.
+**Small diffs.** One reviewable slice at a time — never a whole feature in one drop.
 
-## Roadmap context
+**Push back.** Flag anything in your own diff worth a second look: naming, N+1s,
+context lifetime, tracking, nullability, error and empty states.
 
-Building one vertical slice — **Log → Library → item detail** — end-to-end before
-Diary/Profile. Current focus: **Phase 3 (Log & capture)** — universal add flow that
-imports from IGDB / Open Library via a C# service. Phases 1–2 (unified TPH schema +
-Blazor app with read-only surfaces) are done.
+## Code standards
+
+- **Simple over clever.** The plainest thing that fully solves the problem. No
+  abstraction for a second caller that doesn't exist yet.
+- **Reuse before adding.** Look for the existing service, query, or component first.
+  Extending one beats a near-duplicate.
+- **Keep the codebase small.** A feature that lands as a large net addition is a
+  design smell — say so and propose the smaller shape. Deleting counts as progress.
+- **Refactor to keep it readable.** When a file, method, or component stops being
+  easy to read, pull it apart as part of the work — not as a someday issue. Flag it
+  first if the refactor is bigger than the change that triggered it.
+- **The code explains itself.** Clear names and small methods instead of narration.
+- **Comments only where they carry information the code can't** — a non-obvious
+  why, a workaround, a sharp edge. **Never more than one line.** No comments that
+  restate the next statement, no section banners, no XML doc blocks on obvious
+  members.
+- Match the surrounding style; `Tests/` covers providers and caching — extend it
+  when you touch that logic.
 
 ## Build & run
 
