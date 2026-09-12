@@ -39,8 +39,8 @@
                     {
                         <div class="fl">Effort so far (@UiHelpers.LengthUnit(MediaType)) <b>required</b></div>
                         <input class="in" type="number" min="0" @bind="_progressEffort"
-                               placeholder="@(_previousEffort?.ToString() ?? "")"/>
-                        @if (_previousEffort is { } prev)
+                               placeholder="@(_entry?.Effort?.ToString() ?? "")"/>
+                        @if (_entry?.Effort is { } prev)
                         {
                             <div class="fl opt">Last logged at @prev @UiHelpers.LengthUnit(MediaType)</div>
                         }
@@ -65,7 +65,7 @@
                     {
                         <div class="fl">Hours listened <span class="opt">optional</span></div>
                         <input class="in" type="number" min="0" step="0.1" @bind="_finishHours"
-                               placeholder="@(AudioHours?.ToString() ?? "")"/>
+                               placeholder="@(_entry?.AudioHours?.ToString() ?? "")"/>
                     }
                     else
                     {
@@ -120,24 +120,24 @@
     [Parameter, EditorRequired] public int EntryId { get; set; }
     [Parameter, EditorRequired] public string Title { get; set; } = "";
     [Parameter, EditorRequired] public MediaType MediaType { get; set; }
-    // Audiobook effort is entered in hours and stored as pages.
-    [Parameter] public bool Audiobook { get; set; }
-    [Parameter] public double? AudioHours { get; set; }
-    [Parameter] public int? PageCount { get; set; }
     [Parameter] public EventCallback OnClose { get; set; }
     [Parameter] public EventCallback OnLogged { get; set; }
 
     private Mode _mode = Mode.Progress;
-    private int? _previousEffort;
+    private EntryEffort? _entry;
+
+    // Loaded, not passed in, so no call site can render this in the wrong unit.
+    private bool Audiobook => _entry is { Audiobook: true, AudioHours: > 0, PageCount: > 0 };
 
     // Audible shows the remaining time, so that is what gets typed — the stored
     // effort stays cumulative pages, converted at this boundary and no deeper.
-    private double? _previousHoursLeft => _previousEffort is { } pe && PageCount is > 0 && AudioHours is > 0
-        ? Math.Round(AudioHours.Value - (double)pe / PageCount.Value * AudioHours.Value, 1)
-        : null;
+    private double? _previousHoursLeft =>
+        _entry is { Effort: { } pe, AudioHours: { } hours and > 0, PageCount: { } pages and > 0 }
+            ? Math.Round(hours - (double)pe / pages * hours, 1)
+            : null;
 
     protected override async Task OnInitializedAsync() =>
-        _previousEffort = await Queries.GetEntryEffortAsync(EntryId);
+        _entry = await Queries.GetEntryEffortAsync(EntryId);
 
     private int? _progressEffort;
     private double? _progressHoursLeft;
@@ -153,15 +153,16 @@
     private bool _saving;
     private string? _error;
 
-    private bool CanSubmit => _mode switch
+    private bool CanSubmit => _entry is not null && _mode switch
     {
         Mode.Progress => Audiobook
-            ? _progressHoursLeft is { } left && left >= 0 && AudioHours is { } total && left <= total
+            ? _progressHoursLeft is { } left && left >= 0 && _entry.AudioHours is { } total && left <= total
             : _progressEffort is > 0,
         _ => _endDate is not null
     };
 
-    private int? ToPages(double? hours) => Book.PagesFromHours(hours, AudioHours, PageCount);
+    private int? ToPages(double? hours) =>
+        Book.PagesFromHours(hours, _entry?.AudioHours, _entry?.PageCount);
 
     private async Task Submit()
     {
@@ -173,7 +174,7 @@
             if (_mode == Mode.Progress)
             {
                 var effort = Audiobook
-                    ? ToPages(AudioHours - _progressHoursLeft)
+                    ? ToPages(_entry!.AudioHours - _progressHoursLeft)
                     : _progressEffort;
                 await LogService.AddNoteAsync(EntryId,
                     new NoteInput(_progressNote.Trim(), effort));

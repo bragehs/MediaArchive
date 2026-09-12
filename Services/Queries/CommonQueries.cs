@@ -11,6 +11,9 @@ public record OpenPassSummary(int EntryId, DateOnly? StartDate, int? Effort, dou
 
 public record ResumablePass(int EntryId, DateOnly? EndDate, int? Effort);
 
+// Audio hours and pages are the conversion's two numbers, not facts about the pass.
+public record EntryEffort(int? Effort, bool Audiobook, double? AudioHours, int? PageCount);
+
 public record ItemDetail(
     int UserMediaItemId,
     string Title,
@@ -135,12 +138,16 @@ public class CommonQueries(IDbContextFactory<AppDbContext> dbContextFactory)
             item.Entries.Count);
     }
 
-    public async Task<int?> GetEntryEffortAsync(int entryId, CancellationToken ct = default)
+    public async Task<EntryEffort?> GetEntryEffortAsync(int entryId, CancellationToken ct = default)
     {
         await using var db = await dbContextFactory.CreateDbContextAsync(ct);
+
         return await db.ConsumptionEntries
             .Where(e => e.Id == entryId)
-            .Select(e => e.Effort)
+            .Select(e => new EntryEffort(e.Effort,
+                e.Context == ConsumptionContext.Audiobook && e.UserMediaItem!.MediaItem is Book,
+                ((Book)e.UserMediaItem!.MediaItem!).AudioHours,
+                ((Book)e.UserMediaItem!.MediaItem!).PageCount))
             .FirstOrDefaultAsync(ct);
     }
 

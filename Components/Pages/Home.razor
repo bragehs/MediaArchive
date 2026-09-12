@@ -93,7 +93,6 @@ else
 @if (_logTarget is { } target)
 {
     <LogProgressDialog EntryId="@target.OpenEntryId" Title="@target.Title" MediaType="@target.MediaType"
-                       Audiobook="@target.IsAudiobook" AudioHours="@target.AudioHours" PageCount="@target.PageCount"
                        OnClose="() => _logTarget = null" OnLogged="OnLogged"/>
 }
 
