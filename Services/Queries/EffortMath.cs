@@ -24,6 +24,11 @@ public static class EffortMath
     public static double UnitsLogged(ConsumptionEntry entry, DateTime from, DateTime toExclusive) =>
         Walk(entry).Where(s => s.When >= from && s.When < toExclusive).Sum(s => s.Delta);
 
+    // Null, never zero: a type that can't convert its unit (a show with no
+    // episode runtime) has to leave an aggregate rather than deflate it.
+    public static double? ToMinutes(MediaItem media, double units) =>
+        media.MinutesPerUnit is { } perUnit ? units * perUnit : null;
+
     public static double? ProgressPercent(int? effort, int? length) =>
         effort is { } e && length is > 0 ? (double)e / length.Value * 100 : null;
 

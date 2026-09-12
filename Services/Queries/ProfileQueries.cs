@@ -115,7 +115,7 @@ public class ProfileQueries(IDbContextFactory<AppDbContext> dbContextFactory)
                 // A resumed pass carries its predecessor's total forward, so its
                 // own contribution is the part above the baseline.
                 var units = u.Entries.Sum(e => (e.Effort ?? 0) - (e.StartingEffort ?? 0));
-                var minutes = media.MinutesPerUnit is { } perUnit ? units * perUnit : 0;
+                var minutes = EffortMath.ToMinutes(media, units) ?? 0;
 
                 switch (media.MediaType)
                 {

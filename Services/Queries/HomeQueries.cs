@@ -124,7 +124,7 @@ public class HomeQueries(
 
             var media = entry.UserMediaItem!.MediaItem!;
             var units = EffortMath.UnitsLogged(entry, from, toExclusive);
-            var minutes = media.MinutesPerUnit is { } perUnit ? units * perUnit : 0;
+            var minutes = EffortMath.ToMinutes(media, units) ?? 0;
 
             switch (media.MediaType)
             {
