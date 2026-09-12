@@ -84,19 +84,14 @@ else
         var finished = _form is PassForm.Finished;
 
         <div class="istart">
-            <div class="irow">
-                <div>
-                    <div class="il2">Start date</div>
-                    <input class="iin" type="date" @bind="_startDate"/>
-                </div>
-                @if (finished)
-                {
-                    <div>
-                        <div class="il2">End date</div>
-                        <input class="iin" type="date" @bind="_endDate"/>
-                    </div>
-                }
-            </div>
+            @* A date field has a fixed intrinsic width here, so it never shares a row. *@
+            <div class="il2">Start date</div>
+            <input class="iin" type="date" @bind="_startDate"/>
+            @if (finished)
+            {
+                <div class="il2">End date</div>
+                <input class="iin" type="date" @bind="_endDate"/>
+            }
             <div class="irow">
                 <div>
                     <div class="il2">How <span class="iopt">optional</span></div>
