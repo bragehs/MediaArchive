@@ -60,8 +60,9 @@ public class TmdbProviderTests
         Assert.Equal(56, await EpisodeRuntimeFrom(json));
     }
 
+    // One episode's length is not the series average, so it is never borrowed.
     [Fact]
-    public async Task GetByIdAsync_FallsBackToLastAiredEpisode_WhenEveryRunTimeIsNonPositive()
+    public async Task GetByIdAsync_IgnoresTheLastAiredEpisode_WhenEveryRunTimeIsNonPositive()
     {
         const string json = """
                             {
@@ -72,11 +73,11 @@ public class TmdbProviderTests
                             }
                             """;
 
-        Assert.Equal(76, await EpisodeRuntimeFrom(json));
+        Assert.Null(await EpisodeRuntimeFrom(json));
     }
 
     [Fact]
-    public async Task GetByIdAsync_FallsBackToLastAiredEpisode_WhenEpisodeRunTimeIsAbsent()
+    public async Task GetByIdAsync_IgnoresTheLastAiredEpisode_WhenEpisodeRunTimeIsAbsent()
     {
         const string json = """
                             {
@@ -86,7 +87,7 @@ public class TmdbProviderTests
                             }
                             """;
 
-        Assert.Equal(76, await EpisodeRuntimeFrom(json));
+        Assert.Null(await EpisodeRuntimeFrom(json));
     }
 
     [Fact]
@@ -104,14 +105,13 @@ public class TmdbProviderTests
     }
 
     [Fact]
-    public async Task GetByIdAsync_NeverYieldsZero_WhenTheLastAiredEpisodeHasNoRuntime()
+    public async Task GetByIdAsync_NeverYieldsZero_WhenEveryRunTimeIsZero()
     {
         const string json = """
                             {
                               "id": 95396,
                               "name": "Severance",
-                              "episode_run_time": [0],
-                              "last_episode_to_air": { "runtime": 0 }
+                              "episode_run_time": [0, 0]
                             }
                             """;
 

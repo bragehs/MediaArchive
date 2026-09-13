@@ -215,17 +215,13 @@ public class TmdbProvider(HttpClient httpClient) : IMediaProvider
         );
     }
 
-    // episode_run_time is frequently empty on newer shows; FirstOrDefault over List<int> would hand back 0, not null.
+    // One episode's length is not the series average, so an empty array stays null
+    // and the runtime is asked for instead.
     private static int? ShowEpisodeRuntime(TmdbTvDetail show)
     {
         var runtimes = show.EpisodeRunTime?.Where(r => r > 0).ToList() ?? [];
 
-        if (runtimes.Count > 0)
-            return (int)Math.Round(runtimes.Average());
-
-        var lastAired = show.LastEpisodeToAir?.Runtime;
-
-        return lastAired > 0 ? lastAired : null;
+        return runtimes.Count > 0 ? (int)Math.Round(runtimes.Average()) : null;
     }
 
     // Shows have no series-level director; TMDB's created_by is the headline credit.
@@ -290,12 +286,9 @@ public class TmdbProvider(HttpClient httpClient) : IMediaProvider
         int? VoteCount,
         List<TmdbCompany>? Networks,
         List<int>? EpisodeRunTime,
-        TmdbEpisode? LastEpisodeToAir,
         List<TmdbSeason>? Seasons);
 
     private sealed record TmdbCreatedBy(string? Name);
-
-    private sealed record TmdbEpisode(int? Runtime);
 
     private sealed record TmdbSeason(
         int SeasonNumber,
