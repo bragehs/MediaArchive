@@ -384,11 +384,30 @@ build_widget() {
 }
 
 build() {
-    local rid="$1"
+    local rid="$1" app
     say "building ($rid)…"
     dotnet build "$PROJ" -f "$TFM" -r "$rid" --nologo -v quiet >&2 \
         || die "build failed"
-    print -- "$REPO/MediaArchive.Mobile/bin/Debug/$TFM/$rid/MediaArchive.Mobile.app"
+    app="$REPO/MediaArchive.Mobile/bin/Debug/$TFM/$rid/MediaArchive.Mobile.app"
+    prune_scoped_css "$app"
+    print -- "$app"
+}
+
+# The scoped-CSS bundle is content-hashed, so every CSS edit writes a new file
+# and leaves the previous one behind. Only the hash styles.css imports is ever
+# served, so the rest are dead weight that ships to the phone. Prune AFTER the
+# build — deleting first would leave MSBuild thinking the copy is up to date.
+prune_scoped_css() {
+    local dir="$1/wwwroot/_content/MediaArchive" keep f
+    [[ -d "$dir" ]] || return 0
+
+    keep=$(grep -oE 'MediaArchive\.[a-z0-9]+\.bundle\.scp\.css' \
+           "$1/wwwroot/MediaArchive.Mobile.styles.css" 2>/dev/null | head -1)
+    [[ -n "$keep" ]] || return 0
+
+    for f in "$dir"/MediaArchive.*.bundle.scp.css(N) "$dir"/MediaArchive.*.bundle.scp.css.(br|gz)(N); do
+        [[ "${f##*/}" == "$keep"* ]] || rm -f "$f"
+    done
 }
 
 # ------------------------------------------------------------------- simulator
