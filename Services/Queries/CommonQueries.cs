@@ -12,7 +12,9 @@ public record OpenPassSummary(int EntryId, DateOnly? StartDate, int? Effort, dou
 public record ResumablePass(int EntryId, DateOnly? EndDate, int? Effort);
 
 // Audio hours and pages are the conversion's two numbers, not facts about the pass.
-public record EntryEffort(int? Effort, bool Audiobook, double? AudioHours, int? PageCount);
+// RuntimeKnown is false when the item's own length won't reach minutes at all.
+public record EntryEffort(int UserMediaItemId, int? Effort, bool Audiobook,
+    double? AudioHours, int? PageCount, bool RuntimeKnown);
 
 public record ItemDetail(
     int UserMediaItemId,
@@ -142,13 +144,25 @@ public class CommonQueries(IDbContextFactory<AppDbContext> dbContextFactory)
     {
         await using var db = await dbContextFactory.CreateDbContextAsync(ct);
 
-        return await db.ConsumptionEntries
-            .Where(e => e.Id == entryId)
-            .Select(e => new EntryEffort(e.Effort,
-                e.Context == ConsumptionContext.Audiobook && e.UserMediaItem!.MediaItem is Book,
-                ((Book)e.UserMediaItem!.MediaItem!).AudioHours,
-                ((Book)e.UserMediaItem!.MediaItem!).PageCount))
-            .FirstOrDefaultAsync(ct);
+        // One row, and EstimatedMinutes is [NotMapped], so materialise and read it here.
+        var entry = await db.ConsumptionEntries
+            .Include(e => e.UserMediaItem!).ThenInclude(u => u.MediaItem)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(e => e.Id == entryId, ct);
+
+        if (entry is null)
+            return null;
+
+        var media = entry.UserMediaItem!.MediaItem!;
+        var book = media as Book;
+
+        return new EntryEffort(
+            entry.UserMediaItem.Id,
+            entry.Effort,
+            book is not null && entry.Context == ConsumptionContext.Audiobook,
+            book?.AudioHours,
+            book?.PageCount,
+            media.EstimatedMinutes is > 0);
     }
 
     public async Task<List<PassSummary>> GetPassHistoryAsync(int userMediaItemId,

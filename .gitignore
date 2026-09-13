@@ -32,3 +32,6 @@ backups/
 
 # Widget extension build output (xcodebuild SYMROOT, see ./ma)
 .widgetbuild/
+
+# agent worktrees
+.claude/

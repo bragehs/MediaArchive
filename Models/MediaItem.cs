@@ -81,7 +81,8 @@ public class Book : MediaItem
 
     public double? AudioHours { get; set; }
 
-    [NotMapped] public override int? Length => PageCount;
+    // A non-positive length is missing, not zero — counted as zero it deflates every average.
+    [NotMapped] public override int? Length => PageCount is > 0 ? PageCount : null;
     [NotMapped] public override double? MinutesPerUnit => MinutesPerPage;
 
     public static int? PagesFromHours(double? hours, double? audioHours, int? pageCount) =>
@@ -94,7 +95,7 @@ public class Game : MediaItem
 {
     public int? TimeToBeatHours { get; set; }
 
-    [NotMapped] public override int? Length => TimeToBeatHours;
+    [NotMapped] public override int? Length => TimeToBeatHours is > 0 ? TimeToBeatHours : null;
     [NotMapped] public override double? MinutesPerUnit => 60;
 }
 
@@ -102,7 +103,7 @@ public class Movie : MediaItem
 {
     public int? RuntimeMinutes { get; set; }
 
-    [NotMapped] public override int? Length => RuntimeMinutes;
+    [NotMapped] public override int? Length => RuntimeMinutes is > 0 ? RuntimeMinutes : null;
     [NotMapped] public override double? MinutesPerUnit => 1;
 }
 
@@ -112,7 +113,6 @@ public class Show : MediaItem
 
     public int? EpisodeRuntime { get; set; }
 
-    [NotMapped] public override int? Length => EpisodeCount;
-    // A stored 0 would silently cost every episode nothing; missing is the honest reading.
+    [NotMapped] public override int? Length => EpisodeCount is > 0 ? EpisodeCount : null;
     [NotMapped] public override double? MinutesPerUnit => EpisodeRuntime is > 0 ? EpisodeRuntime : null;
 }

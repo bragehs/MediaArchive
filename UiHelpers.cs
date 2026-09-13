@@ -100,6 +100,15 @@ public static class UiHelpers
         _ => "episodes"
     };
 
+    // The one number a type needs before its length is known in minutes.
+    public static string RuntimeLabel(MediaType t) => t switch
+    {
+        MediaType.Book => "Pages",
+        MediaType.Game => "Hours to beat",
+        MediaType.Movie => "Runtime (minutes)",
+        _ => "Minutes per episode"
+    };
+
     public static string KindLabel(DiaryEventKind kind) => kind switch
     {
         DiaryEventKind.Finished => "Finished",

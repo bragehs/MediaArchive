@@ -25,6 +25,26 @@ public class UserItemService(IDbContextFactory<AppDbContext> dbContextFactory)
         await db.SaveChangesAsync(ct);
     }
 
+    // Which column that is differs by type, exactly as MediaItemMapper does it.
+    public async Task SetRuntimeAsync(int userMediaItemId, int value, CancellationToken ct = default)
+    {
+        await using var db = await dbContextFactory.CreateDbContextAsync(ct);
+
+        var media = (await db.UserMediaItems
+            .Include(u => u.MediaItem)
+            .FirstAsync(u => u.Id == userMediaItemId, ct)).MediaItem!;
+
+        switch (media)
+        {
+            case Book book: book.PageCount = value; break;
+            case Game game: game.TimeToBeatHours = value; break;
+            case Movie movie: movie.RuntimeMinutes = value; break;
+            case Show show: show.EpisodeRuntime = value; break;
+        }
+
+        await db.SaveChangesAsync(ct);
+    }
+
     public Task SetRatingAsync(int userMediaItemId, int? rating, CancellationToken ct = default)
     {
         return UpdateUserItemAsync(userMediaItemId, u => u.Rating = rating, ct);

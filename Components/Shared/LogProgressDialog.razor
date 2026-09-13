@@ -1,4 +1,5 @@
 @inject LoggingService LogService
+@inject UserItemService UserItems
 @inject CommonQueries Queries
 @inject IJSRuntime JS
 
@@ -20,6 +21,17 @@
                 </button>
             </div>
         </div>
+
+        @if (_entry is { RuntimeKnown: false })
+        {
+            <div class="cap-row">
+                <div>
+                    <div class="fl">@UiHelpers.RuntimeLabel(MediaType) <b>required</b></div>
+                    <input class="in" type="number" min="1" @bind="_runtime"/>
+                    <div class="fl opt">Not known for this @UiHelpers.TypeLabel(MediaType).ToLowerInvariant() — without it the time never counts.</div>
+                </div>
+            </div>
+        }
 
         @if (_mode == Mode.Progress)
         {
@@ -139,6 +151,7 @@
     protected override async Task OnInitializedAsync() =>
         _entry = await Queries.GetEntryEffortAsync(EntryId);
 
+    private int? _runtime;
     private int? _progressEffort;
     private double? _progressHoursLeft;
     private string _progressNote = "";
@@ -153,7 +166,9 @@
     private bool _saving;
     private string? _error;
 
-    private bool CanSubmit => _entry is not null && _mode switch
+    private bool NeedsRuntime => _entry is { RuntimeKnown: false };
+
+    private bool CanSubmit => _entry is not null && (!NeedsRuntime || _runtime is > 0) && _mode switch
     {
         Mode.Progress => Audiobook
             ? _progressHoursLeft is { } left && left >= 0 && _entry.AudioHours is { } total && left <= total
@@ -171,6 +186,9 @@
 
         try
         {
+            if (NeedsRuntime && _runtime is { } runtime)
+                await UserItems.SetRuntimeAsync(_entry!.UserMediaItemId, runtime);
+
             if (_mode == Mode.Progress)
             {
                 var effort = Audiobook
