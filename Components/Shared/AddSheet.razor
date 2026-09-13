@@ -170,14 +170,30 @@ else
                             @if (_detail.Genres.Count > 0)
                             {
                                 <div class="dfact" style="flex-basis:100%">
-                                    <div class="n sm">@Summarise(_detail.Genres, 6)</div>
+                                    <div class="n sm">
+                                        @Shown(_detail.Genres, _allGenres)
+                                        @if (_detail.Genres.Count > VocabPreview)
+                                        {
+                                            <button class="vmore" @onclick="() => _allGenres = !_allGenres">
+                                                @More(_detail.Genres, _allGenres)
+                                            </button>
+                                        }
+                                    </div>
                                     <div class="l">Genres per @_detail.ExternalSource</div>
                                 </div>
                             }
                             @if (_detail.Tags.Count > 0)
                             {
                                 <div class="dfact" style="flex-basis:100%">
-                                    <div class="n sm">@Summarise(_detail.Tags, 6)</div>
+                                    <div class="n sm">
+                                        @Shown(_detail.Tags, _allTags)
+                                        @if (_detail.Tags.Count > VocabPreview)
+                                        {
+                                            <button class="vmore" @onclick="() => _allTags = !_allTags">
+                                                @More(_detail.Tags, _allTags)
+                                            </button>
+                                        }
+                                    </div>
                                     <div class="l">Tags per @_detail.ExternalSource</div>
                                 </div>
                             }
@@ -409,6 +425,8 @@ else
 
     private Vocabulary _vocab = new([], [], [], []);
 
+    private bool _allGenres;
+    private bool _allTags;
     private bool _capturing;
     private bool _backfill;
     private List<string> _genres = [];
@@ -458,10 +476,14 @@ else
             Reset();
     }
 
-    private static string Summarise(IReadOnlyList<string?> values, int cap) =>
-        values.Count <= cap
-            ? string.Join(" · ", values)
-            : $"{string.Join(" · ", values.Take(cap))} +{values.Count - cap}";
+    // Providers can return dozens of keywords; show a handful, keep the rest a tap away.
+    private const int VocabPreview = 6;
+
+    private static string Shown(IReadOnlyList<string?> values, bool all) =>
+        string.Join(" · ", all ? values : values.Take(VocabPreview));
+
+    private static string More(IReadOnlyList<string?> values, bool all) =>
+        all ? "less" : $"+{values.Count - VocabPreview}";
 
     private static string? Trimmed(string text) => text.Trim().Length == 0 ? null : text.Trim();
 
@@ -676,6 +698,8 @@ else
         _seasons = [];
         _seasonChosen = false;
         _showTitle = null;
+        _allGenres = false;
+        _allTags = false;
         _capturing = false;
         _backfill = false;
         _genres = [];

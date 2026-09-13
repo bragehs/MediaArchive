@@ -104,7 +104,7 @@
     color: var(--dim);
     border-radius: 8px;
 }
-.eopt.on { background: var(--ink); color: var(--bg); }
+.eopt.on { background: var(--ac); color: var(--on-ac); }
 
 .eresults { margin-top: 14px; }
 .scount {
@@ -214,4 +214,15 @@
     padding: 13px;
     letter-spacing: .16em;
     font-size: 11px;
+}
+
+.vmore {
+    font-family: var(--f-display);
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    font-size: 9px;
+    font-weight: 700;
+    color: var(--ac);
+    text-decoration: underline;
+    margin-left: 6px;
 }

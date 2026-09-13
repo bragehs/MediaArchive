@@ -18,7 +18,7 @@
     font-weight: 600;
     color: var(--dim);
 }
-.xopt.on { background: var(--ink); color: var(--bg); }
+.xopt.on { background: var(--ac); color: var(--on-ac); }
 
 .xmpt {
     font-family: var(--f-serif);
