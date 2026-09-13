@@ -60,7 +60,7 @@
     border-radius: 5px;
     overflow: hidden;
     border: 1px solid var(--line2);
-    background: linear-gradient(155deg, var(--panel), #131f10);
+    background: linear-gradient(155deg, var(--panel), var(--sink));
     --fb-pad: 3px;
     --fb-size: 6.5px;
 }

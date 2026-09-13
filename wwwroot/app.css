@@ -32,18 +32,29 @@
 }
 
 :root {
+    /* colors:start — generated from colors.json by scripts/sync-colors.sh */
     --bg: #141414;
     --panel: #253b23;
     --panel2: #2e4a2b;
-    --line: rgba(242, 239, 230, .18);
-    --line2: rgba(242, 239, 230, .09);
+    --sink: #131f10;
     --ink: #fafcf8;
     --muted: #cfd6ca;
     --dim: #959f90;
+    --on-ac: #132011;
     --ac: #8bbe5a;
     --ac2: #d6a74a;
     --sage: #a9c68e;
-    --on-ac: #132011;
+    --bad: #be5a5a;
+    --bad-ink: #e8a0a0;
+    --book: #8bbe5a;
+    --game: #d6a74a;
+    --movie: #a9c68e;
+    --show: #8a7f6a;
+    /* colors:end */
+
+    /* hairlines are ink at low alpha, not palette entries */
+    --line: rgba(242, 239, 230, .18);
+    --line2: rgba(242, 239, 230, .09);
 
     --f-title: "Cinzel Decorative", "Cinzel", Baskerville, serif;
     --f-display: "Cinzel", "Trajan Pro", Optima, Baskerville, serif;
@@ -55,11 +66,6 @@
     --grain: .08;
     --rule: 2px;
 
-    /* fallback-tile colours, keyed to media type — in-palette, bright on forest */
-    --book: #8bbe5a;
-    --game: #d6a74a;
-    --movie: #a9c68e;
-    --show: #8a7f6a;
 }
 
 /* radius tokens — framed blocks round, small controls round less */
@@ -196,7 +202,7 @@ body::before {
     display: flex;
     align-items: flex-end;
     padding: 12px;
-    background: linear-gradient(155deg, var(--tint), #16240f);
+    background: linear-gradient(155deg, var(--tint), var(--sink));
 }
 
 .dcover .fb span {

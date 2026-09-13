@@ -93,7 +93,7 @@
     flex: none;
     border-radius: 8px;
     border: 1px solid var(--line);
-    background: linear-gradient(155deg, var(--panel), #131f10);
+    background: linear-gradient(155deg, var(--panel), var(--sink));
     overflow: hidden;
     cursor: pointer;
 }

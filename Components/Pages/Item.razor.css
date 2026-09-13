@@ -30,7 +30,7 @@
     aspect-ratio: 2 / 3;
     border-radius: 10px;
     border: 1px solid var(--line);
-    background: linear-gradient(155deg, var(--panel), #131f10);
+    background: linear-gradient(155deg, var(--panel), var(--sink));
     overflow: hidden;
     --fb-pad: 9px;
     --fb-size: 11px;
@@ -98,7 +98,7 @@
     text-align: center;
     margin-top: 16px;
     background: var(--ac);
-    color: #132011;
+    color: var(--on-ac);
     font-family: var(--f-display);
     text-transform: uppercase;
     letter-spacing: .14em;
@@ -167,7 +167,7 @@
 
 .ifield { margin-bottom: 8px; }
 .inote { font-family: var(--f-display); font-size: 12px; padding: 10px 12px; border-radius: 9px; margin-top: 10px; }
-.inote.bad { background: rgba(190, 90, 90, .15); border: 1px solid #be5a5a; color: #e8a0a0; }
+.inote.bad { background: rgba(190, 90, 90, .15); border: 1px solid var(--bad); color: var(--bad-ink); }
 
 .ipass { padding: 12px 0; border-bottom: 1px solid var(--line2); }
 .ipasshead { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }

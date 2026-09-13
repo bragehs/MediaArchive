@@ -145,7 +145,7 @@
     aspect-ratio: 2 / 3;
     border-radius: 6px;
     border: 1px solid var(--line);
-    background: linear-gradient(155deg, var(--panel), #131f10);
+    background: linear-gradient(155deg, var(--panel), var(--sink));
     overflow: hidden;
 }
 .pcov img { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -204,7 +204,7 @@
     color: var(--ac);
     text-decoration: underline;
 }
-.enote.bad { background: rgba(190, 90, 90, .15); border: 1px solid #be5a5a; color: #e8a0a0; }
+.enote.bad { background: rgba(190, 90, 90, .15); border: 1px solid var(--bad); color: var(--bad-ink); }
 
 .dadd {
     display: block;

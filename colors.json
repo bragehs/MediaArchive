@@ -1,0 +1,30 @@
+{
+  "_": "The palette, defined once. Run scripts/sync-colors.sh after editing to regenerate the marked blocks in wwwroot/app.css and widget/MediaArchiveWidget.swift. Do not hand-edit those blocks.",
+  "ground": {
+    "bg": "#141414",
+    "panel": "#253b23",
+    "panel2": "#2e4a2b",
+    "sink": "#131f10"
+  },
+  "ink": {
+    "ink": "#fafcf8",
+    "muted": "#cfd6ca",
+    "dim": "#959f90",
+    "on-ac": "#132011"
+  },
+  "accent": {
+    "ac": "#8bbe5a",
+    "ac2": "#d6a74a",
+    "sage": "#a9c68e"
+  },
+  "state": {
+    "bad": "#be5a5a",
+    "bad-ink": "#e8a0a0"
+  },
+  "mediaType": {
+    "book": "#8bbe5a",
+    "game": "#d6a74a",
+    "movie": "#a9c68e",
+    "show": "#8a7f6a"
+  }
+}
