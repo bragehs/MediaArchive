@@ -15,7 +15,7 @@
     <div class="sheethead">
         @if (_selected is not null)
         {
-            <button class="hback" @onclick="Reset" aria-label="Back to search">‹</button>
+            <button class="hback" @onclick="Back" aria-label="Back">‹</button>
         }
         <span class="stt">@(_selected is null ? "Add anything" : (_detail?.Title ?? "Loading…"))</span>
         @if (!Embedded)
@@ -122,7 +122,7 @@ else
                 }
                 <button class="sback" @onclick="Reset">‹ Back to search</button>
             }
-            else if (_detail is not null)
+            else if (_detail is not null && !_capturing)
             {
                 <div class="detail">
                     <div class="dcover">
@@ -144,6 +144,8 @@ else
                         <div class="dm">
                             @UiHelpers.TypeLabel(_detail.MediaType)@(_detail.Creator is null ? "" : " · " + _detail.Creator)@(_detail.ReleaseYear is null ? "" : " · " + _detail.ReleaseYear)
                         </div>
+
+                        <button class="btn dadd" @onclick="() => _capturing = true">Add →</button>
 
                         @if (!string.IsNullOrWhiteSpace(_detail.Description))
                         {
@@ -168,14 +170,14 @@ else
                             @if (_detail.Genres.Count > 0)
                             {
                                 <div class="dfact" style="flex-basis:100%">
-                                    <div class="n sm">@string.Join(" · ", _detail.Genres)</div>
+                                    <div class="n sm">@Summarise(_detail.Genres, 6)</div>
                                     <div class="l">Genres per @_detail.ExternalSource</div>
                                 </div>
                             }
                             @if (_detail.Tags.Count > 0)
                             {
                                 <div class="dfact" style="flex-basis:100%">
-                                    <div class="n sm">@string.Join(" · ", _detail.Tags)</div>
+                                    <div class="n sm">@Summarise(_detail.Tags, 6)</div>
                                     <div class="l">Tags per @_detail.ExternalSource</div>
                                 </div>
                             }
@@ -183,6 +185,9 @@ else
                     </div>
                 </div>
 
+            }
+            else if (_detail is not null)
+            {
                 <div class="capture">
                     <div class="cap-head">
                         <span class="label">Adding</span>
@@ -369,7 +374,7 @@ else
 
                     <div class="cap-foot">
                         <span class="req">@FootHint</span>
-                        <button class="btn ghost" @onclick="Reset">Cancel</button>
+                        <button class="btn ghost" @onclick="Back">Cancel</button>
                         <button class="btn" @onclick="Submit" disabled="@(_saving || !CanSubmit)">
                             @(_saving ? "…" : _backfill ? "Log it as finished" : "Add to library")
                         </button>
@@ -404,6 +409,7 @@ else
 
     private Vocabulary _vocab = new([], [], [], []);
 
+    private bool _capturing;
     private bool _backfill;
     private List<string> _genres = [];
     private List<string> _tags = [];
@@ -442,6 +448,20 @@ else
                                 && _audioHours is > 0;
 
     private void OpenSaved() => Nav.NavigateTo($"/item/{_savedItemId}");
+
+    // Back pops one step: capture → the work, the work → the results.
+    private void Back()
+    {
+        if (_capturing)
+            _capturing = false;
+        else
+            Reset();
+    }
+
+    private static string Summarise(IReadOnlyList<string?> values, int cap) =>
+        values.Count <= cap
+            ? string.Join(" · ", values)
+            : $"{string.Join(" · ", values.Take(cap))} +{values.Count - cap}";
 
     private static string? Trimmed(string text) => text.Trim().Length == 0 ? null : text.Trim();
 
@@ -656,6 +676,7 @@ else
         _seasons = [];
         _seasonChosen = false;
         _showTitle = null;
+        _capturing = false;
         _backfill = false;
         _genres = [];
         _tags = [];
