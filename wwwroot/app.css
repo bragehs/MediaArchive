@@ -189,7 +189,7 @@ body::before {
     width: 100%;
     border: 1px solid var(--line);
     border-radius: 10px;
-    background: linear-gradient(155deg, var(--panel), #131f10);
+    background: linear-gradient(155deg, var(--panel), var(--sink));
     overflow: hidden;
     position: relative;
 }
