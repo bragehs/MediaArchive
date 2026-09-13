@@ -314,7 +314,7 @@ else
                         <button class="hintbtn" @onclick="() => _backfill = !_backfill">
                             @(_backfill
                                 ? "← never mind, just add it to the library"
-                                : "Consumed this already? Log a finished pass →")
+                                : $"{AlreadyPrompt(_detail.MediaType)} Log a finished pass →")
                         </button>
                     </div>
 
@@ -389,7 +389,10 @@ else
                     }
 
                     <div class="cap-foot">
-                        <span class="req">@FootHint</span>
+                        @if (FootHint is { Length: > 0 } hint)
+                        {
+                            <span class="req">@hint</span>
+                        }
                         <button class="btn ghost" @onclick="Back">Cancel</button>
                         <button class="btn" @onclick="Submit" disabled="@(_saving || !CanSubmit)">
                             @(_saving ? "…" : _backfill ? "Log it as finished" : "Add to library")
@@ -516,11 +519,15 @@ else
     private TagInput Existing(string tag) =>
         _newTags.TryGetValue(tag, out var input) ? input : new TagInput(tag, null, null);
 
-    private string FootHint => NewTags.Any(t => FacetOf(t).Length == 0)
-        ? "Pick a facet for each new tag."
-        : _backfill
-            ? "Logged as one finished pass."
-            : "Saved unstarted — start it from the item.";
+    private string FootHint =>
+        NewTags.Any(t => FacetOf(t).Length == 0) ? "Pick a facet for each new tag." : "";
+
+    private static string AlreadyPrompt(MediaType type) => type switch
+    {
+        MediaType.Book => "Already read it?",
+        MediaType.Game => "Already played it?",
+        _ => "Already watched it?"
+    };
 
     private async Task SetType(MediaType type)
     {

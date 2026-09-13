@@ -46,14 +46,16 @@
 
     private string _draft = "";
 
+    // A typeahead, not a list to browse — the whole vocabulary is noise until you type.
     private List<string> Matches =>
-        Suggestions
-            .Where(s => !Selected.Contains(s, StringComparer.OrdinalIgnoreCase))
-            .Where(s => _draft.Trim().Length == 0
-                        || s.Contains(_draft.Trim(), StringComparison.OrdinalIgnoreCase))
-            .DistinctBy(s => s.ToLowerInvariant())
-            .Take(12)
-            .ToList();
+        _draft.Trim() is { Length: > 0 } draft
+            ? Suggestions
+                .Where(s => !Selected.Contains(s, StringComparer.OrdinalIgnoreCase))
+                .Where(s => s.Contains(draft, StringComparison.OrdinalIgnoreCase))
+                .DistinctBy(s => s.ToLowerInvariant())
+                .Take(12)
+                .ToList()
+            : [];
 
     private async Task Commit(string value)
     {
