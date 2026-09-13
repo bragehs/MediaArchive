@@ -25,6 +25,9 @@ public record ItemDetail(
     string? Description,
     DateOnly? ReleaseDate,
     int? Length,
+    // The number SetRuntimeAsync writes: minutes per episode for a show, the
+    // length in its own unit for everything else.
+    int? Runtime,
     double? ExternalRating,
     int? ExternalRatingCount,
     string? Universe,
@@ -117,6 +120,7 @@ public class CommonQueries(IDbContextFactory<AppDbContext> dbContextFactory)
             media.Description,
             media.ReleaseDate,
             media.Length,
+            media is Show show ? show.EpisodeRuntime : media.Length,
             media.ExternalRating,
             media.ExternalRatingCount,
             media.Universe?.Name,

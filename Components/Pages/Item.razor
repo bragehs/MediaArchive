@@ -180,6 +180,16 @@ else
         </div>
     }
     <div class="ifield">
+        <div class="il2">
+            @UiHelpers.RuntimeLabel(item.MediaType)
+            @if (item.Runtime is not > 0)
+            {
+                <span class="iopt">unknown — the time never counts without it</span>
+            }
+        </div>
+        <input class="iin" type="number" min="1" @bind="_runtime" @bind:after="MarkDirty"/>
+    </div>
+    <div class="ifield">
         <div class="il2">Universe</div>
         <VocabularyPicker Selected="_universe" SelectedChanged="OnVocabularyChanged"
                           Suggestions="_vocabulary.Universes" Max="1" Placeholder="Cosmere…"/>
@@ -253,6 +263,7 @@ else
     private List<string> _series = [];
     private List<string> _universe = [];
     private int? _seriesPosition;
+    private int? _runtime;
 
     private bool _loading = true;
     private bool _saving;
@@ -297,6 +308,7 @@ else
             _series = _item.Series is { } s ? [s] : [];
             _universe = _item.Universe is { } u ? [u] : [];
             _seriesPosition = _item.SeriesPosition;
+            _runtime = _item.Runtime;
 
             _history = _item.PassCount > 0
                 ? await Common.GetPassHistoryAsync(UserMediaItemId)
@@ -329,6 +341,9 @@ else
                     ? known
                     : new TagInput(name, null, null))
                 .ToList();
+
+            if (_runtime is > 0 && _runtime != _item.Runtime)
+                await UserItems.SetRuntimeAsync(_item.UserMediaItemId, _runtime.Value);
 
             await UserItems.UpdateDetailsAsync(_item.UserMediaItemId, new WorkDetails(
                 _genres, tags,
