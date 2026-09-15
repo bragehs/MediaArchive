@@ -1,12 +1,12 @@
 #!/usr/bin/env zsh
 #
-# install-weekly-job.sh — schedule `./ma weekly` for Tuesdays at 10:00.
+# install-weekly-job.sh — schedule `./ma weekly` for Tuesdays at 09:30.
 #
 # Backs the phone's database up and reinstalls the app, so the 7-day free
 # signature never lapses into an app that won't open. Both halves need the
 # phone reachable, so `ma weekly` retries for two hours before giving up.
 #
-# launchd, not cron: if the Mac is asleep at 10:00, StartCalendarInterval fires
+# launchd, not cron: if the Mac is asleep at 09:30, StartCalendarInterval fires
 # on the next wake instead of silently skipping the week.
 #
 #   scripts/install-weekly-job.sh            install / replace
@@ -71,8 +71,8 @@ cat > "$PLIST" <<PLISTEOF
     <key>StartCalendarInterval</key>
     <dict>
         <key>Weekday</key><integer>2</integer>
-        <key>Hour</key><integer>10</integer>
-        <key>Minute</key><integer>0</integer>
+        <key>Hour</key><integer>9</integer>
+        <key>Minute</key><integer>30</integer>
     </dict>
 
     <key>StandardOutPath</key>
@@ -97,7 +97,7 @@ for i in {1..15}; do
 done
 
 launchctl bootstrap "$DOMAIN" "$PLIST"
-print "installed $LABEL — Tuesdays at 10:00"
+print "installed $LABEL — Tuesdays at 09:30"
 print "  log:       $LOG"
 print "  run now:   scripts/install-weekly-job.sh --run-now"
 print "  uninstall: scripts/install-weekly-job.sh --remove"

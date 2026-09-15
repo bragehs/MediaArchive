@@ -36,7 +36,7 @@ runs through `./ma`:
 Signing note: a free Apple ID only issues **7-day** provisioning profiles, so device
 builds break every week. `./ma renew` reissues one non-interactively; `./ma phone`
 does it automatically. A launchd agent (`scripts/install-weekly-job.sh`) runs
-`./ma weekly` each Tuesday at 10:00 to back the phone up and reinstall the app.
+`./ma weekly` each Tuesday at 09:30 to back the phone up and reinstall the app.
 
 ```bash
 dotnet ef migrations add <Name>   # after changing Models/ or DbContext
