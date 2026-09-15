@@ -447,21 +447,32 @@ sim_run() {
 
 # ----------------------------------------------------------------------- phone
 
-# The first reachable paired device, or nothing. Callers decide whether that's fatal.
+# The first reachable physical device, or nothing. Callers decide whether that's fatal.
 #
 # `devicectl list devices` reports state from the cached pairing record, so it
 # says yes for a phone that is asleep or off the network. The wording also varies
 # — "available (paired)" over the network, "connected" over USB — so filtering
 # on it silently drops a plugged-in phone. Only an actual query proves there's a
 # live tunnel, so every listed device gets probed instead.
+#
+# Read JSON, never the text table: that column prints a phone's UDID
+# (`00008150-…`, one hyphen) or its UUID-shaped identifier depending on how it's
+# attached, and simulators always print a UUID — so scraping for a UUID picked
+# the simulator whenever the phone happened to show its UDID.
 find_device() {
-    local id
-    for id in ${(f)"$(xcrun devicectl list devices 2>/dev/null | grep -oE '[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}')"}; do
+    local id json
+    json=$(mktemp) || return 0
+    run_timeout 60 xcrun devicectl list devices --json-output "$json" >/dev/null 2>&1
+    for id in ${(f)"$(jq -r '.result.devices[]
+            | select(.properties.hardware.reality != "simulated")
+            | .properties.hardware.udid' "$json" 2>/dev/null)"}; do
         if run_timeout 60 xcrun devicectl device info details --device "$id" >/dev/null 2>&1; then
+            rm -f "$json"
             print -- "$id"
             return 0
         fi
     done
+    rm -f "$json"
     return 0
 }
 
