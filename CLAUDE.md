@@ -139,4 +139,4 @@ builds break weekly with "Could not find any available provisioning profiles".
 -allowProvisioningUpdates` against a generated stub Xcode project in
 `.provisioning/`. `./ma phone` renews automatically when the profile is nearly
 expired. A launchd agent runs `./ma weekly` (pull + redeploy) every Tuesday at
-10:00 — install or remove it with `scripts/install-weekly-job.sh`.
+09:30 — install or remove it with `scripts/install-weekly-job.sh`.
