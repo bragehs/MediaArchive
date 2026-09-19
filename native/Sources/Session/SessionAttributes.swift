@@ -6,10 +6,10 @@ import Foundation
 // the activity; the state is what pause and resume rewrite.
 struct SessionAttributes: ActivityAttributes {
     struct ContentState: Codable, Hashable {
-        // The timer runs from here. Pausing freezes the minutes; resuming shifts
-        // the anchor forward by the break, so elapsed stays continuous.
+        // The timer runs from here. Pausing sets the moment the clock froze; resuming
+        // clears it and shifts the anchor forward by the break, so elapsed stays continuous.
         var anchor: Date
-        var frozenMinutes: Int?
+        var pausedAt: Date?
     }
 
     var sessionId: Int

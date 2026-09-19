@@ -33,9 +33,11 @@ final class LogProgressStore {
         self.session = session
     }
 
-    // Wall-clock minutes since the sitting began; pause will take its file off this later.
+    var pausedMinutes: Int { session.map { PauseLog.pausedMinutes(sessionId: $0.sessionId) } ?? 0 }
+
+    // Minutes the sitting actually ran: wall clock less the breaks. A suggestion, never the effort.
     var elapsedMinutes: Int? {
-        session.map { max(0, Int(Date().timeIntervalSince($0.startedAt) / 60)) }
+        session.map { max(0, Int(Date().timeIntervalSince($0.startedAt) / 60) - pausedMinutes) }
     }
 
     var measuredRuntime: Bool { entry.value?.suggestedRuntime != nil }
@@ -128,7 +130,7 @@ final class LogProgressStore {
             }
 
             // Closed and linked in the same save as the note it produced.
-            let end = session.map { SessionEnd(sessionId: $0.sessionId, endedAt: Date(), pausedMinutes: 0) }
+            let end = session.map { SessionEnd(sessionId: $0.sessionId, endedAt: Date(), pausedMinutes: pausedMinutes) }
             let finished: Bool
             switch mode {
             case .progress:
@@ -193,7 +195,9 @@ struct LogProgressSheet: View {
                 .overlay(alignment: .bottom) { HairlineRule(height: 2) }
 
                 if let elapsed = store.elapsedMinutes {
-                    Notice(text: "Timed \(elapsed) min this sitting — filled in below; correct anything you paused through.",
+                    Notice(text: "Timed \(elapsed) min this sitting"
+                                 + (store.pausedMinutes > 0 ? ", \(store.pausedMinutes) paused" : "")
+                                 + " — filled in below; correct anything you didn't pause for.",
                            kind: .good)
                 }
 
@@ -209,7 +213,7 @@ struct LogProgressSheet: View {
                         FieldLabel(lexicon.type(mediaType).runtimeLabel, required: true)
                         NumberField(value: $store.runtime)
                         Eyebrow(store.measuredRuntime
-                                ? "Measured by this sitting — correct it if you paused."
+                                ? "Measured by this sitting, breaks excluded — correct it if it's off."
                                 : "Not known for this \(lexicon.label(mediaType).lowercased()) — without it the time never counts.",
                                 size: 9.5, tracking: 0.05, bold: false)
                             .padding(.top, 6)

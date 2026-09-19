@@ -32,7 +32,8 @@ final class HomeStore {
         defer { saving = false }
         do {
             if let live, live.entryId == item.openEntryId {
-                try await api.endSession(SessionEnd(sessionId: live.sessionId, endedAt: Date(), pausedMinutes: 0))
+                try await api.endSession(SessionEnd(sessionId: live.sessionId, endedAt: Date(),
+                                                    pausedMinutes: PauseLog.pausedMinutes(sessionId: live.sessionId)))
                 await SessionActivity.end(sessionId: live.sessionId)
             } else if live == nil {
                 let session = try await api.startSession(StartSessionArgs(entryId: item.openEntryId, startedAt: Date()))
@@ -77,7 +78,8 @@ final class HomeStore {
         error = nil
         defer { saving = false }
         do {
-            try await api.endSession(SessionEnd(sessionId: stale.sessionId, endedAt: Date(), pausedMinutes: 0))
+            try await api.endSession(SessionEnd(sessionId: stale.sessionId, endedAt: Date(),
+                                                pausedMinutes: PauseLog.pausedMinutes(sessionId: stale.sessionId)))
             await SessionActivity.end(sessionId: stale.sessionId)
             await load()
         } catch {

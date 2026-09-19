@@ -167,7 +167,8 @@ final class ItemStore {
     func endSession() async {
         guard let live else { return }
         await mutate {
-            try await api.endSession(SessionEnd(sessionId: live.sessionId, endedAt: Date(), pausedMinutes: 0))
+            try await api.endSession(SessionEnd(sessionId: live.sessionId, endedAt: Date(),
+                                                pausedMinutes: PauseLog.pausedMinutes(sessionId: live.sessionId)))
             await SessionActivity.end(sessionId: live.sessionId)
             await load()
         }

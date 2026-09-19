@@ -10,12 +10,16 @@
 		BB0000000000000000000001 /* MediaArchiveWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000002 /* MediaArchiveWidget.swift */; };
 		BB0000000000000000000012 /* SessionLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000010 /* SessionLiveActivity.swift */; };
 		BB0000000000000000000013 /* SessionAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000011 /* SessionAttributes.swift */; };
+		BB0000000000000000000015 /* PauseIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000014 /* PauseIntent.swift */; };
+		BB0000000000000000000017 /* PauseLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000016 /* PauseLog.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		BB0000000000000000000002 /* MediaArchiveWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaArchiveWidget.swift; sourceTree = "<group>"; };
 		BB0000000000000000000010 /* SessionLiveActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionLiveActivity.swift; sourceTree = "<group>"; };
 		BB0000000000000000000011 /* SessionAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SessionAttributes.swift; path = ../native/Sources/Session/SessionAttributes.swift; sourceTree = "<group>"; };
+		BB0000000000000000000014 /* PauseIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = PauseIntent.swift; path = ../native/Sources/Session/PauseIntent.swift; sourceTree = "<group>"; };
+		BB0000000000000000000016 /* PauseLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = PauseLog.swift; path = ../native/Sources/Session/PauseLog.swift; sourceTree = "<group>"; };
 		BB0000000000000000000003 /* MediaArchiveWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = MediaArchiveWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		BB000000000000000000000E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		BB000000000000000000000F /* MediaArchiveWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MediaArchiveWidget.entitlements; sourceTree = "<group>"; };
@@ -38,6 +42,8 @@
 				BB0000000000000000000002 /* MediaArchiveWidget.swift */,
 				BB0000000000000000000010 /* SessionLiveActivity.swift */,
 				BB0000000000000000000011 /* SessionAttributes.swift */,
+				BB0000000000000000000014 /* PauseIntent.swift */,
+				BB0000000000000000000016 /* PauseLog.swift */,
 				BB000000000000000000000E /* Info.plist */,
 				BB000000000000000000000F /* MediaArchiveWidget.entitlements */,
 				BB0000000000000000000006 /* Products */,
@@ -112,6 +118,8 @@
 				BB0000000000000000000001 /* MediaArchiveWidget.swift in Sources */,
 				BB0000000000000000000012 /* SessionLiveActivity.swift in Sources */,
 				BB0000000000000000000013 /* SessionAttributes.swift in Sources */,
+				BB0000000000000000000015 /* PauseIntent.swift in Sources */,
+				BB0000000000000000000017 /* PauseLog.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
