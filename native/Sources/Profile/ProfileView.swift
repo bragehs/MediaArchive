@@ -22,8 +22,8 @@ final class ProfileStore {
     }
 }
 
-// The taste dashboard: the identity strip, the hall of fame, universes, the
-// canon of creators, and one records pane per medium.
+// The taste dashboard: time spent across every medium, the hall of fame, a way
+// into universes and creators, and one records pane per medium.
 struct ProfileView: View {
     @State private var store = ProfileStore()
     @Environment(\.lexicon) private var lexicon
@@ -49,7 +49,7 @@ struct ProfileView: View {
 
     @ViewBuilder
     private func content(_ snapshot: ProfileSnapshot) -> some View {
-        IdentityStrip(snapshot: snapshot)
+        TimeSpentHero(snapshot: snapshot)
 
         if !snapshot.hallOfFame.isEmpty {
             SectionHead("Hall of fame")
@@ -72,41 +72,26 @@ struct ProfileView: View {
             }
         }
 
-        ForEach(snapshot.universes, id: \.name) { universe in
-            SectionHead(universe.name, right: "\(universe.works) works" + (universe.avgRating.map { " · ★ \(stars($0))" } ?? ""))
-            Aside(universe.effort.map { "\(trimmed($0.value)) \($0.unit)" }.joined(separator: " · "), size: 12.5, color: Palette.muted)
-                .padding(.top, -2)
-                .padding(.bottom, 12)
-            FlowLayout(spacing: 8) {
-                ForEach(universe.covers, id: \.userMediaItemId) { cover in
-                    Button { openItem(cover.userMediaItemId) } label: {
-                        CoverImage(url: cover.imageUrl, title: cover.title, fallbackPadding: 4, fallbackSize: 7)
-                            .frame(width: 48, height: 72)
-                            .opacity(cover.status == .interested ? 0.45 : 1)
-                            .clipShape(RoundedRectangle(cornerRadius: 6))
-                            .overlay(RoundedRectangle(cornerRadius: 6).stroke(Palette.line2, lineWidth: 1))
-                            .overlay(alignment: .bottomTrailing) { StatusGlyph(status: cover.status).padding(2) }
+        if !snapshot.universes.isEmpty || !snapshot.canon.isEmpty {
+            VStack(spacing: 0) {
+                if !snapshot.universes.isEmpty {
+                    PortalRow(kick: "Universes",
+                              detail: "\(snapshot.universes.count) · \(snapshot.universes.reduce(0) { $0 + $1.works }) works",
+                              covers: snapshot.universes.compactMap(\.covers.first).prefix(3).map(\.imageUrl)) {
+                        Router.shared.push(.universes)
                     }
-                    .buttonStyle(.plain)
+                    if !snapshot.canon.isEmpty { HairlineRule(color: Palette.line2) }
                 }
-            }
-        }
-
-        if !snapshot.canon.isEmpty {
-            SectionHead("The canon")
-            // The vault's one sanctioned text list: five rows in view, the rest scroll within.
-            ScrollView {
-                VStack(spacing: 0) {
-                    ForEach(Array(snapshot.canon.enumerated()), id: \.element.name) { index, creator in
-                        CreatorRow(creator: creator)
-                            .overlay(alignment: .bottom) {
-                                if index < snapshot.canon.count - 1 { HairlineRule(color: Palette.line2) }
-                            }
+                if !snapshot.canon.isEmpty {
+                    PortalRow(kick: "Creators",
+                              detail: "\(snapshot.canon.count) · " + snapshot.canon.prefix(2).map(\.name).joined(separator: ", ") + (snapshot.canon.count > 2 ? "…" : ""),
+                              covers: []) {
+                        Router.shared.push(.creators)
                     }
                 }
             }
-            .frame(maxHeight: 201)
-            .scrollBounceBehavior(.basedOnSize)
+            .padding(.top, 22)
+            .overlay(alignment: .top) { HairlineRule(color: Palette.line2) }
         }
 
         SectionHead("Records")
@@ -203,66 +188,98 @@ struct ProfileView: View {
     }
 }
 
-private struct IdentityStrip: View {
+// The one figure that crosses all four media: minutes, rendered with a leading
+// `≈` whenever any of it was derived from Length rather than logged.
+private struct TimeSpentHero: View {
     let snapshot: ProfileSnapshot
 
+    private var spent: TimeSpent { snapshot.timeSpent }
+    private var totalMinutes: Double { spent.actualMinutes + spent.estimatedMinutes }
+    private var derived: Bool { spent.estimatedMinutes > 0 }
+
     var body: some View {
-        let cells: [(String, String?, String, String?)] = [
-            (String(snapshot.itemsLogged), nil, "Items logged", nil),
-            snapshot.avgRating.map { (stars($0), "/5", "Avg rating", "across \(snapshot.ratedCount) rated") }
-                ?? ("—", nil, "Avg rating", "nothing rated yet"),
-            (String(snapshot.finished), nil, "Finished", "of \(snapshot.itemsLogged) logged"),
-            (String(snapshot.genreCount), nil, "Genres", nil),
-        ]
-        LazyVGrid(columns: [GridItem(.flexible(), spacing: 0), GridItem(.flexible(), spacing: 0)], spacing: 0) {
-            ForEach(Array(cells.enumerated()), id: \.offset) { index, cell in
-                VStack(alignment: .leading, spacing: 0) {
-                    HStack(alignment: .firstTextBaseline, spacing: 3) {
-                        Text(cell.0).font(Fonts.title(30)).foregroundStyle(cell.0 == "—" ? Palette.dim : Palette.ac)
-                        if let unit = cell.1 { Eyebrow(unit, size: 10, tracking: 0.1, bold: false) }
-                    }
-                    Eyebrow(cell.2, size: 8.5, tracking: 0.12, bold: false).padding(.top, 8)
-                    if let note = cell.3 {
-                        Aside(note, size: 11, color: Palette.muted).padding(.top, 2)
-                    }
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(alignment: .firstTextBaseline, spacing: 4) {
+                if derived {
+                    Text("≈").font(Fonts.title(25)).foregroundStyle(Palette.ac.opacity(0.6))
                 }
-                .padding(.vertical, 14)
-                .padding(.leading, index % 2 == 0 ? 0 : 16)
-                .padding(.trailing, index % 2 == 0 ? 16 : 0)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .overlay(alignment: .trailing) {
-                    if index % 2 == 0 { Rectangle().fill(Palette.line).frame(width: 1) }
-                }
-                .overlay(alignment: .bottom) {
-                    if index < 2 { HairlineRule(color: Palette.line2) }
-                }
+                Text(hours(totalMinutes)).font(Fonts.title(38)).foregroundStyle(Palette.ac)
+                Eyebrow("hours", size: 10, tracking: 0.1, bold: false)
             }
+
+            Eyebrow("across \(spent.items) \(plural(spent.items, "item"))", size: 8.5, tracking: 0.12, bold: false)
+                .padding(.top, 9)
+
+            if let caveat {
+                Aside(caveat, size: 11, color: Palette.muted).padding(.top, 3)
+            }
+
+            facts.padding(.top, 12)
         }
+        .padding(.vertical, 16)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .overlay(alignment: .top) { Rectangle().fill(Palette.ink).frame(height: 2) }
         .overlay(alignment: .bottom) { HairlineRule() }
         .padding(.top, 2)
     }
+
+    // Says what the figure is made of: a derived share is not a measured one, and
+    // an item that couldn't convert is missing from the total, not zero in it.
+    private var caveat: String? {
+        var parts: [String] = []
+        if derived { parts.append("≈\(hours(spent.estimatedMinutes)) h of it estimated from length") }
+        if spent.withoutLength > 0 {
+            parts.append("\(spent.withoutLength) \(plural(spent.withoutLength, "item")) left out for want of a length")
+        }
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
+    }
+
+    private var facts: Text {
+        var line = Text("\(snapshot.itemsLogged)").fontWeight(.bold).foregroundStyle(Palette.ink)
+            + Text(" logged · ").italic()
+            + Text("\(snapshot.finished)").fontWeight(.bold).foregroundStyle(Palette.ink)
+            + Text(" finished").italic()
+        if let rating = snapshot.avgRating {
+            line = line + Text(" · ").italic()
+                + Text("★ \(stars(rating))").fontWeight(.bold).foregroundStyle(Palette.ac2)
+                + Text(" of \(snapshot.ratedCount) rated").italic()
+        }
+        return line.font(Fonts.serif(11.5, italic: true)).foregroundStyle(Palette.muted)
+    }
+
+    private func hours(_ minutes: Double) -> String {
+        let value = minutes / 60
+        return value >= 10 ? grouped(value.rounded()) : trimmed(value)
+    }
 }
 
-private struct CreatorRow: View {
-    let creator: CreatorLine
-    @Environment(\.lexicon) private var lexicon
+// A whole section collapsed to one line: what it holds, a peek, and a way in.
+private struct PortalRow: View {
+    let kick: String
+    let detail: String
+    let covers: [String?]
+    let open: () -> Void
 
     var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 10) {
-            Text(creator.name).font(Fonts.title(13.5)).foregroundStyle(Palette.ink).lineLimit(1)
-            (Text("\(creator.works)").fontWeight(.bold).foregroundStyle(Palette.muted)
-                + Text(" \(creator.works == 1 ? "work" : "works") · ").italic()
-                + Text(creator.types.map { lexicon.label($0).lowercased() + (creator.works == 1 ? "" : "s") }.joined(separator: " · ")).italic())
-                .font(Fonts.serif(11.5, italic: true))
-                .foregroundStyle(Palette.dim)
-                .lineLimit(1)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            if let rating = creator.avgRating {
-                Text("★ \(stars(rating))").font(Fonts.display(11, bold: true)).foregroundStyle(Palette.ac2)
+        Button(action: open) {
+            HStack(spacing: 10) {
+                Eyebrow(kick, size: 9.5, color: Palette.muted, tracking: 0.18)
+                Aside(detail, size: 11.5, color: Palette.dim).lineLimit(1)
+                Spacer(minLength: 6)
+                HStack(spacing: -6) {
+                    ForEach(Array(covers.enumerated()), id: \.offset) { _, url in
+                        CoverImage(url: url, title: "", fallbackPadding: 2, fallbackSize: 5)
+                            .frame(width: 16, height: 24)
+                            .clipShape(RoundedRectangle(cornerRadius: 3))
+                            .overlay(RoundedRectangle(cornerRadius: 3).stroke(Palette.line2, lineWidth: 1))
+                    }
+                }
+                Text("›").font(Fonts.display(15)).foregroundStyle(Palette.dim)
             }
+            .padding(.vertical, 13)
+            .contentShape(Rectangle())
         }
-        .padding(.vertical, 9)
+        .buttonStyle(.plain)
     }
 }
 
