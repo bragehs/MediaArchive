@@ -37,11 +37,16 @@ struct HomeView: View {
             WeekStrip(week: page.weekly)
 
             SectionHead("Open now", right: "\(page.openNow.count) open")
+            if let error = store.error {
+                Notice(text: error).padding(.vertical, 6)
+            }
             if page.openNow.isEmpty {
                 Aside("Nothing in progress right now.").padding(.vertical, 10)
             } else {
                 ForEach(page.openNow) { item in
-                    OpenNowRow(item: item) { store.logTarget = item }
+                    OpenNowRow(item: item, sessionLabel: store.sessionLabel(item), busy: store.saving,
+                               onLog: { store.logTarget = item },
+                               onSession: { Task { await store.toggleSession(item) } })
                 }
             }
 
@@ -128,7 +133,10 @@ private struct WeekStrip: View {
 
 private struct OpenNowRow: View {
     let item: OpenNowItem
+    let sessionLabel: String?
+    let busy: Bool
     let onLog: () -> Void
+    let onSession: () -> Void
 
     var body: some View {
         HStack(alignment: .top, spacing: 13) {
@@ -163,6 +171,14 @@ private struct OpenNowRow: View {
                     }
                     .buttonStyle(.plain)
                     .padding(.leading, 4)
+                    if let sessionLabel {
+                        Button { onSession() } label: {
+                            Eyebrow(sessionLabel, size: 9, color: Palette.ac2, tracking: 0.1)
+                        }
+                        .buttonStyle(.plain)
+                        .disabledLook(busy)
+                        .padding(.leading, 8)
+                    }
                 }
                 .padding(.top, 8)
             }

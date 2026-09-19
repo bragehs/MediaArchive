@@ -8,13 +8,17 @@ namespace MediaArchive.Services.Native;
 // Everything one screen needs, in one call. The property names are the
 // contract with the generated Swift structs — tools/SwiftGen regenerates them.
 
+// Live is the one running session app-wide, so a screen can offer start or end
+// without a second call; null when nothing is running.
 public record HomePage(
     WeeklyActivity Weekly,
     List<OpenNowItem> OpenNow,
     List<CoverCard> OnDeck,
-    JustClosedItem? JustClosed);
+    JustClosedItem? JustClosed,
+    LiveSession? Live);
 
-public record ItemPage(ItemDetail Detail, List<PassSummary> History, Vocabulary Vocabulary);
+public record ItemPage(ItemDetail Detail, List<PassSummary> History, Vocabulary Vocabulary,
+    LiveSession? Live);
 
 public record DiaryIndex(List<int> Years, DiaryYear? Current);
 

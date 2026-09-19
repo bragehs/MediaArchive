@@ -19,8 +19,9 @@ public record EntryEffort(int UserMediaItemId, int? Effort, bool Audiobook,
     double? AudioHours, int? PageCount, bool RuntimeKnown,
     int? SuggestedEffort, double? SuggestedHoursLeft, int? SuggestedRuntime);
 
+// Cover is the bare file name, the key the widget publisher uses under the App Group.
 public record LiveSession(int SessionId, int EntryId, int UserMediaItemId, string Title,
-    MediaType MediaType, DateTime StartedAt, int? TargetMinutes);
+    MediaType MediaType, string? Cover, DateTime StartedAt, int? TargetMinutes);
 
 public record ItemDetail(
     int UserMediaItemId,
@@ -201,7 +202,8 @@ public class CommonQueries(IDbContextFactory<AppDbContext> dbContextFactory)
         var media = userItem.MediaItem!;
 
         return new LiveSession(session.Id, session.ConsumptionEntryId, userItem.Id, media.Title,
-            media.MediaType, session.StartedAt, EffortMath.SessionTarget(media));
+            media.MediaType, Path.GetFileName(media.LocalImagePath), session.StartedAt,
+            EffortMath.SessionTarget(media));
     }
 
     public async Task<List<PassSummary>> GetPassHistoryAsync(int userMediaItemId,

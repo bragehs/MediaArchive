@@ -32,7 +32,8 @@ public static class NativeRoutes
                 await home.GetWeeklyActivityAsync(),
                 await home.GetOpenNowAsync(),
                 await common.GetBacklogAsync(),
-                await home.GetJustClosedAsync());
+                await home.GetJustClosedAsync(),
+                await common.GetLiveSessionAsync());
         }),
 
         Get("backlog", "backlog", sp => sp.GetRequiredService<CommonQueries>().GetBacklogAsync()),
@@ -68,7 +69,7 @@ public static class NativeRoutes
                 ? await common.GetPassHistoryAsync(a.UserMediaItemId)
                 : [];
             var vocabulary = await sp.GetRequiredService<MediaImportService>().GetVocabularyAsync();
-            return new ItemPage(detail, history, vocabulary);
+            return new ItemPage(detail, history, vocabulary, await common.GetLiveSessionAsync());
         }),
 
         Get<EntryArgs, EntryEffort?>("entry/effort", "entryEffort",
@@ -121,8 +122,12 @@ public static class NativeRoutes
         Post<FinishPassArgs>("pass/finish", "finishPass",
             (sp, a) => sp.GetRequiredService<LoggingService>().FinishPassAsync(a.EntryId, a.Finish, a.Session)),
 
-        Post<StartSessionArgs, Created>("session/start", "startSession", async (sp, a) =>
-            new Created(await sp.GetRequiredService<LoggingService>().StartSessionAsync(a.EntryId, a.StartedAt))),
+        // Returns the page-shaped session, which is exactly what the Live Activity is built from.
+        Post<StartSessionArgs, LiveSession>("session/start", "startSession", async (sp, a) =>
+        {
+            await sp.GetRequiredService<LoggingService>().StartSessionAsync(a.EntryId, a.StartedAt);
+            return (await sp.GetRequiredService<CommonQueries>().GetLiveSessionAsync())!;
+        }),
 
         Post<SessionEnd>("session/end", "endSession",
             (sp, a) => sp.GetRequiredService<LoggingService>().EndSessionAsync(a)),

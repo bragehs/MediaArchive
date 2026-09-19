@@ -239,6 +239,7 @@ struct HomePage: Codable, Hashable, Sendable {
     var openNow: [OpenNowItem]
     var onDeck: [CoverCard]
     var justClosed: JustClosedItem?
+    var live: LiveSession?
 }
 
 struct ItemArgs: Codable, Hashable, Sendable {
@@ -276,6 +277,7 @@ struct ItemPage: Codable, Hashable, Sendable {
     var detail: ItemDetail
     var history: [PassSummary]
     var vocabulary: Vocabulary
+    var live: LiveSession?
 }
 
 struct JustClosedItem: Codable, Hashable, Sendable {
@@ -321,6 +323,7 @@ struct LiveSession: Codable, Hashable, Sendable {
     var userMediaItemId: Int
     var title: String
     var mediaType: MediaType
+    var cover: String?
     var startedAt: Date
     var targetMinutes: Int?
 }
@@ -648,6 +651,6 @@ struct Api {
     func resumePass(_ args: ResumePassArgs) async throws -> Created { try await backend.call("pass/resume", args) }
     func addNote(_ args: AddNoteArgs) async throws { try await backend.perform("pass/note", args) }
     func finishPass(_ args: FinishPassArgs) async throws { try await backend.perform("pass/finish", args) }
-    func startSession(_ args: StartSessionArgs) async throws -> Created { try await backend.call("session/start", args) }
+    func startSession(_ args: StartSessionArgs) async throws -> LiveSession { try await backend.call("session/start", args) }
     func endSession(_ args: SessionEnd) async throws { try await backend.perform("session/end", args) }
 }
