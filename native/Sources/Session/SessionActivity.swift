@@ -21,6 +21,10 @@ enum SessionActivity {
         _ = try? Activity.request(attributes: attributes, content: .init(state: state, staleDate: nil))
     }
 
+    static func isAlive(sessionId: Int) -> Bool {
+        Activity<SessionAttributes>.activities.contains { $0.attributes.sessionId == sessionId }
+    }
+
     static func end(sessionId: Int) async {
         for activity in Activity<SessionAttributes>.activities
         where activity.attributes.sessionId == sessionId {

@@ -41,6 +41,24 @@ struct HomeView: View {
             if let error = store.error {
                 Notice(text: error).padding(.vertical, 6)
             }
+            if let stale = store.stale {
+                Notice(text: "A session on \(stale.title) has run since \(stale.startedAt.formatted(date: .abbreviated, time: .shortened)) — log it, or let it go.",
+                       kind: .good,
+                       trailing: AnyView(HStack(spacing: 12) {
+                           if let item = store.staleItem {
+                               Button { store.logTarget = item } label: {
+                                   Eyebrow("Log →", size: 9, color: Palette.ac, tracking: 0.1)
+                               }
+                               .buttonStyle(.plain)
+                           }
+                           Button { Task { await store.discardStale() } } label: {
+                               Eyebrow("Let it go", size: 9, color: Palette.ac2, tracking: 0.1)
+                           }
+                           .buttonStyle(.plain)
+                           .disabledLook(store.saving)
+                       }))
+                    .padding(.vertical, 6)
+            }
             if page.openNow.isEmpty {
                 Aside("Nothing in progress right now.").padding(.vertical, 10)
             } else {
