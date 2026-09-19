@@ -32,11 +32,18 @@ public record YearBucket(int Year, double Value);
 // Context is its own share — unrecorded is a gap to fill, not an absence.
 public record ContextShare(ConsumptionContext? Context, int Passes);
 
+// Books only: how fast a finished read actually went, read against your own median.
+public record PaceRow(int UserMediaItemId, string Title, double PagesPerDay);
+
+// Games only: the hours you put in against the community's time to beat it.
+public record EstimateRow(int UserMediaItemId, string Title, int Hours, int Estimate);
+
 // One toggle pane per media type: an effort-per-week progression in the type's
-// native unit, and the extremes that make sense for that medium.
+// native unit, the shape only that medium has, and its own extremes.
 public record TypePanel(MediaType MediaType, string Unit, IReadOnlyList<PanelStat> Stats,
     IReadOnlyList<WeekBucket> Weekly, IReadOnlyList<YearBucket> Yearly,
-    IReadOnlyList<ContextShare> Contexts, IReadOnlyList<TypeRecord> Records);
+    IReadOnlyList<ContextShare> Contexts, IReadOnlyList<PaceRow> Pace, double? PaceMedian,
+    IReadOnlyList<EstimateRow> Estimates, IReadOnlyList<TypeRecord> Records);
 
 public record MonthRecord(int Year, int Month, int Logs);
 
@@ -264,9 +271,45 @@ public class ProfileQueries(IDbContextFactory<AppDbContext> dbContextFactory)
             _ => ShowRecords(passes)
         };
 
+        var pace = type == MediaType.Book ? BuildPace(passes) : [];
+
         return new TypePanel(type, UiHelpers.LengthUnit(type),
             BuildStats(passes, type), BuildWeekly(passes, today),
-            BuildYearly(passes, today), BuildContexts(passes), records);
+            BuildYearly(passes, today), BuildContexts(passes),
+            pace, Median(pace.Select(p => p.PagesPerDay).ToList()),
+            type == MediaType.Game ? BuildEstimates(passes) : [],
+            records);
+    }
+
+    // Live passes only, like the pace record it generalises: a backfilled read
+    // knows its totals but not its rhythm, so its pages-per-day is invented.
+    private static List<PaceRow> BuildPace(
+        List<(UserMediaItem Item, ConsumptionEntry Entry)> passes) => ClosedPasses(passes)
+        .Where(p => p.Entry.Outcome == PassOutcome.Completed
+                    && p.Item.MediaItem!.Length is > 0
+                    && IsLive(p.Item, p.Entry))
+        .Select(p => new PaceRow(p.Item.Id, p.Item.MediaItem!.Title,
+            (double)p.Item.MediaItem.Length!.Value / Math.Max(1, p.Days)))
+        .OrderByDescending(p => p.PagesPerDay)
+        .ToList();
+
+    private static List<EstimateRow> BuildEstimates(
+        List<(UserMediaItem Item, ConsumptionEntry Entry)> passes) => ClosedPasses(passes)
+        .Where(p => p.Entry.Outcome == PassOutcome.Completed
+                    && p.Entry.Effort is not null
+                    && p.Item.MediaItem!.Length is > 0
+                    && IsLive(p.Item, p.Entry))
+        .Select(p => new EstimateRow(p.Item.Id, p.Item.MediaItem!.Title,
+            p.Entry.Effort!.Value, p.Item.MediaItem.Length!.Value))
+        .OrderByDescending(e => e.Hours)
+        .ToList();
+
+    private static double? Median(List<double> values)
+    {
+        if (values.Count == 0) return null;
+        var sorted = values.Order().ToList();
+        var middle = sorted.Count / 2;
+        return sorted.Count % 2 == 1 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
     }
 
     private static List<ContextShare> BuildContexts(

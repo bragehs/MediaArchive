@@ -28,6 +28,7 @@ struct RecordsPane: View {
         if let panel = store.currentPanel {
             stats(panel)
             reach(panel)
+            signature(panel)
             progression(panel)
             records(panel)
         }
@@ -82,6 +83,65 @@ struct RecordsPane: View {
                         : Palette.accent(panel.mediaType).opacity(max(0.3, 1 - Double(index) * 0.34)),
                      value: Double(share.passes))
         }
+    }
+
+    // The one shape that belongs to this medium and no other.
+    @ViewBuilder
+    private func signature(_ panel: TypePanel) -> some View {
+        // Backfilled reads have no rhythm to measure, so this counts only live ones.
+        // Under three of those there is no distribution and no median worth drawing.
+        if panel.pace.count >= 3 {
+            Eyebrow("Pace", size: 8.5, tracking: 0.12, bold: false)
+            Aside("pages a day, finished reads", size: 11, color: Palette.dim)
+                .padding(.top, 2)
+                .padding(.bottom, 10)
+            let peak = panel.pace.map(\.pagesPerDay).max() ?? 1
+            VStack(spacing: 0) {
+                ForEach(panel.pace, id: \.userMediaItemId) { row in
+                    Button { openItem(row.userMediaItemId) } label: {
+                        ItemBarRow(title: row.title,
+                                   fraction: row.pagesPerDay / peak,
+                                   marker: panel.paceMedian.map { $0 / peak },
+                                   value: trimmed(row.pagesPerDay))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            if let median = panel.paceMedian {
+                Aside("┊ your median, \(trimmed(median)) a day", size: 11, color: Palette.dim)
+                    .padding(.top, 8)
+            }
+            Spacer().frame(height: 20)
+        }
+
+        if !panel.estimates.isEmpty {
+            Eyebrow("Against the estimate", size: 8.5, tracking: 0.12, bold: false)
+            Aside("your hours against the community's time to beat", size: 11, color: Palette.dim)
+                .padding(.top, 2)
+                .padding(.bottom, 10)
+            // One scale across hours and estimates, or the marker would sit
+            // somewhere its own number doesn't justify.
+            let peak = Double(panel.estimates.flatMap { [$0.hours, $0.estimate] }.max() ?? 1)
+            VStack(spacing: 0) {
+                ForEach(panel.estimates, id: \.userMediaItemId) { row in
+                    Button { openItem(row.userMediaItemId) } label: {
+                        ItemBarRow(title: row.title,
+                                   fraction: Double(row.hours) / peak,
+                                   marker: Double(row.estimate) / peak,
+                                   value: "\(row.hours) h",
+                                   trailing: delta(row))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            Aside("┊ the estimate", size: 11, color: Palette.dim).padding(.top, 8)
+            Spacer().frame(height: 20)
+        }
+    }
+
+    private func delta(_ row: EstimateRow) -> String {
+        let percent = (Double(row.hours) - Double(row.estimate)) / Double(row.estimate) * 100
+        return "\(percent >= 0 ? "+" : "−")\(trimmed(abs(percent)))%"
     }
 
     @ViewBuilder

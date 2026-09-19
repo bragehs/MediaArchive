@@ -106,3 +106,54 @@ struct YearMix: View {
         }
     }
 }
+
+// One item, one bar: a value against the row set's peak, with an optional
+// reference tick — your median, or this item's own estimate.
+struct ItemBarRow: View {
+    let title: String
+    let fraction: Double
+    var marker: Double? = nil
+    let value: String
+    var trailing: String? = nil
+
+    var body: some View {
+        HStack(spacing: 9) {
+            Text(title)
+                .font(Fonts.display(11.5))
+                .foregroundStyle(Palette.muted)
+                .lineLimit(1)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            GeometryReader { geometry in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(Palette.well)
+                    Capsule()
+                        .fill(Palette.ac.opacity(0.8))
+                        .frame(width: max(2, geometry.size.width * clamped(fraction)))
+                    if let marker {
+                        Rectangle()
+                            .fill(Palette.ac2)
+                            .frame(width: 1.5)
+                            .offset(x: geometry.size.width * clamped(marker))
+                    }
+                }
+            }
+            .frame(width: 96, height: 7)
+
+            Text(value)
+                .font(Fonts.title(12))
+                .foregroundStyle(Palette.ink)
+                .frame(width: 44, alignment: .trailing)
+
+            if let trailing {
+                Text(trailing)
+                    .font(Fonts.serif(11, italic: true))
+                    .foregroundStyle(Palette.dim)
+                    .frame(width: 40, alignment: .trailing)
+            }
+        }
+        .padding(.vertical, 7)
+    }
+
+    private func clamped(_ value: Double) -> Double { min(max(value, 0), 1) }
+}

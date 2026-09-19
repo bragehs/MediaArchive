@@ -215,6 +215,13 @@ struct EntryEffort: Codable, Hashable, Sendable {
     var runtimeKnown: Bool
 }
 
+struct EstimateRow: Codable, Hashable, Sendable {
+    var userMediaItemId: Int
+    var title: String
+    var hours: Int
+    var estimate: Int
+}
+
 struct ExternalArgs: Codable, Hashable, Sendable {
     var externalId: String
     var mediaType: MediaType
@@ -385,6 +392,12 @@ struct OpenPassSummary: Codable, Hashable, Sendable {
     var progress: Double?
 }
 
+struct PaceRow: Codable, Hashable, Sendable {
+    var userMediaItemId: Int
+    var title: String
+    var pagesPerDay: Double
+}
+
 struct PanelStat: Codable, Hashable, Sendable {
     var value: String
     var label: String
@@ -526,6 +539,9 @@ struct TypePanel: Codable, Hashable, Sendable {
     var weekly: [WeekBucket]
     var yearly: [YearBucket]
     var contexts: [ContextShare]
+    var pace: [PaceRow]
+    var paceMedian: Double?
+    var estimates: [EstimateRow]
     var records: [TypeRecord]
 }
 
