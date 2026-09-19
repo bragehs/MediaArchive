@@ -94,6 +94,7 @@ struct AddItemArgs: Codable, Hashable, Sendable {
 struct AddNoteArgs: Codable, Hashable, Sendable {
     var entryId: Int
     var note: NoteInput
+    var session: SessionEnd?
 }
 
 struct ContextEntry: Codable, Hashable, Sendable {
@@ -199,6 +200,7 @@ struct DiscoveryEntry: Codable, Hashable, Sendable {
 
 struct EntryArgs: Codable, Hashable, Sendable {
     var entryId: Int
+    var elapsedMinutes: Int?
 }
 
 struct EntryEffort: Codable, Hashable, Sendable {
@@ -208,6 +210,9 @@ struct EntryEffort: Codable, Hashable, Sendable {
     var audioHours: Double?
     var pageCount: Int?
     var runtimeKnown: Bool
+    var suggestedEffort: Int?
+    var suggestedHoursLeft: Double?
+    var suggestedRuntime: Int?
 }
 
 struct ExternalArgs: Codable, Hashable, Sendable {
@@ -226,6 +231,7 @@ struct FameItem: Codable, Hashable, Sendable {
 struct FinishPassArgs: Codable, Hashable, Sendable {
     var entryId: Int
     var finish: PassFinish
+    var session: SessionEnd?
 }
 
 struct HomePage: Codable, Hashable, Sendable {
@@ -309,6 +315,16 @@ struct LibraryItem: Codable, Hashable, Sendable {
     var tags: [String]
 }
 
+struct LiveSession: Codable, Hashable, Sendable {
+    var sessionId: Int
+    var entryId: Int
+    var userMediaItemId: Int
+    var title: String
+    var mediaType: MediaType
+    var startedAt: Date
+    var targetMinutes: Int?
+}
+
 struct LogCompletedArgs: Codable, Hashable, Sendable {
     var item: MediaItemDto
     var details: WorkDetails
@@ -357,7 +373,7 @@ struct MonthRecord: Codable, Hashable, Sendable {
 }
 
 struct NoteInput: Codable, Hashable, Sendable {
-    var text: String
+    var text: String?
     var effortAtTime: Int?
 }
 
@@ -459,6 +475,12 @@ struct SeasonDto: Codable, Hashable, Sendable {
     var imageUrl: String?
 }
 
+struct SessionEnd: Codable, Hashable, Sendable {
+    var sessionId: Int
+    var endedAt: Date
+    var pausedMinutes: Int
+}
+
 struct SetFavoriteArgs: Codable, Hashable, Sendable {
     var userMediaItemId: Int
     var isFavorite: Bool
@@ -478,6 +500,11 @@ struct StartPassArgs: Codable, Hashable, Sendable {
     var userMediaItemId: Int
     var start: PassStart
     var allowConcurrent: Bool
+}
+
+struct StartSessionArgs: Codable, Hashable, Sendable {
+    var entryId: Int
+    var startedAt: Date?
 }
 
 struct StatusEntry: Codable, Hashable, Sendable {
@@ -606,6 +633,7 @@ struct Api {
     func profile() async throws -> ProfileSnapshot { try await backend.call("profile", NoArgs()) }
     func item(_ args: ItemArgs) async throws -> ItemPage { try await backend.call("item", args) }
     func entryEffort(_ args: EntryArgs) async throws -> EntryEffort { try await backend.call("entry/effort", args) }
+    func liveSession() async throws -> LiveSession { try await backend.call("session/live", NoArgs()) }
     func vocabulary() async throws -> Vocabulary { try await backend.call("vocabulary", NoArgs()) }
     func search(_ args: SearchArgs) async throws -> [MediaSearchResultDto] { try await backend.call("search", args) }
     func searchDetail(_ args: ExternalArgs) async throws -> MediaItemDto { try await backend.call("search/detail", args) }
@@ -620,4 +648,6 @@ struct Api {
     func resumePass(_ args: ResumePassArgs) async throws -> Created { try await backend.call("pass/resume", args) }
     func addNote(_ args: AddNoteArgs) async throws { try await backend.perform("pass/note", args) }
     func finishPass(_ args: FinishPassArgs) async throws { try await backend.perform("pass/finish", args) }
+    func startSession(_ args: StartSessionArgs) async throws -> Created { try await backend.call("session/start", args) }
+    func endSession(_ args: SessionEnd) async throws { try await backend.perform("session/end", args) }
 }

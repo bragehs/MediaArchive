@@ -27,5 +27,10 @@ public record PassFinish(
     bool Dropped = false);
 
 public record NoteInput(
-    string Text,
+    string? Text,
     int? EffortAtTime);
+
+public record SessionEnd(
+    int SessionId,
+    DateTime EndedAt,
+    int PausedMinutes = 0);

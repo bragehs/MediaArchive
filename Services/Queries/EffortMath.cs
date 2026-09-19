@@ -33,6 +33,43 @@ public static class EffortMath
     public static double? ToMinutes(MediaItem media, double units) =>
         media.MinutesPerUnit is { } perUnit ? units * perUnit : null;
 
+    // The inverse of ToMinutes, floored: a prefill never claims more than was measured.
+    public static int? UnitsFor(MediaItem media, double minutes) =>
+        media.MinutesPerUnit is { } perUnit && perUnit > 0 ? (int)Math.Floor(minutes / perUnit) : null;
+
+    // A film counts down its runtime, a show one episode; the open-ended types count up.
+    public static int? SessionTarget(MediaItem media) => media switch
+    {
+        Movie => media.EstimatedMinutes is > 0 ? media.EstimatedMinutes : null,
+        Show => media.MinutesPerUnit is > 0 ? (int)media.MinutesPerUnit.Value : null,
+        _ => null
+    };
+
+    public record SessionSuggestion(int? Effort, double? HoursLeft, int? Runtime);
+
+    // What a measured sitting implies for the log sheet, only where the conversion is
+    // grounded in the item: exact for films and games, per-item for shows and audiobooks,
+    // never the global page constant.
+    public static SessionSuggestion Suggest(MediaItem media, ConsumptionEntry entry, int elapsedMinutes)
+    {
+        var previous = entry.Effort ?? 0;
+
+        if (media is Book book)
+        {
+            if (entry.Context != ConsumptionContext.Audiobook || book.AudioHours is not > 0 || book.PageCount is not > 0)
+                return new(null, null, null);
+
+            var hours = book.AudioHours.Value;
+            var left = hours - (double)previous / book.PageCount.Value * hours - elapsedMinutes / 60.0;
+            return new(null, Math.Round(Math.Max(0, left), 1), null);
+        }
+
+        var effort = UnitsFor(media, elapsedMinutes) is { } units ? previous + units : (int?)null;
+        // A film watched through has just measured the runtime the provider lacked.
+        var runtime = media is Movie && media.EstimatedMinutes is not > 0 ? elapsedMinutes : (int?)null;
+        return new(effort, null, runtime);
+    }
+
     public static double? ProgressPercent(int? effort, int? length) =>
         effort is { } e && length is > 0 ? (double)e / length.Value * 100 : null;
 

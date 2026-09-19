@@ -53,7 +53,10 @@ public record SearchArgs(string Query, MediaType MediaType);
 
 public record ExternalArgs(string ExternalId, MediaType MediaType);
 
-public record EntryArgs(int EntryId);
+// ElapsedMinutes is sent when the sheet opens from a session, and buys the Suggested* fields.
+public record EntryArgs(int EntryId, int? ElapsedMinutes = null);
+
+public record StartSessionArgs(int EntryId, DateTime? StartedAt);
 
 public record AddItemArgs(MediaItemDto Item, WorkDetails Details);
 
@@ -72,6 +75,6 @@ public record StartPassArgs(int UserMediaItemId, PassStart Start, bool AllowConc
 
 public record ResumePassArgs(int EntryId, PassStart Start);
 
-public record AddNoteArgs(int EntryId, NoteInput Note);
+public record AddNoteArgs(int EntryId, NoteInput Note, SessionEnd? Session = null);
 
-public record FinishPassArgs(int EntryId, PassFinish Finish);
+public record FinishPassArgs(int EntryId, PassFinish Finish, SessionEnd? Session = null);

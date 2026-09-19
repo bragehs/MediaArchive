@@ -72,7 +72,10 @@ public static class NativeRoutes
         }),
 
         Get<EntryArgs, EntryEffort?>("entry/effort", "entryEffort",
-            (sp, a) => sp.GetRequiredService<CommonQueries>().GetEntryEffortAsync(a.EntryId)),
+            (sp, a) => sp.GetRequiredService<CommonQueries>().GetEntryEffortAsync(a.EntryId, a.ElapsedMinutes)),
+
+        Get("session/live", "liveSession",
+            sp => sp.GetRequiredService<CommonQueries>().GetLiveSessionAsync()),
 
         Get("vocabulary", "vocabulary",
             sp => sp.GetRequiredService<MediaImportService>().GetVocabularyAsync()),
@@ -113,10 +116,16 @@ public static class NativeRoutes
             new Created(await sp.GetRequiredService<LoggingService>().ResumePassAsync(a.EntryId, a.Start))),
 
         Post<AddNoteArgs>("pass/note", "addNote",
-            (sp, a) => sp.GetRequiredService<LoggingService>().AddNoteAsync(a.EntryId, a.Note)),
+            (sp, a) => sp.GetRequiredService<LoggingService>().AddNoteAsync(a.EntryId, a.Note, a.Session)),
 
         Post<FinishPassArgs>("pass/finish", "finishPass",
-            (sp, a) => sp.GetRequiredService<LoggingService>().FinishPassAsync(a.EntryId, a.Finish)),
+            (sp, a) => sp.GetRequiredService<LoggingService>().FinishPassAsync(a.EntryId, a.Finish, a.Session)),
+
+        Post<StartSessionArgs, Created>("session/start", "startSession", async (sp, a) =>
+            new Created(await sp.GetRequiredService<LoggingService>().StartSessionAsync(a.EntryId, a.StartedAt))),
+
+        Post<SessionEnd>("session/end", "endSession",
+            (sp, a) => sp.GetRequiredService<LoggingService>().EndSessionAsync(a)),
     ];
 
     public static Route? Find(string name) => All.FirstOrDefault(r => r.Name == name);
