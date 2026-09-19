@@ -32,8 +32,10 @@ public record YearBucket(int Year, double Value);
 // Context is its own share — unrecorded is a gap to fill, not an absence.
 public record ContextShare(ConsumptionContext? Context, int Passes);
 
-// Books only: how fast a finished read actually went, read against your own median.
-public record PaceRow(int UserMediaItemId, string Title, double PagesPerDay);
+// Books only: pages over the span, against your own median. Recalled means the
+// two dates it divides by were remembered afterwards rather than logged as they
+// happened — the same arithmetic, softer inputs.
+public record PaceRow(int UserMediaItemId, string Title, double PagesPerDay, bool Recalled);
 
 // Games only: the hours you put in against the community's time to beat it.
 public record EstimateRow(int UserMediaItemId, string Title, int Hours, int Estimate);
@@ -235,14 +237,15 @@ public class ProfileQueries(IDbContextFactory<AppDbContext> dbContextFactory)
         .ToList();
 
 
-    // Backfill remembers facts, not rhythm: a reconstructed pass knows its
-    // totals, spans and ratings, but its day-by-day pace is fabricated. So
-    // every stat includes every pass — only the rhythm-shaped records (pace,
-    // binge, against-the-clock) demand a live-logged one: still open, ended on
-    // or after the item was added, or carrying a real progress note. Single-
-    // sitting passes get two weeks of grace on the add date — with start == end
-    // there is no pace to fabricate. The weekly chart needs no filter at all:
-    // its 26-week window ages backfill out on its own.
+    // Whether a pass's dates were recorded as it happened rather than remembered
+    // afterwards: still open, ended on or after the item was added, or carrying a
+    // real progress note. Single-sitting passes get two weeks of grace on the add
+    // date — with start == end there is no span to misremember.
+    //
+    // This marks, it no longer filters. A rate over a recalled span is soft, not
+    // false, and an archive that is mostly reconstructed has a history worth
+    // drawing: PaceRow carries the flag through to the UI instead. The one
+    // survivor is the binge record below, which has no chart to caveat it in.
     private static bool IsLive(UserMediaItem item, ConsumptionEntry entry) =>
         entry.EndDate is null
         || entry.EndDate >= item.AddedDate
@@ -281,24 +284,25 @@ public class ProfileQueries(IDbContextFactory<AppDbContext> dbContextFactory)
             records);
     }
 
-    // Live passes only, like the pace record it generalises: a backfilled read
-    // knows its totals but not its rhythm, so its pages-per-day is invented.
+    // Every finished read, recalled ones marked rather than dropped: the archive is
+    // mostly reconstructed, and filtering left one row out of seven.
     private static List<PaceRow> BuildPace(
         List<(UserMediaItem Item, ConsumptionEntry Entry)> passes) => ClosedPasses(passes)
         .Where(p => p.Entry.Outcome == PassOutcome.Completed
-                    && p.Item.MediaItem!.Length is > 0
-                    && IsLive(p.Item, p.Entry))
+                    && p.Item.MediaItem!.Length is > 0)
         .Select(p => new PaceRow(p.Item.Id, p.Item.MediaItem!.Title,
-            (double)p.Item.MediaItem.Length!.Value / Math.Max(1, p.Days)))
+            (double)p.Item.MediaItem.Length!.Value / Math.Max(1, p.Days),
+            !IsLive(p.Item, p.Entry)))
         .OrderByDescending(p => p.PagesPerDay)
         .ToList();
 
+    // No IsLive here: this divides nothing by a span. Hours against the community
+    // estimate is two totals, and a remembered total is a fact backfill keeps.
     private static List<EstimateRow> BuildEstimates(
         List<(UserMediaItem Item, ConsumptionEntry Entry)> passes) => ClosedPasses(passes)
         .Where(p => p.Entry.Outcome == PassOutcome.Completed
                     && p.Entry.Effort is not null
-                    && p.Item.MediaItem!.Length is > 0
-                    && IsLive(p.Item, p.Entry))
+                    && p.Item.MediaItem!.Length is > 0)
         .Select(p => new EstimateRow(p.Item.Id, p.Item.MediaItem!.Title,
             p.Entry.Effort!.Value, p.Item.MediaItem.Length!.Value))
         .OrderByDescending(e => e.Hours)
@@ -458,7 +462,6 @@ public class ProfileQueries(IDbContextFactory<AppDbContext> dbContextFactory)
             .ToList();
 
         records.Add(finished
-            .Where(p => IsLive(p.Item, p.Entry))
             .OrderByDescending(p => (double)p.Item.MediaItem!.Length! / Math.Max(1, p.Days))
             .Select(p => new TypeRecord("Fastest pace",
                 $"{(double)p.Item.MediaItem!.Length! / Math.Max(1, p.Days):0.#} pages/day",
@@ -502,7 +505,6 @@ public class ProfileQueries(IDbContextFactory<AppDbContext> dbContextFactory)
 
         // Your hours against the community estimate: rusher or completionist.
         records.Add(ClosedPasses(passes)
-            .Where(p => IsLive(p.Item, p.Entry))
             .Where(p => p.Entry.Outcome == PassOutcome.Completed
                         && p.Entry.Effort is not null && p.Item.MediaItem!.Length is > 0)
             .OrderByDescending(p => (double)p.Entry.Effort! / p.Item.MediaItem!.Length!.Value)

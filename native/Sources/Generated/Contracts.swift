@@ -396,6 +396,7 @@ struct PaceRow: Codable, Hashable, Sendable {
     var userMediaItemId: Int
     var title: String
     var pagesPerDay: Double
+    var recalled: Bool
 }
 
 struct PanelStat: Codable, Hashable, Sendable {

@@ -88,11 +88,10 @@ struct RecordsPane: View {
     // The one shape that belongs to this medium and no other.
     @ViewBuilder
     private func signature(_ panel: TypePanel) -> some View {
-        // Backfilled reads have no rhythm to measure, so this counts only live ones.
-        // Under three of those there is no distribution and no median worth drawing.
+        // Under three reads there is no distribution, and the median is one of them.
         if panel.pace.count >= 3 {
             Eyebrow("Pace", size: 8.5, tracking: 0.12, bold: false)
-            Aside("pages a day, finished reads", size: 11, color: Palette.dim)
+            Aside("pages a day over each read's span", size: 11, color: Palette.dim)
                 .padding(.top, 2)
                 .padding(.bottom, 10)
             let peak = panel.pace.map(\.pagesPerDay).max() ?? 1
@@ -102,13 +101,15 @@ struct RecordsPane: View {
                         ItemBarRow(title: row.title,
                                    fraction: row.pagesPerDay / peak,
                                    marker: panel.paceMedian.map { $0 / peak },
-                                   value: trimmed(row.pagesPerDay))
+                                   value: trimmed(row.pagesPerDay),
+                                   trailing: row.recalled ? "recalled" : nil)
                     }
                     .buttonStyle(.plain)
                 }
             }
             if let median = panel.paceMedian {
-                Aside("┊ your median, \(trimmed(median)) a day", size: 11, color: Palette.dim)
+                Aside("┊ your median, \(trimmed(median)) a day · recalled = dates remembered afterwards",
+                      size: 11, color: Palette.dim)
                     .padding(.top, 8)
             }
             Spacer().frame(height: 20)

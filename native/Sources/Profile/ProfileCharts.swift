@@ -138,19 +138,18 @@ struct ItemBarRow: View {
                     }
                 }
             }
-            .frame(width: 96, height: 7)
+            .frame(width: 80, height: 7)
 
             Text(value)
                 .font(Fonts.title(12))
                 .foregroundStyle(Palette.ink)
-                .frame(width: 44, alignment: .trailing)
+                .frame(width: 40, alignment: .trailing)
 
-            if let trailing {
-                Text(trailing)
-                    .font(Fonts.serif(11, italic: true))
-                    .foregroundStyle(Palette.dim)
-                    .frame(width: 40, alignment: .trailing)
-            }
+            // Always drawn, even when empty: a missing slot would shift the row.
+            Text(trailing ?? "")
+                .font(Fonts.serif(11, italic: true))
+                .foregroundStyle(Palette.dim)
+                .frame(width: 54, alignment: .trailing)
         }
         .padding(.vertical, 7)
     }
