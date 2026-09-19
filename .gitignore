@@ -30,8 +30,9 @@ covers/
 # Local snapshots pulled off the phone by ./ma pull
 backups/
 
-# Widget extension build output (xcodebuild SYMROOT, see ./ma)
+# Widget and UI framework build output (xcodebuild SYMROOT, see ./ma)
 .widgetbuild/
+.nativebuild/
 
 # agent worktrees
 .claude/

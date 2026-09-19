@@ -4,6 +4,7 @@ using MediaArchive.Data;
 using MediaArchive.Services.Import;
 using MediaArchive.Services.Infrastructure;
 using MediaArchive.Services.Logging;
+using MediaArchive.Services.Native;
 using MediaArchive.Services.Providers;
 using MediaArchive.Services.Queries;
 using MediaArchive.Services.UserItems;
@@ -24,7 +25,7 @@ public static class MauiProgram
         builder.UseMauiApp<App>();
 
         // Widget taps arrive as mediaarchive:// URLs (scheme registered in
-        // Info.plist); translate them to Blazor routes and let the UI navigate.
+        // Info.plist); translate them to app routes and let the Swift UI navigate.
         builder.ConfigureLifecycleEvents(events =>
             events.AddiOS(ios => ios.OpenUrl((_, url, _) =>
             {
@@ -40,8 +41,6 @@ public static class MauiProgram
         // so read it out of the app package and feed it to configuration.
         using (var configStream = FileSystem.OpenAppPackageFileAsync("appsettings.json").GetAwaiter().GetResult())
             builder.Configuration.AddJsonStream(configStream);
-
-        builder.Services.AddMauiBlazorWebView();
 
         var dbPath = Path.Combine(FileSystem.AppDataDirectory, "mediaarchive.db");
         builder.Services.AddDbContextFactory<AppDbContext>(options =>
@@ -101,6 +100,14 @@ public static class MauiProgram
         builder.Services.AddScoped<DiaryQueries>();
 
         builder.Services.AddSingleton<DeepLinkService>();
+
+        // The native boundary: NativeApi resolves the scoped services above per
+        // call, NativeBackend is the NSObject Swift reaches, MainPage hosts the root.
+        builder.Services.AddSingleton(sp => new NativeApi(
+            sp.GetRequiredService<IServiceScopeFactory>(),
+            Path.Combine(FileSystem.AppDataDirectory, "covers")));
+        builder.Services.AddSingleton<NativeBackend>();
+        builder.Services.AddTransient<MainPage>();
         // Singletons (unlike the scoped queries above): both are stateless over
         // the context factory, and App — created once, outside any scope —
         // holds the publisher for the window lifecycle hooks.
@@ -108,7 +115,6 @@ public static class MauiProgram
         builder.Services.AddSingleton<WidgetSnapshotPublisher>();
 
 #if DEBUG
-        builder.Services.AddBlazorWebViewDeveloperTools();
         builder.Logging.AddDebug();
 #endif
 

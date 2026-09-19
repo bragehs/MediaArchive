@@ -35,9 +35,11 @@ SIM_DEFAULT="iPhone 17 Pro"
 STUB="$REPO/.provisioning"
 PROFILE_DIR="$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles"
 
-# The home-screen widget is a native Swift extension with its own bundle id
-# (and thus its own 7-day profile). xcodebuild compiles it; the .NET build
-# embeds the .appex via AdditionalAppExtensions in the csproj.
+# The UI is a Swift framework (native/) and the home-screen widget a Swift
+# extension with its own bundle id (and thus its own 7-day profile). xcodebuild
+# compiles both; the .NET build embeds them via NativeReference and
+# AdditionalAppExtensions in the csproj.
+NATIVE_DIR="$REPO/native"
 WIDGET_DIR="$REPO/widget"
 WIDGET_BUNDLE_ID="no.norapps.mediaarchive.widget"
 APP_GROUP="group.no.norapps.mediaarchive"
@@ -358,9 +360,29 @@ renew() {
 
 # ----------------------------------------------------------------------- build
 
-# Compile the widget .appex plus the WidgetLink.framework shim (the app's
-# C#-callable bridge to WidgetKit); the .NET build embeds both. Device builds
-# pass -allowProvisioningUpdates, which also creates/renews the widget's own
+# Regenerate the Swift contracts from the C# route table, then compile the UI
+# framework. The generator runs every build on purpose: a stale contract is a
+# screen that decodes wrongly, and the framework build is what catches a rename.
+build_native() {
+    local sdk="$1"; shift
+    local out="$REPO/.nativebuild/$sdk"
+    mkdir -p "$out"
+    say "syncing contracts…"
+    "$REPO/scripts/sync-contracts.sh" >/dev/null 2>"$out/swiftgen.log" \
+        || { tail -15 "$out/swiftgen.log" >&2; die "contract generation failed"; }
+    say "building UI framework ($sdk)…"
+    if ! run_timeout 900 xcodebuild -project "$NATIVE_DIR/MediaArchiveUI.xcodeproj" \
+            -alltargets -configuration Debug -sdk "$sdk" \
+            SYMROOT="$out" "$@" build \
+            >"$out/xcodebuild.log" 2>&1; then
+        warn "UI framework build failed — errors from .nativebuild/$sdk/xcodebuild.log:"
+        grep -E "error:" "$out/xcodebuild.log" | sort -u | head -20 >&2
+        die "UI framework build failed"
+    fi
+}
+
+# Compile the widget .appex; the .NET build embeds it. Device builds pass
+# -allowProvisioningUpdates, which also creates/renews the widget's own
 # 7-day profile as a side effect — no separate stub needed.
 build_widget() {
     local sdk="$1"; shift
@@ -386,7 +408,9 @@ build_widget() {
 build() {
     local rid="$1" app
     say "building ($rid)…"
-    dotnet build "$PROJ" -f "$TFM" -r "$rid" --nologo -v quiet >&2 \
+    # ValidateXcodeVersion: the .NET for iOS 26.5 pack refuses Xcode 27 by
+    # version number alone; the build itself is fine (Build against Xcode 27).
+    dotnet build "$PROJ" -f "$TFM" -r "$rid" --nologo -v quiet -p:ValidateXcodeVersion=false >&2 \
         || die "build failed"
     app="$REPO/MediaArchive.Mobile/bin/Debug/$TFM/$rid/MediaArchive.Mobile.app"
     prune_scoped_css "$app"
@@ -430,12 +454,15 @@ sim_run() {
         fi
     fi
 
+    build_native iphonesimulator
     build_widget iphonesimulator
     app=$(build "$rid")
 
     say "booting simulator…"
     xcrun simctl boot "$udid" 2>/dev/null || true
-    open -a Simulator --args -CurrentDeviceUDID "$udid"
+    # Xcode 27 ships no Simulator.app; the device still boots and runs headless.
+    open -a Simulator --args -CurrentDeviceUDID "$udid" 2>/dev/null \
+        || warn "no Simulator app to show the screen — the device is running headless"
     xcrun simctl bootstatus "$udid" -b >/dev/null 2>&1 || true
 
     say "installing…"
@@ -487,6 +514,7 @@ phone_run() {
     [[ -n "$id" ]] || id=$(find_device)
     [[ -n "$id" ]] || die "no paired iPhone reachable — unlock it and check it's on the same Wi-Fi"
     renew "" "$id"
+    build_native iphoneos -allowProvisioningUpdates
     build_widget iphoneos -allowProvisioningUpdates
     app=$(build ios-arm64)
 

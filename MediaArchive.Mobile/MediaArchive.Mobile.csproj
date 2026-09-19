@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Razor">
+<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <TargetFrameworks>net10.0-ios</TargetFrameworks>
@@ -8,7 +8,6 @@
         <UseMaui>true</UseMaui>
         <SingleProject>true</SingleProject>
         <ImplicitUsings>enable</ImplicitUsings>
-        <EnableDefaultCssItems>false</EnableDefaultCssItems>
         <Nullable>enable</Nullable>
 
         <MauiXamlInflator>SourceGen</MauiXamlInflator>
@@ -30,30 +29,34 @@
         <CodesignEntitlements>Platforms\iOS\Entitlements.plist</CodesignEntitlements>
     </PropertyGroup>
 
-    <!-- The home-screen widget: a Swift .appex compiled by xcodebuild (see ./ma),
-         embedded and co-signed here. Each flavor is staged in its own directory
-         (.widgetbuild/<sdk>) because the embedding targets scan the whole
-         directory for frameworks — mixing flavors ships the wrong-platform
-         WidgetLink.framework and the app dies at launch on device. The Exists()
-         guard keeps plain `dotnet build` working before the widget is compiled. -->
+    <!-- Two Swift products compiled by xcodebuild (see ./ma) and embedded here:
+         the UI framework, which is the whole front end, and the home-screen
+         widget .appex. Each is staged per SDK (.nativebuild/<sdk>,
+         .widgetbuild/<sdk>) because the appex-embedding targets scan the whole
+         extension directory for frameworks to promote — mixing flavors ships a
+         wrong-platform framework and the app dies at launch on device. The
+         Exists() guards keep plain `dotnet build` compiling before either is built. -->
     <PropertyGroup>
-        <_WidgetSdk>iphoneos</_WidgetSdk>
-        <_WidgetSdk Condition="'$(RuntimeIdentifier)' != '' and $(RuntimeIdentifier.Contains('simulator'))">iphonesimulator</_WidgetSdk>
-        <_WidgetStage>$(MSBuildThisFileDirectory)..\.widgetbuild\$(_WidgetSdk)</_WidgetStage>
+        <_NativeSdk>iphoneos</_NativeSdk>
+        <_NativeSdk Condition="'$(RuntimeIdentifier)' != '' and $(RuntimeIdentifier.Contains('simulator'))">iphonesimulator</_NativeSdk>
+        <_NativeStage>$(MSBuildThisFileDirectory)..\.nativebuild\$(_NativeSdk)</_NativeStage>
+        <_WidgetStage>$(MSBuildThisFileDirectory)..\.widgetbuild\$(_NativeSdk)</_WidgetStage>
     </PropertyGroup>
-    <ItemGroup Condition="Exists('$(_WidgetStage)\Debug-$(_WidgetSdk)\MediaArchiveWidget.appex')">
+    <ItemGroup Condition="Exists('$(_NativeStage)\Debug-$(_NativeSdk)\MediaArchiveUI.framework')">
+        <!-- The Swift UI (native/), plus the MAWidgetLink shim WidgetSnapshotPublisher
+             reaches through the ObjC runtime. -->
+        <NativeReference Include="$(_NativeStage)\Debug-$(_NativeSdk)\MediaArchiveUI.framework">
+            <Kind>Framework</Kind>
+        </NativeReference>
+    </ItemGroup>
+    <ItemGroup Condition="Exists('$(_WidgetStage)\Debug-$(_NativeSdk)\MediaArchiveWidget.appex')">
         <AdditionalAppExtensions Include="$(_WidgetStage)">
             <Name>MediaArchiveWidget</Name>
-            <BuildOutput>Debug-$(_WidgetSdk)</BuildOutput>
+            <BuildOutput>Debug-$(_NativeSdk)</BuildOutput>
             <!-- The .NET build re-signs the appex; without this it strips the
                  App Group entitlement and the widget can't read its snapshot. -->
             <CodesignEntitlements>$(MSBuildThisFileDirectory)..\widget\MediaArchiveWidget.entitlements</CodesignEntitlements>
         </AdditionalAppExtensions>
-        <!-- Swift shim exposing WidgetKit's reload call to C#
-             (WidgetSnapshotPublisher) — WidgetKit itself has no .NET binding. -->
-        <NativeReference Include="$(_WidgetStage)\Debug-$(_WidgetSdk)\WidgetLink.framework">
-            <Kind>Framework</Kind>
-        </NativeReference>
     </ItemGroup>
 
     <ItemGroup>
@@ -66,8 +69,10 @@
         <!-- Splash Screen -->
         <MauiSplashScreen Include="Resources\Splash\splash.svg" Color="#0a0a0a" BaseSize="128,128" />
 
-        <MauiImage Include="Resources\Images\*" />
-        <MauiFont Include="Resources\Fonts\*" />
+        <!-- The theme's fonts and the masthead brandmark, read by the Swift UI from
+             the main bundle. MauiFont so MAUI writes them into UIAppFonts for us. -->
+        <MauiFont Include="Resources\Fonts\*.ttf" />
+        <BundleResource Include="Resources\Images\brandmark.png" LogicalName="brandmark.png" />
         <MauiAsset Include="Resources\Raw\**" LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />
 
         <!-- Provider keys, loaded at startup via AddJsonStream. Gitignored. -->
@@ -76,7 +81,8 @@
 
     <ItemGroup>
         <PackageReference Include="Microsoft.Maui.Controls" Version="$(MauiVersion)" />
-        <PackageReference Include="Microsoft.AspNetCore.Components.WebView.Maui" Version="$(MauiVersion)" />
+        <!-- AddJsonStream for appsettings.json; used to ride in with the WebView package. -->
+        <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.0" />
         <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.0" />
     </ItemGroup>
 
