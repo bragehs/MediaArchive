@@ -492,11 +492,18 @@ struct TagInput: Codable, Hashable, Sendable {
     var appliesTo: MediaType?
 }
 
+struct TimeBucket: Codable, Hashable, Sendable {
+    var mediaType: MediaType
+    var year: Int
+    var minutes: Double
+}
+
 struct TimeSpent: Codable, Hashable, Sendable {
     var actualMinutes: Double
     var estimatedMinutes: Double
     var items: Int
     var withoutLength: Int
+    var buckets: [TimeBucket]
 }
 
 struct TypeEntry: Codable, Hashable, Sendable {

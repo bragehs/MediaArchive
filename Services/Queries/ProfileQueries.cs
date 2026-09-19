@@ -36,10 +36,14 @@ public record TypePanel(MediaType MediaType, string Unit, IReadOnlyList<PanelSta
 
 public record MonthRecord(int Year, int Month, int Logs);
 
+// One medium's minutes in one year. Filled by the same walk as the totals, so
+// the mix and the totals cannot drift apart.
+public record TimeBucket(MediaType MediaType, int Year, double Minutes);
+
 // Measured and derived minutes stay apart so a largely estimated figure renders
 // as "≈352 h" rather than passing itself off as counted.
 public record TimeSpent(double ActualMinutes, double EstimatedMinutes,
-    int Items, int WithoutLength);
+    int Items, int WithoutLength, IReadOnlyList<TimeBucket> Buckets);
 
 public record ProfileSnapshot(
     TimeSpent TimeSpent,
@@ -103,6 +107,7 @@ public class ProfileQueries(IDbContextFactory<AppDbContext> dbContextFactory)
     {
         double actual = 0, estimated = 0;
         int counted = 0, dropped = 0;
+        var buckets = new Dictionary<(MediaType Type, int Year), double>();
 
         foreach (var item in items)
         {
@@ -118,14 +123,27 @@ public class ProfileQueries(IDbContextFactory<AppDbContext> dbContextFactory)
                 if (entry.Effort is null) estimated += minutes;
                 else actual += minutes;
                 contributed = true;
+
+                var key = (media.MediaType, PassYear(item, entry));
+                buckets[key] = buckets.GetValueOrDefault(key) + minutes;
             }
 
             if (contributed) counted++;
             else if (item.Entries.Count > 0) dropped++;
         }
 
-        return new TimeSpent(actual, estimated, counted, dropped);
+        return new TimeSpent(actual, estimated, counted, dropped,
+            buckets
+                .OrderBy(b => b.Key.Year).ThenBy(b => b.Key.Type)
+                .Select(b => new TimeBucket(b.Key.Type, b.Key.Year, b.Value))
+                .ToList());
     }
+
+    // A pass lands in the year it closed, whole. Estimated minutes carry no dates
+    // to spread across, and spreading them would invent a pace the archive never
+    // recorded — the fiction IsLive keeps out of the records.
+    private static int PassYear(UserMediaItem item, ConsumptionEntry entry) =>
+        (entry.EndDate ?? entry.StartDate ?? item.AddedDate).Year;
 
     // The shelf is deliberately exclusive: favourites and full marks, nothing
     // else — and favourites lead it.

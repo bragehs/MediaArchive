@@ -193,6 +193,8 @@ struct ProfileView: View {
 private struct TimeSpentHero: View {
     let snapshot: ProfileSnapshot
 
+    @Environment(\.lexicon) private var lexicon
+
     private var spent: TimeSpent { snapshot.timeSpent }
     private var totalMinutes: Double { spent.actualMinutes + spent.estimatedMinutes }
     private var derived: Bool { spent.estimatedMinutes > 0 }
@@ -210,11 +212,24 @@ private struct TimeSpentHero: View {
             Eyebrow("across \(spent.items) \(plural(spent.items, "item"))", size: 8.5, tracking: 0.12, bold: false)
                 .padding(.top, 9)
 
+            if !mix.isEmpty {
+                MixBar(slices: mix).padding(.top, 14)
+                Text(mix.map { "\(lexicon.label($0.type).lowercased())s \(hours($0.minutes)) h" }
+                        .joined(separator: " · "))
+                    .font(Fonts.serif(11.5, italic: true))
+                    .foregroundStyle(Palette.muted)
+                    .padding(.top, 7)
+            }
+
             if let caveat {
                 Aside(caveat, size: 11, color: Palette.muted).padding(.top, 3)
             }
 
-            facts.padding(.top, 12)
+            if columns.count > 1 {
+                YearMix(columns: columns).padding(.top, 16)
+            }
+
+            facts.padding(.top, 14)
         }
         .padding(.vertical, 16)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -250,6 +265,99 @@ private struct TimeSpentHero: View {
     private func hours(_ minutes: Double) -> String {
         let value = minutes / 60
         return value >= 10 ? grouped(value.rounded()) : trimmed(value)
+    }
+
+    private var mix: [MediumSlice] {
+        Dictionary(grouping: spent.buckets, by: \.mediaType)
+            .map { MediumSlice(type: $0.key, minutes: $0.value.reduce(0) { $0 + $1.minutes }) }
+            .filter { $0.minutes > 0 }
+            .sorted { $0.minutes > $1.minutes }
+    }
+
+    // Empty years are kept: a decade you logged nothing in is a fact about you,
+    // and dropping it would make a long gap look like a short one.
+    private var columns: [YearColumn] {
+        let years = spent.buckets.map(\.year)
+        guard let first = years.min(), let last = years.max() else { return [] }
+        let byYear = Dictionary(grouping: spent.buckets, by: \.year)
+        return (first...last).map { year in
+            YearColumn(year: year, slices: (byYear[year] ?? [])
+                .map { MediumSlice(type: $0.mediaType, minutes: $0.minutes) }
+                .sorted { $0.minutes > $1.minutes })
+        }
+    }
+}
+
+private struct MediumSlice: Identifiable {
+    let type: MediaType
+    let minutes: Double
+    var id: MediaType { type }
+}
+
+private struct YearColumn: Identifiable {
+    let year: Int
+    let slices: [MediumSlice]
+    var id: Int { year }
+    var total: Double { slices.reduce(0) { $0 + $1.minutes } }
+}
+
+// Where the hours went, as one bar: the whole archive's minutes split by medium.
+private struct MixBar: View {
+    let slices: [MediumSlice]
+
+    var body: some View {
+        let total = max(1, slices.reduce(0) { $0 + $1.minutes })
+        GeometryReader { geometry in
+            let gaps = CGFloat(max(0, slices.count - 1))
+            let track = max(0, geometry.size.width - gaps)
+            HStack(spacing: 1) {
+                ForEach(slices) { slice in
+                    Palette.accent(slice.type)
+                        .frame(width: max(2, track * slice.minutes / total))
+                }
+            }
+        }
+        .frame(height: 9)
+        .clipShape(Capsule())
+    }
+}
+
+// The same minutes on a time axis, stacked by medium — how the mix shifted.
+private struct YearMix: View {
+    let columns: [YearColumn]
+
+    var body: some View {
+        let peak = max(1, columns.map(\.total).max() ?? 1)
+        let step = max(1, Int((Double(columns.count) / 6).rounded(.up)))
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .bottom, spacing: 3) {
+                ForEach(columns) { column in
+                    VStack(spacing: 1) {
+                        Spacer(minLength: 0)
+                        ForEach(column.slices) { slice in
+                            Palette.accent(slice.type)
+                                .frame(height: max(1, 56 * slice.minutes / peak))
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                    .clipShape(UnevenRoundedRectangle(topLeadingRadius: 2, topTrailingRadius: 2))
+                }
+            }
+            .frame(height: 56)
+            .overlay(alignment: .bottom) { HairlineRule(color: Palette.line2) }
+
+            HStack(spacing: 3) {
+                ForEach(Array(columns.enumerated()), id: \.element.id) { index, column in
+                    // Anchored to the newest year, not the oldest: the last column is
+                    // the one being read, and it has to be the one that is labelled.
+                    Text((columns.count - 1 - index) % step == 0
+                         ? String(String(column.year).suffix(2)) : "")
+                        .font(Fonts.display(8))
+                        .foregroundStyle(Palette.dim)
+                        .frame(maxWidth: .infinity)
+                }
+            }
+        }
     }
 }
 
