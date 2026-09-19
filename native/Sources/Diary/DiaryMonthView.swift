@@ -12,16 +12,7 @@ struct DiaryMonthView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                Button { dismiss() } label: {
-                    (Text("‹ Diary / ") + Text(data.value?.name ?? "").foregroundStyle(Palette.ac))
-                        .font(Fonts.display(9.5))
-                        .tracking(1.1)
-                        .textCase(.uppercase)
-                        .foregroundStyle(Palette.dim)
-                }
-                .buttonStyle(.plain)
-                .padding(.top, 6)
-                .padding(.bottom, 12)
+                Crumb("Diary", trail: data.value?.name ?? "") { dismiss() }
 
                 switch data {
                 case .loading:

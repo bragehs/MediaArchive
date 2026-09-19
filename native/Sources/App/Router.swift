@@ -20,6 +20,8 @@ enum Tab: String, CaseIterable, Hashable {
 enum Route: Hashable {
     case item(Int, log: Bool = false)
     case diaryMonth(year: Int, month: Int)
+    case universes
+    case creators
 }
 
 // Which tab is up and what each tab's stack holds. Deep links land here, and
