@@ -185,19 +185,19 @@ private struct OpenNowRow: View {
                     (Text("open ").italic() + Text("\(item.daysOpen)").foregroundStyle(Palette.muted) + Text(" \(plural(item.daysOpen, "day"))").italic())
                         .font(Fonts.serif(11, italic: true))
                         .foregroundStyle(Palette.dim)
-                    Button { onLog() } label: {
-                        Eyebrow("Log →", size: 9, color: Palette.ac, tracking: 0.1)
-                    }
-                    .buttonStyle(.plain)
-                    .padding(.leading, 4)
                     if let sessionLabel {
                         Button { onSession() } label: {
                             Eyebrow(sessionLabel, size: 9, color: Palette.ac2, tracking: 0.1)
                         }
                         .buttonStyle(.plain)
                         .disabledLook(busy)
-                        .padding(.leading, 8)
+                        .padding(.leading, 4)
                     }
+                    Button { onLog() } label: {
+                        Eyebrow("Log →", size: 9, color: Palette.ac, tracking: 0.1)
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.leading, 8)
                 }
                 .padding(.top, 8)
             }
