@@ -102,6 +102,11 @@ struct ContextEntry: Codable, Hashable, Sendable {
     var label: String
 }
 
+struct ContextShare: Codable, Hashable, Sendable {
+    var context: ConsumptionContext?
+    var passes: Int
+}
+
 struct CoverCard: Codable, Hashable, Sendable {
     var userMediaItemId: Int
     var title: String
@@ -213,6 +218,13 @@ struct EntryEffort: Codable, Hashable, Sendable {
     var suggestedEffort: Int?
     var suggestedHoursLeft: Double?
     var suggestedRuntime: Int?
+}
+
+struct EstimateRow: Codable, Hashable, Sendable {
+    var userMediaItemId: Int
+    var title: String
+    var hours: Int
+    var estimate: Int
 }
 
 struct ExternalArgs: Codable, Hashable, Sendable {
@@ -399,6 +411,13 @@ struct OpenPassSummary: Codable, Hashable, Sendable {
     var progress: Double?
 }
 
+struct PaceRow: Codable, Hashable, Sendable {
+    var userMediaItemId: Int
+    var title: String
+    var pagesPerDay: Double
+    var recalled: Bool
+}
+
 struct PanelStat: Codable, Hashable, Sendable {
     var value: String
     var label: String
@@ -522,11 +541,18 @@ struct TagInput: Codable, Hashable, Sendable {
     var appliesTo: MediaType?
 }
 
+struct TimeBucket: Codable, Hashable, Sendable {
+    var mediaType: MediaType
+    var year: Int
+    var minutes: Double
+}
+
 struct TimeSpent: Codable, Hashable, Sendable {
     var actualMinutes: Double
     var estimatedMinutes: Double
     var items: Int
     var withoutLength: Int
+    var buckets: [TimeBucket]
 }
 
 struct TypeEntry: Codable, Hashable, Sendable {
@@ -543,6 +569,10 @@ struct TypePanel: Codable, Hashable, Sendable {
     var stats: [PanelStat]
     var weekly: [WeekBucket]
     var yearly: [YearBucket]
+    var contexts: [ContextShare]
+    var pace: [PaceRow]
+    var paceMedian: Double?
+    var estimates: [EstimateRow]
     var records: [TypeRecord]
 }
 

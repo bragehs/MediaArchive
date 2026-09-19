@@ -65,6 +65,32 @@ struct Aside: View {
     }
 }
 
+// The sub-page back link: "‹ Parent / Trail", the trail in accent.
+struct Crumb: View {
+    let parent: String
+    let trail: String
+    let back: () -> Void
+
+    init(_ parent: String, trail: String, back: @escaping () -> Void) {
+        self.parent = parent
+        self.trail = trail
+        self.back = back
+    }
+
+    var body: some View {
+        Button(action: back) {
+            (Text("‹ \(parent) / ") + Text(trail).foregroundStyle(Palette.ac))
+                .font(Fonts.display(9.5))
+                .tracking(1.1)
+                .textCase(.uppercase)
+                .foregroundStyle(Palette.dim)
+        }
+        .buttonStyle(.plain)
+        .padding(.top, 6)
+        .padding(.bottom, 12)
+    }
+}
+
 // The `.msec` / `.isec` / `.psec` rule: kicker left, note right, hairline under.
 struct SectionHead: View {
     let kick: String
