@@ -38,6 +38,14 @@ final class ItemStore {
 
     var detail: ItemDetail? { page.value?.detail }
 
+    // The one running session app-wide, and whether it is this item's.
+    var live: LiveSession? { page.value?.live }
+
+    var sessionHere: Bool {
+        guard let live, let open = detail?.openPass else { return false }
+        return live.entryId == open.entryId
+    }
+
     var dirty: Bool {
         guard let detail else { return false }
         return genres != detail.genres
@@ -140,6 +148,28 @@ final class ItemStore {
             passStart = .today
             passEnd = .today
             passContext = nil
+            await load()
+        }
+    }
+
+    // The row is written before the activity is requested, so a refused
+    // activity still leaves a session on record.
+    func startSession() async {
+        guard let open = detail?.openPass else { return }
+        await mutate {
+            let session = try await api.startSession(StartSessionArgs(entryId: open.entryId, startedAt: Date()))
+            SessionActivity.start(session)
+            await load()
+        }
+    }
+
+    // Closes it bare: nothing logged. The sheet is the way to end one with a note.
+    func endSession() async {
+        guard let live else { return }
+        await mutate {
+            try await api.endSession(SessionEnd(sessionId: live.sessionId, endedAt: Date(),
+                                                pausedMinutes: PauseLog.pausedMinutes(sessionId: live.sessionId)))
+            await SessionActivity.end(sessionId: live.sessionId)
             await load()
         }
     }

@@ -42,7 +42,8 @@ struct ItemView: View {
         }
         .sheet(isPresented: $store.logging) {
             if let detail = store.detail, let open = detail.openPass {
-                LogProgressSheet(entryId: open.entryId, title: detail.title, mediaType: detail.mediaType) { finished in
+                LogProgressSheet(entryId: open.entryId, title: detail.title, mediaType: detail.mediaType,
+                                 session: store.sessionHere ? store.live : nil) { finished in
                     store.logged(finished: finished)
                 }
             }
@@ -185,6 +186,19 @@ struct ItemView: View {
         Button("Log progress →") { store.logging = true }
             .buttonStyle(PrimaryButtonStyle(fullWidth: true))
             .padding(.top, 16)
+        if let live = store.live, store.sessionHere {
+            Aside("Session running since \(live.startedAt.formatted(date: .omitted, time: .shortened))", size: 11)
+                .padding(.top, 10)
+            Button(store.saving ? "…" : "End the session") { Task { await store.endSession() } }
+                .buttonStyle(GhostButtonStyle(fullWidth: true))
+                .disabledLook(store.saving)
+                .padding(.top, 8)
+        } else if store.live == nil {
+            Button(store.saving ? "…" : "Start a session") { Task { await store.startSession() } }
+                .buttonStyle(GhostButtonStyle(fullWidth: true))
+                .disabledLook(store.saving)
+                .padding(.top, 8)
+        }
     }
 
     @ViewBuilder

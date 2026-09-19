@@ -13,8 +13,15 @@ public record ResumablePass(int EntryId, DateOnly? EndDate, int? Effort);
 
 // Audio hours and pages are the conversion's two numbers, not facts about the pass.
 // RuntimeKnown is false when the item's own length won't reach minutes at all.
+// The Suggested* fields are filled only when elapsed minutes were sent: what that
+// sitting implies, in the unit the sheet takes, null where the conversion isn't grounded.
 public record EntryEffort(int UserMediaItemId, int? Effort, bool Audiobook,
-    double? AudioHours, int? PageCount, bool RuntimeKnown);
+    double? AudioHours, int? PageCount, bool RuntimeKnown,
+    int? SuggestedEffort, double? SuggestedHoursLeft, int? SuggestedRuntime);
+
+// Cover is the bare file name, the key the widget publisher uses under the App Group.
+public record LiveSession(int SessionId, int EntryId, int UserMediaItemId, string Title,
+    MediaType MediaType, string? Cover, DateTime StartedAt, int? TargetMinutes);
 
 public record ItemDetail(
     int UserMediaItemId,
@@ -144,7 +151,8 @@ public class CommonQueries(IDbContextFactory<AppDbContext> dbContextFactory)
             item.Entries.Count);
     }
 
-    public async Task<EntryEffort?> GetEntryEffortAsync(int entryId, CancellationToken ct = default)
+    public async Task<EntryEffort?> GetEntryEffortAsync(int entryId, int? elapsedMinutes = null,
+        CancellationToken ct = default)
     {
         await using var db = await dbContextFactory.CreateDbContextAsync(ct);
 
@@ -159,6 +167,9 @@ public class CommonQueries(IDbContextFactory<AppDbContext> dbContextFactory)
 
         var media = entry.UserMediaItem!.MediaItem!;
         var book = media as Book;
+        var suggestion = elapsedMinutes is { } elapsed
+            ? EffortMath.Suggest(media, entry, elapsed)
+            : new EffortMath.SessionSuggestion(null, null, null);
 
         return new EntryEffort(
             entry.UserMediaItem.Id,
@@ -166,7 +177,33 @@ public class CommonQueries(IDbContextFactory<AppDbContext> dbContextFactory)
             book is not null && entry.Context == ConsumptionContext.Audiobook,
             book?.AudioHours,
             book?.PageCount,
-            media.EstimatedMinutes is > 0);
+            media.EstimatedMinutes is > 0,
+            suggestion.Effort,
+            suggestion.HoursLeft,
+            suggestion.Runtime);
+    }
+
+    // At most one, by LoggingService's rule; the row is the record, whether or not
+    // its Live Activity is still on the Lock Screen.
+    public async Task<LiveSession?> GetLiveSessionAsync(CancellationToken ct = default)
+    {
+        await using var db = await dbContextFactory.CreateDbContextAsync(ct);
+
+        var session = await db.Sessions
+            .Where(s => s.EndedAt == null)
+            .Include(s => s.ConsumptionEntry!).ThenInclude(e => e.UserMediaItem!).ThenInclude(u => u.MediaItem)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(ct);
+
+        if (session is null)
+            return null;
+
+        var userItem = session.ConsumptionEntry!.UserMediaItem!;
+        var media = userItem.MediaItem!;
+
+        return new LiveSession(session.Id, session.ConsumptionEntryId, userItem.Id, media.Title,
+            media.MediaType, Path.GetFileName(media.LocalImagePath), session.StartedAt,
+            EffortMath.SessionTarget(media));
     }
 
     public async Task<List<PassSummary>> GetPassHistoryAsync(int userMediaItemId,

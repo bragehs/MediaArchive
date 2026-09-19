@@ -78,7 +78,9 @@ public class LoggingService(
         return entry;
     }
 
-    public async Task AddNoteAsync(int entryId, NoteInput note, CancellationToken ct = default)
+    // With a session, the sitting is closed and linked to the new note in the same save.
+    public async Task AddNoteAsync(int entryId, NoteInput note, SessionEnd? session = null,
+        CancellationToken ct = default)
     {
         await using var db = await dbContextFactory.CreateDbContextAsync(ct);
 
@@ -92,17 +94,22 @@ public class LoggingService(
         if (note.EffortAtTime is not null)
             entry.Effort = note.EffortAtTime;
 
-        entry.Notes.Add(new EntryNote
+        var progress = new EntryNote
         {
             Kind = NoteKind.Progress,
             EffortAtTime = entry.Effort,
             Text = string.IsNullOrWhiteSpace(note.Text) ? null : note.Text.Trim()
-        });
+        };
+        entry.Notes.Add(progress);
+
+        if (session is not null)
+            await CloseSessionAsync(db, entryId, session, progress, ct);
 
         await db.SaveChangesAsync(ct);
     }
 
-    public async Task FinishPassAsync(int entryId, PassFinish finish, CancellationToken ct = default)
+    public async Task FinishPassAsync(int entryId, PassFinish finish, SessionEnd? session = null,
+        CancellationToken ct = default)
     {
         await using var db = await dbContextFactory.CreateDbContextAsync(ct);
 
@@ -120,13 +127,20 @@ public class LoggingService(
         entry.Outcome = outcome;
         entry.RatingAtTime = finish.Rating;
 
+        EntryNote? finishNote = null;
         if (!string.IsNullOrWhiteSpace(finish.Note))
-            entry.Notes.Add(new EntryNote
+        {
+            finishNote = new EntryNote
             {
                 Kind = NoteKind.Finish,
                 EffortAtTime = entry.Effort,
                 Text = finish.Note.Trim()
-            });
+            };
+            entry.Notes.Add(finishNote);
+        }
+
+        if (session is not null)
+            await CloseSessionAsync(db, entryId, session, finishNote, ct);
 
         userItem.Status = outcome is PassOutcome.Completed
             ? MediaStatus.Completed
@@ -136,12 +150,59 @@ public class LoggingService(
         await db.SaveChangesAsync(ct);
     }
 
+    // One sitting at a time, anywhere: refused here so no screen can request a second activity.
+    public async Task<int> StartSessionAsync(int entryId, DateTime? startedAt = null,
+        CancellationToken ct = default)
+    {
+        await using var db = await dbContextFactory.CreateDbContextAsync(ct);
+
+        var entry = await db.ConsumptionEntries.FirstAsync(e => e.Id == entryId, ct);
+
+        if (entry.EndDate is not null)
+            throw new InvalidOperationException($"Pass {entryId} is already finished.");
+
+        if (await db.Sessions.AnyAsync(s => s.EndedAt == null, ct))
+            throw new InvalidOperationException("A session is already running.");
+
+        var session = new Session { StartedAt = startedAt ?? DateTime.UtcNow };
+        entry.Sessions.Add(session);
+
+        await db.SaveChangesAsync(ct);
+
+        return session.Id;
+    }
+
+    // The sitting produced nothing to log: the sheet was dismissed, or a stale one discarded.
+    public async Task EndSessionAsync(SessionEnd end, CancellationToken ct = default)
+    {
+        await using var db = await dbContextFactory.CreateDbContextAsync(ct);
+
+        await CloseSessionAsync(db, null, end, null, ct);
+
+        await db.SaveChangesAsync(ct);
+    }
+
+    private static async Task CloseSessionAsync(AppDbContext db, int? entryId, SessionEnd end,
+        EntryNote? note, CancellationToken ct)
+    {
+        var session = await db.Sessions.FirstAsync(s => s.Id == end.SessionId, ct);
+
+        if (session.EndedAt is not null)
+            throw new InvalidOperationException($"Session {end.SessionId} has already ended.");
+        if (entryId is { } id && session.ConsumptionEntryId != id)
+            throw new InvalidOperationException($"Session {end.SessionId} belongs to another pass.");
+
+        session.EndedAt = end.EndedAt;
+        session.PausedMinutes = Math.Max(0, end.PausedMinutes);
+        session.EntryNote = note;
+    }
+
     public async Task<int> LogCompletedAsync(MediaItemDto item, WorkDetails details,
         PassStart start, PassFinish finish, CancellationToken ct = default)
     {
         var userMediaItemId = await importService.AddItemAsync(item, details, ct);
         var entryId = await StartPassAsync(userMediaItemId, start, true, ct);
-        await FinishPassAsync(entryId, finish, ct);
+        await FinishPassAsync(entryId, finish, ct: ct);
 
         return userMediaItemId;
     }

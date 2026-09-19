@@ -26,4 +26,6 @@ public class ConsumptionEntry
     public int? StartingEffort { get; set; }
 
     public List<EntryNote> Notes { get; set; } = [];
+
+    public List<Session> Sessions { get; set; } = [];
 }

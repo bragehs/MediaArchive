@@ -22,7 +22,8 @@ struct HomeView: View {
         .page()
         .task { await store.load() }
         .sheet(item: $store.logTarget) { target in
-            LogProgressSheet(entryId: target.openEntryId, title: target.title, mediaType: target.mediaType) { finished in
+            LogProgressSheet(entryId: target.openEntryId, title: target.title, mediaType: target.mediaType,
+                             session: store.live?.entryId == target.openEntryId ? store.live : nil) { finished in
                 store.logTarget = nil
                 confetti = finished
                 Task { await store.load() }
@@ -37,11 +38,34 @@ struct HomeView: View {
             WeekStrip(week: page.weekly)
 
             SectionHead("Open now", right: "\(page.openNow.count) open")
+            if let error = store.error {
+                Notice(text: error).padding(.vertical, 6)
+            }
+            if let stale = store.stale {
+                Notice(text: "A session on \(stale.title) has run since \(stale.startedAt.formatted(date: .abbreviated, time: .shortened)) — log it, or let it go.",
+                       kind: .good,
+                       trailing: AnyView(HStack(spacing: 12) {
+                           if let item = store.staleItem {
+                               Button { store.logTarget = item } label: {
+                                   Eyebrow("Log →", size: 9, color: Palette.ac, tracking: 0.1)
+                               }
+                               .buttonStyle(.plain)
+                           }
+                           Button { Task { await store.discardStale() } } label: {
+                               Eyebrow("Let it go", size: 9, color: Palette.ac2, tracking: 0.1)
+                           }
+                           .buttonStyle(.plain)
+                           .disabledLook(store.saving)
+                       }))
+                    .padding(.vertical, 6)
+            }
             if page.openNow.isEmpty {
                 Aside("Nothing in progress right now.").padding(.vertical, 10)
             } else {
                 ForEach(page.openNow) { item in
-                    OpenNowRow(item: item) { store.logTarget = item }
+                    OpenNowRow(item: item, sessionLabel: store.sessionLabel(item), busy: store.saving,
+                               onLog: { store.logTarget = item },
+                               onSession: { Task { await store.toggleSession(item) } })
                 }
             }
 
@@ -128,7 +152,10 @@ private struct WeekStrip: View {
 
 private struct OpenNowRow: View {
     let item: OpenNowItem
+    let sessionLabel: String?
+    let busy: Bool
     let onLog: () -> Void
+    let onSession: () -> Void
 
     var body: some View {
         HStack(alignment: .top, spacing: 13) {
@@ -158,11 +185,19 @@ private struct OpenNowRow: View {
                     (Text("open ").italic() + Text("\(item.daysOpen)").foregroundStyle(Palette.muted) + Text(" \(plural(item.daysOpen, "day"))").italic())
                         .font(Fonts.serif(11, italic: true))
                         .foregroundStyle(Palette.dim)
+                    if let sessionLabel {
+                        Button { onSession() } label: {
+                            Eyebrow(sessionLabel, size: 9, color: Palette.ac2, tracking: 0.1)
+                        }
+                        .buttonStyle(.plain)
+                        .disabledLook(busy)
+                        .padding(.leading, 4)
+                    }
                     Button { onLog() } label: {
                         Eyebrow("Log →", size: 9, color: Palette.ac, tracking: 0.1)
                     }
                     .buttonStyle(.plain)
-                    .padding(.leading, 4)
+                    .padding(.leading, 8)
                 }
                 .padding(.top, 8)
             }

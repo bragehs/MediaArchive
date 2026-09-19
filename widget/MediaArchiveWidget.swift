@@ -192,5 +192,6 @@ struct InProgressWidget: Widget {
 struct MediaArchiveWidgets: WidgetBundle {
     var body: some Widget {
         InProgressWidget()
+        SessionLiveActivity()
     }
 }

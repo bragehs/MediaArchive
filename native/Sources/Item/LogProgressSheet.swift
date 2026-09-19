@@ -6,6 +6,9 @@ final class LogProgressStore {
     enum Mode: Hashable { case progress, finish }
 
     let entryId: Int
+    let mediaType: MediaType
+    // Present when this pass has a running session: the sheet then closes it with the note.
+    let session: LiveSession?
     var entry: Loadable<EntryEffort> = .loading
     var mode: Mode = .progress
 
@@ -24,9 +27,20 @@ final class LogProgressStore {
     var saving = false
     var error: String?
 
-    init(entryId: Int) {
+    init(entryId: Int, mediaType: MediaType, session: LiveSession?) {
         self.entryId = entryId
+        self.mediaType = mediaType
+        self.session = session
     }
+
+    var pausedMinutes: Int { session.map { PauseLog.pausedMinutes(sessionId: $0.sessionId) } ?? 0 }
+
+    // Minutes the sitting actually ran: wall clock less the breaks. A suggestion, never the effort.
+    var elapsedMinutes: Int? {
+        session.map { max(0, Int(Date().timeIntervalSince($0.startedAt) / 60) - pausedMinutes) }
+    }
+
+    var measuredRuntime: Bool { entry.value?.suggestedRuntime != nil }
 
     // Loaded, not passed in, so no call site can render this in the wrong unit.
     var audiobook: Bool {
@@ -61,10 +75,42 @@ final class LogProgressStore {
 
     func load() async {
         do {
-            entry = .loaded(try await api.entryEffort(EntryArgs(entryId: entryId)))
+            let loaded = try await api.entryEffort(EntryArgs(entryId: entryId, elapsedMinutes: elapsedMinutes))
+            entry = .loaded(loaded)
+            prefill(loaded)
         } catch {
             entry = .failed(error.localizedDescription)
         }
+    }
+
+    // What the sitting measured fills the form; C# decided what was grounded enough to
+    // suggest, and everything here stays editable.
+    private func prefill(_ entry: EntryEffort) {
+        guard let session, let elapsed = elapsedMinutes else { return }
+        if let effort = entry.suggestedEffort {
+            progressEffort = effort
+            finishEffort = effort
+        }
+        if let left = entry.suggestedHoursLeft {
+            progressHoursLeft = left
+            // The finish form takes hours listened, the other side of the same figure.
+            if let total = entry.audioHours { finishHours = max(0, ((total - left) * 10).rounded() / 10) }
+        }
+        if let measured = entry.suggestedRuntime {
+            runtime = measured
+        }
+        // A film that ran its length is finished, not in progress; a show's target is one episode.
+        if mediaType == .movie, let target = session.targetMinutes, elapsed * 10 >= target * 9 {
+            mode = .finish
+        }
+    }
+
+    // Ask the number you know — episodes — and the sitting has measured the episode length.
+    func deriveRuntimeIfMeasured() {
+        guard needsRuntime, runtime == nil, let elapsed = elapsedMinutes, elapsed > 0,
+              let entry = entry.value, let effort = progressEffort else { return }
+        let episodes = effort - (entry.effort ?? 0)
+        if episodes > 0 { runtime = elapsed / episodes }
     }
 
     private func pages(fromHours hours: Double?) -> Int? {
@@ -83,22 +129,31 @@ final class LogProgressStore {
                 try await api.setRuntime(SetRuntimeArgs(userMediaItemId: entry.userMediaItemId, value: runtime))
             }
 
+            // Closed and linked in the same save as the note it produced.
+            let end = session.map { SessionEnd(sessionId: $0.sessionId, endedAt: Date(), pausedMinutes: pausedMinutes) }
+            let finished: Bool
             switch mode {
             case .progress:
                 let effort = audiobook
                     ? pages(fromHours: (entry.audioHours ?? 0) - (progressHoursLeft ?? 0))
                     : progressEffort
                 try await api.addNote(AddNoteArgs(entryId: entryId,
-                    note: NoteInput(text: progressNote.trimmingCharacters(in: .whitespacesAndNewlines), effortAtTime: effort)))
-                return false
+                    note: NoteInput(text: progressNote.trimmingCharacters(in: .whitespacesAndNewlines), effortAtTime: effort),
+                    session: end))
+                finished = false
             case .finish:
                 let note = finishNote.trimmingCharacters(in: .whitespacesAndNewlines)
                 let effort = audiobook ? pages(fromHours: finishHours) : finishEffort
                 try await api.finishPass(FinishPassArgs(entryId: entryId, finish: PassFinish(
                     endDate: endDate ?? .today, rating: rating == 0 ? nil : rating,
-                    effort: effort, note: note.isEmpty ? nil : note, dropped: dropped)))
-                return !dropped
+                    effort: effort, note: note.isEmpty ? nil : note, dropped: dropped),
+                    session: end))
+                finished = !dropped
             }
+            if let session {
+                await SessionActivity.end(sessionId: session.sessionId)
+            }
+            return finished
         } catch {
             self.error = error.localizedDescription
             return nil
@@ -116,11 +171,12 @@ struct LogProgressSheet: View {
     @Environment(\.lexicon) private var lexicon
     @Environment(\.dismiss) private var dismiss
 
-    init(entryId: Int, title: String, mediaType: MediaType, onLogged: @escaping (_ finished: Bool) -> Void) {
+    init(entryId: Int, title: String, mediaType: MediaType, session: LiveSession? = nil,
+         onLogged: @escaping (_ finished: Bool) -> Void) {
         self.title = title
         self.mediaType = mediaType
         self.onLogged = onLogged
-        _store = State(initialValue: LogProgressStore(entryId: entryId))
+        _store = State(initialValue: LogProgressStore(entryId: entryId, mediaType: mediaType, session: session))
     }
 
     private var unit: String { lexicon.unit(mediaType) }
@@ -138,6 +194,13 @@ struct LogProgressSheet: View {
             .padding(.bottom, 12)
                 .overlay(alignment: .bottom) { HairlineRule(height: 2) }
 
+                if let elapsed = store.elapsedMinutes {
+                    Notice(text: "Timed \(elapsed) min this sitting"
+                                 + (store.pausedMinutes > 0 ? ", \(store.pausedMinutes) paused" : "")
+                                 + " — filled in below; correct anything you didn't pause for.",
+                           kind: .good)
+                }
+
                 VStack(alignment: .leading, spacing: 0) {
                     FieldLabel("What are you logging?")
                     SegmentBar(options: [.progress, .finish], selection: $store.mode) {
@@ -149,7 +212,9 @@ struct LogProgressSheet: View {
                     VStack(alignment: .leading, spacing: 0) {
                         FieldLabel(lexicon.type(mediaType).runtimeLabel, required: true)
                         NumberField(value: $store.runtime)
-                        Eyebrow("Not known for this \(lexicon.label(mediaType).lowercased()) — without it the time never counts.",
+                        Eyebrow(store.measuredRuntime
+                                ? "Measured by this sitting, breaks excluded — correct it if it's off."
+                                : "Not known for this \(lexicon.label(mediaType).lowercased()) — without it the time never counts.",
                                 size: 9.5, tracking: 0.05, bold: false)
                             .padding(.top, 6)
                     }
@@ -189,6 +254,7 @@ struct LogProgressSheet: View {
             .padding(26)
         }
         .scrollDismissesKeyboard(.interactively)
+        .onChange(of: store.progressEffort) { store.deriveRuntimeIfMeasured() }
         .background(Palette.bg.ignoresSafeArea())
         .presentationBackground(Palette.bg)
         .presentationDetents([.medium, .large])

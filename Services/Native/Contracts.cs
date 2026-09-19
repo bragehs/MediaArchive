@@ -8,13 +8,17 @@ namespace MediaArchive.Services.Native;
 // Everything one screen needs, in one call. The property names are the
 // contract with the generated Swift structs — tools/SwiftGen regenerates them.
 
+// Live is the one running session app-wide, so a screen can offer start or end
+// without a second call; null when nothing is running.
 public record HomePage(
     WeeklyActivity Weekly,
     List<OpenNowItem> OpenNow,
     List<CoverCard> OnDeck,
-    JustClosedItem? JustClosed);
+    JustClosedItem? JustClosed,
+    LiveSession? Live);
 
-public record ItemPage(ItemDetail Detail, List<PassSummary> History, Vocabulary Vocabulary);
+public record ItemPage(ItemDetail Detail, List<PassSummary> History, Vocabulary Vocabulary,
+    LiveSession? Live);
 
 public record DiaryIndex(List<int> Years, DiaryYear? Current);
 
@@ -53,7 +57,10 @@ public record SearchArgs(string Query, MediaType MediaType);
 
 public record ExternalArgs(string ExternalId, MediaType MediaType);
 
-public record EntryArgs(int EntryId);
+// ElapsedMinutes is sent when the sheet opens from a session, and buys the Suggested* fields.
+public record EntryArgs(int EntryId, int? ElapsedMinutes = null);
+
+public record StartSessionArgs(int EntryId, DateTime? StartedAt);
 
 public record AddItemArgs(MediaItemDto Item, WorkDetails Details);
 
@@ -72,6 +79,6 @@ public record StartPassArgs(int UserMediaItemId, PassStart Start, bool AllowConc
 
 public record ResumePassArgs(int EntryId, PassStart Start);
 
-public record AddNoteArgs(int EntryId, NoteInput Note);
+public record AddNoteArgs(int EntryId, NoteInput Note, SessionEnd? Session = null);
 
-public record FinishPassArgs(int EntryId, PassFinish Finish);
+public record FinishPassArgs(int EntryId, PassFinish Finish, SessionEnd? Session = null);

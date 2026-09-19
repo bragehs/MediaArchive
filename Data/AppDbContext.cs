@@ -19,6 +19,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<UserMediaItem> UserMediaItems => Set<UserMediaItem>();
     public DbSet<ConsumptionEntry> ConsumptionEntries => Set<ConsumptionEntry>();
     public DbSet<EntryNote> EntryNotes => Set<EntryNote>();
+    public DbSet<Session> Sessions => Set<Session>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -36,6 +37,13 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             .HasOne(e => e.ResumesEntry)
             .WithMany()
             .HasForeignKey(e => e.ResumesEntryId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        // A sitting outlives the note it produced; losing the note keeps the minutes.
+        builder.Entity<Session>()
+            .HasOne(s => s.EntryNote)
+            .WithMany()
+            .HasForeignKey(s => s.EntryNoteId)
             .OnDelete(DeleteBehavior.SetNull);
 
         builder.Entity<UserMediaItem>()

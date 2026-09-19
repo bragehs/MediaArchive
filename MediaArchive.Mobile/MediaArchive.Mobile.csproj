@@ -48,6 +48,12 @@
         <NativeReference Include="$(_NativeStage)\Debug-$(_NativeSdk)\MediaArchiveUI.framework">
             <Kind>Framework</Kind>
         </NativeReference>
+        <!-- The Live Activity's pause intent runs in this process, and iOS only finds it
+             through the app's own Metadata.appintents — which Xcode writes for the
+             framework and the .NET build does not, so it is copied to the bundle root. -->
+        <BundleResource Include="$(_NativeStage)\Debug-$(_NativeSdk)\MediaArchiveUI.framework\Metadata.appintents\*">
+            <LogicalName>Metadata.appintents/%(Filename)%(Extension)</LogicalName>
+        </BundleResource>
     </ItemGroup>
     <ItemGroup Condition="Exists('$(_WidgetStage)\Debug-$(_NativeSdk)\MediaArchiveWidget.appex')">
         <AdditionalAppExtensions Include="$(_WidgetStage)">
