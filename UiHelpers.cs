@@ -23,8 +23,6 @@ public static class UiHelpers
         _ => s.ToString()
     };
 
-    public static string TypeKey(MediaType t) => t.ToString().ToLowerInvariant();
-
     public static string TypeLabel(MediaType t) => t switch
     {
         MediaType.Book => "Book",
@@ -33,8 +31,6 @@ public static class UiHelpers
         MediaType.Show => "Show",
         _ => t.ToString()
     };
-
-    public static string TypeColorVar(MediaType t) => $"var(--{TypeKey(t)})";
 
     public static string DiscoveryLabel(DiscoverySource d) => d switch
     {

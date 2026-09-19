@@ -7,18 +7,64 @@ A personal, locally-run **media OS** — one place tracking everything I've cons
 directly: no separate API over HTTP, no auth, single local user. See `README.md` for
 the full layout and `Migrations/` for schema history.
 
-**There is no web app.** `MediaArchive.csproj` is a **Razor class library** —
-components, services, models, EF Core — with exactly one head on top of it:
-`MediaArchive.Mobile`, a **.NET MAUI Blazor Hybrid iOS app**. The library has no
-`Program.cs` and cannot be run on its own.
+**There is no web app.** `MediaArchive.csproj` is a plain **class library** —
+services, models, EF Core, and the native boundary in `Services/Native/` — with
+exactly one head on top of it: `MediaArchive.Mobile`, a **.NET MAUI iOS app** whose
+only job is to host the UI. **The UI is SwiftUI**, in `native/`, compiled into
+`MediaArchiveUI.framework` and embedded by `./ma`. The library has no `Program.cs`
+and cannot be run on its own.
 
-**Stack:** .NET MAUI + BlazorWebView · .NET 10 · EF Core 10 + SQLite · Razor
-components inject services / `DbContext` directly.
+**Stack:** .NET MAUI host · SwiftUI · .NET 10 · EF Core 10 + SQLite. Swift never
+touches the database: one exported C# dispatcher returns page-shaped JSON, decoded
+into structs **generated** from the C# records (`scripts/sync-contracts.sh`, run by
+`./ma`). See `Reference/Native surfaces and the service boundary` in the vault.
 
 **Where the database lives:** on the phone, at `FileSystem.AppDataDirectory/
 mediaarchive.db`. The `mediaarchive.db` in the repo root is **design-time only** —
 it exists so `dotnet ef migrations` has a schema to diff against. `./ma pull`
 refreshes it from the phone; treat the phone as the source of truth.
+
+## How the app is put together
+
+One process, two languages, one meeting point. The Swift UI is a client of the C#
+service layer, in the same process, talking through the Objective-C runtime:
+
+```
+Swift · native/Sources/                              C# · MediaArchive.csproj
+Views ──▶ Stores ──▶ Api (generated) ──▶ Bridge      Services/Native/  NativeRoutes · Contracts · NativeApi
+                                            │            │  one DI scope per call, like a request
+                              JSON strings  │            ▼
+                              through ObjC  └──────▶  Services/  Queries · Logging · UserItems · Import · Providers
+                                                         ▼
+MediaArchive.Mobile (MAUI host)                       Data/  AppDbContext · SQLite
+  MainPage embeds the Swift root controller
+  NativeBackend  the one [Export]ed C# selector Swift calls (transport, no logic)
+  NativeHost     the three objc_msgSend calls into Swift: makeRoot, complete, openRoute
+```
+
+- **Swift never touches the database, the DbContext or the services.** It calls
+  `api.<route>()` and gets a page-shaped struct back. Views never see JSON or the
+  bridge; one `@Observable` store per page owns fetch, decode and form state.
+- **The contract is generated.** `native/Sources/Generated/Contracts.swift` is written
+  by `tools/SwiftGen` from `NativeRoutes.All` and the records they reference. **Never
+  edit it by hand.** Whenever you touch a record, an args type or a route, run
+  `scripts/sync-contracts.sh` (or `./ma`, which runs it) and commit the regenerated file.
+- **Labels and rules come from C#.** Type/status/context labels, units and which
+  contexts fit which type are served by the `lexicon` route from `UiHelpers`; Swift reads
+  them from the environment. Don't hard-code that vocabulary in Swift.
+- **Adding a screen or an action:** (1) a query or service method in C# if the data
+  isn't there yet — draft it first, see below; (2) a record in `Services/Native/Contracts.cs`,
+  or reuse the query's own record; (3) a route in `NativeRoutes.cs` with its Swift name;
+  (4) regenerate the contracts; (5) a store that calls `api.<name>` and a view that
+  renders the store. Coarse calls only — everything a screen needs in one route, never a
+  call per row.
+- **Two mirrored things, on purpose:** the palette (`colors.json` → `scripts/sync-colors.sh`
+  → the app's `Palette.swift` and the widget's copy) and `pagesFromHours`, one line marked
+  as a mirror at both ends because the audiobook forms convert before they send.
+- **Tooling:** Rider opens `MediaArchive.sln` and sees only the .NET side. The Swift half is
+  edited in Xcode via `native/MediaArchiveUI.xcodeproj` (a synchronised group, so new files
+  need no project edit); Xcode can compile the framework but not run the app. `./ma` is the
+  only thing that builds and runs the whole app.
 
 ## The Obsidian vault is the memory
 
@@ -91,9 +137,12 @@ provider clients: stop, lay out the options with trade-offs and a recommendation
 settle it with me first. Write the agreed approach into the issue note, then build.
 I want to be an active part of these choices — don't collapse a fork on your own.
 
-**You can drive the UI.** `Components/`, `.razor`, `wwwroot/`, CSS, `UiHelpers.cs` —
-implement directly and tell me briefly how it wires to the services. Still flag it if
-a UI need implies a service or schema change; that's back to the paragraph above.
+**You can drive the UI.** `native/Sources/**` (views, stores, components, theme) and
+`UiHelpers.cs` — implement directly and tell me briefly how it wires to the services.
+A new screen needs a route in `Services/Native/NativeRoutes.cs` and usually a
+page-shaped record in `Contracts.cs`; that is boundary code, so say what you are
+adding, then regenerate the Swift contracts. Still flag it if a UI need implies a
+service or schema change; that's back to the paragraph above.
 
 **Small diffs.** One reviewable slice at a time — never a whole feature in one drop.
 
@@ -122,16 +171,18 @@ context lifetime, tracking, nullability, error and empty states.
 ## Build & run
 
 ```bash
-./ma                                # run on the iOS simulator (no Rider needed)
+./ma                                # contracts → framework → widget → app, on the iOS simulator
 ./ma phone                          # renew signing, build, install + launch on my iPhone
 ./ma pull                           # copy the phone's DB + covers back into the repo
 ./ma renew                          # refresh the 7-day provisioning profile
 dotnet ef migrations add <Name>     # after changing Models/ or DbContext
-dotnet build                        # compile check
+dotnet build                        # compile check of the library
+scripts/sync-contracts.sh           # regenerate native/Sources/Generated/Contracts.swift
 ```
 
 `./ma --help` lists everything. Migrations are applied on app launch
-(`MauiProgram.cs`); there is no seeding step any more.
+(`MauiProgram.cs`); there is no seeding step any more. Plain `dotnet build` of the
+head compiles but the app needs the framework `./ma` builds, so test through `./ma`.
 
 **Signing:** a free Apple ID only gets **7-day** provisioning profiles, so device
 builds break weekly with "Could not find any available provisioning profiles".

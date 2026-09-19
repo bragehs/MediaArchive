@@ -8,7 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		BB0000000000000000000001 /* MediaArchiveWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000002 /* MediaArchiveWidget.swift */; };
-		BB0000000000000000000010 /* WidgetLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000011 /* WidgetLink.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -16,19 +15,10 @@
 		BB0000000000000000000003 /* MediaArchiveWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = MediaArchiveWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		BB000000000000000000000E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		BB000000000000000000000F /* MediaArchiveWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MediaArchiveWidget.entitlements; sourceTree = "<group>"; };
-		BB0000000000000000000011 /* WidgetLink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetLink.swift; sourceTree = "<group>"; };
-		BB0000000000000000000012 /* WidgetLink.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = WidgetLink.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		BB0000000000000000000004 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		BB0000000000000000000013 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -42,7 +32,6 @@
 			isa = PBXGroup;
 			children = (
 				BB0000000000000000000002 /* MediaArchiveWidget.swift */,
-				BB0000000000000000000011 /* WidgetLink.swift */,
 				BB000000000000000000000E /* Info.plist */,
 				BB000000000000000000000F /* MediaArchiveWidget.entitlements */,
 				BB0000000000000000000006 /* Products */,
@@ -53,7 +42,6 @@
 			isa = PBXGroup;
 			children = (
 				BB0000000000000000000003 /* MediaArchiveWidget.appex */,
-				BB0000000000000000000012 /* WidgetLink.framework */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -76,22 +64,6 @@
 			productName = MediaArchiveWidget;
 			productReference = BB0000000000000000000003 /* MediaArchiveWidget.appex */;
 			productType = "com.apple.product-type.app-extension";
-		};
-		BB0000000000000000000015 /* WidgetLink */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = BB0000000000000000000016 /* Build configuration list for PBXNativeTarget "WidgetLink" */;
-			buildPhases = (
-				BB0000000000000000000014 /* Sources */,
-				BB0000000000000000000013 /* Frameworks */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			name = WidgetLink;
-			productName = WidgetLink;
-			productReference = BB0000000000000000000012 /* WidgetLink.framework */;
-			productType = "com.apple.product-type.framework";
 		};
 /* End PBXNativeTarget section */
 
@@ -122,7 +94,6 @@
 			projectRoot = "";
 			targets = (
 				BB0000000000000000000007 /* MediaArchiveWidget */,
-				BB0000000000000000000015 /* WidgetLink */,
 			);
 		};
 /* End PBXProject section */
@@ -133,14 +104,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				BB0000000000000000000001 /* MediaArchiveWidget.swift in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		BB0000000000000000000014 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				BB0000000000000000000010 /* WidgetLink.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -187,32 +150,6 @@
 			};
 			name = Debug;
 		};
-		BB0000000000000000000017 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEFINES_MODULE = YES;
-				DEVELOPMENT_TEAM = ZVNYY55W9L;
-				DYLIB_COMPATIBILITY_VERSION = 1;
-				DYLIB_CURRENT_VERSION = 1;
-				DYLIB_INSTALL_NAME_BASE = "@rpath";
-				GENERATE_INFOPLIST_FILE = YES;
-				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@loader_path/Frameworks",
-				);
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = no.norapps.mediaarchive.widgetlink;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SKIP_INSTALL = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = Debug;
-		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -228,14 +165,6 @@
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				BB000000000000000000000D /* Debug */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Debug;
-		};
-		BB0000000000000000000016 /* Build configuration list for PBXNativeTarget "WidgetLink" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				BB0000000000000000000017 /* Debug */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;

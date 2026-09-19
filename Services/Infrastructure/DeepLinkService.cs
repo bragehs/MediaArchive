@@ -1,8 +1,8 @@
 namespace MediaArchive.Services.Infrastructure;
 
-// Bridges native deep links (widget taps) into Blazor navigation. The native
-// side can fire before Blazor has rendered anything, so a route that arrives
-// with no subscriber is held until the UI claims it on first render.
+// Holds native deep links (widget taps) for the UI. iOS can hand one over
+// before the Swift root exists, so a route that arrives with no subscriber
+// is held until the host claims it.
 public sealed class DeepLinkService
 {
     private readonly object _gate = new();
