@@ -1,12 +1,13 @@
 # MediaArchive
 
 A personal, locally-run **media OS**: one place that tracks everything I've consumed
-across every media type (books, games, films, shows, anime) and surfaces taste
-insights. Letterboxd + Goodreads + IGDB combined, but private, local, and unified.
+across every media type (books, games, films, shows) and surfaces taste insights.
+Letterboxd + Goodreads + IGDB combined, but private, local, and unified.
 
-This is **one application** — a MAUI Blazor Hybrid iOS app that also owns the
-database and business logic. There is no separate backend/frontend, no API over
-HTTP, and no authentication: it runs as a single local user, on my phone.
+This is **one application**: a .NET app that owns the database and business logic,
+with a Swift framework on top that is the whole user interface. There is no
+separate backend/frontend over a network, no API over HTTP, and no authentication:
+it runs as a single local user, on my phone.
 
 ---
 
@@ -14,142 +15,145 @@ HTTP, and no authentication: it runs as a single local user, on my phone.
 
 | Concern | Choice |
 |---|---|
-| Framework | **.NET MAUI Blazor Hybrid** (iOS) over a shared Razor class library |
+| Host | **.NET MAUI** (iOS) — DI, lifecycle, the app bundle; no MAUI UI beyond one empty page |
+| UI | **SwiftUI**, in `native/` — compiled by `xcodebuild` into `MediaArchiveUI.framework` and embedded |
 | Runtime | .NET 10 |
 | Data access | EF Core 10 (`Microsoft.EntityFrameworkCore.Sqlite`) |
 | Database | **SQLite** — `mediaarchive.db` in the app's container on the phone, migrated on launch |
-| UI | Razor components + one hand-written CSS design system (`wwwroot/app.css`) |
 | Auth | None (single local user) |
 
 ## Running it
 
-There is no web app to start — `MediaArchive.csproj` is a class library. Everything
-runs through `./ma`:
+There is nothing to start by hand — `MediaArchive.csproj` is a class library, and
+everything runs through `./ma`:
 
 ```bash
-./ma              # build + launch on the iOS simulator
-./ma phone        # renew signing, build, install + launch on the iPhone
+./ma              # generate contracts, build the framework + widget + app, launch on the simulator
+./ma phone        # renew signing, then the same onto the iPhone
 ./ma pull         # copy the phone's DB + covers into backups/ and refresh the repo DB
 ./ma --help       # everything else
 ```
 
 Signing note: a free Apple ID only issues **7-day** provisioning profiles, so device
 builds break every week. `./ma renew` reissues one non-interactively; `./ma phone`
-does it automatically. A launchd agent (`scripts/install-weekly-job.sh`) runs
-`./ma weekly` each Tuesday at 09:30 to back the phone up and reinstall the app.
+does it automatically. The app refusing to open is the signal that the week is up.
 
 ```bash
 dotnet ef migrations add <Name>   # after changing Models/ or DbContext
-dotnet build                      # compile check
+dotnet build                      # compile check of the library
+scripts/sync-contracts.sh         # regenerate the Swift contracts (./ma does this)
+scripts/sync-colors.sh            # push colors.json into the two Swift palettes
 ```
 
 ---
 
 ## How a page gets its data
 
-The whole point of the Blazor design: no HTTP hop between UI and data.
+Swift never touches the database. The service layer is shaped like a small API and
+the Swift side is its client, in the same process:
 
 ```
-Razor component (Components/Pages/*.razor)
-      │  @inject LibraryService
+SwiftUI view                                  native/Sources/<Surface>/
+      │  reads state from
       ▼
-LibraryService (Services/)          ← query methods, returns entities
-      │  IDbContextFactory<AppDbContext>
+HomeStore (one @Observable class per page)    fetch · decode · loading/error state
+      │  api.home()
       ▼
-AppDbContext (Data/)                ← EF Core, maps to…
+Api (generated)  ──▶  Backend                 native/Sources/Generated, Bridge/
+      │  one exported selector: call:args:requestId:
       ▼
-mediaarchive.db (SQLite)
+NativeBackend (C#, NSObject)                  MediaArchive.Mobile/Platforms/iOS/
+      │
+      ▼
+NativeApi → route table → handler             Services/Native/
+      │  HomeQueries, CommonQueries, …         Services/Queries/, Logging/, Import/
+      ▼
+AppDbContext → mediaarchive.db                Data/
+      │  JSON reply, correlated by request id
+      ▼
+MANativeApp.complete → continuation resumes
 ```
 
-A component injects `LibraryService`, calls an `async` method, gets back model
-objects, and renders them. Same C# types (`MediaItem`, `UserMediaItem`) flow from
-the database all the way into the markup.
+The contract types on both ends come from the C# records: `tools/SwiftGen` reflects
+over `NativeRoutes.All` and writes `native/Sources/Generated/Contracts.swift` — the
+`Codable` structs, the `String`-backed enums and the typed `Api`. A renamed C#
+property fails the Swift build instead of emptying a screen.
 
 ---
 
 ## Folder-by-folder
 
 ### `Models/` — the domain
-Plain C# classes; the shape of the data.
-
-| File | What it holds |
-|---|---|
-| `MediaItem.cs` | Abstract base + `Book` / `Game` / `Movie` / `Show` / `Anime` subclasses. EF maps this whole hierarchy to **one table** (Table-Per-Hierarchy) so "everything I've consumed" is a single query. Type-specific creators (`Author`, `Developer`, …) live on the subclasses and surface through a common `Creator`. |
-| `UserMediaItem.cs` | My *standing relationship* to one item — exactly one per item: status, rating, favourite, tags, notes, added-date. No `UserId` (single user). |
-| `ConsumptionEntry.cs` | One row *per pass* through an item. This is what makes re-reads/replays, rating drift, and honest time-invested stats possible. |
-| `Genre.cs` | `Genre` + the `MediaItemGenre` join (many-to-many). |
-| `Universe.cs` | Optional cross-media grouping (e.g. "The Witcher" spans a book + a game). |
-| `Enums.cs` | `MediaType` (also the TPH discriminator) and `MediaStatus`. |
+Plain C# classes; the shape of the data. `MediaItem` is an abstract base with
+`Book` / `Game` / `Movie` / `Show` mapped to **one table** (Table-Per-Hierarchy);
+`UserMediaItem` is my standing relationship to an item; `ConsumptionEntry` is one
+pass through it and `EntryNote` one piece of writing during a pass. `Genre`, `Tag`,
+`Person`, `Series` and `Universe` are the controlled vocabularies.
 
 ### `Data/` — persistence
-| File | Role |
-|---|---|
-| `AppDbContext.cs` | The EF Core context. `DbSet`s + `OnModelCreating` config: the TPH discriminator, the one-to-one `UserMediaItem`↔`MediaItem`, the genre join key, unique indexes. |
-| `DbSeeder.cs` | Template/skeleton data (24 items across all five types, with genres, universes, and consumption history) so the surfaces have something to show. Runs once, on startup, if the DB is empty. |
+`AppDbContext` (EF Core config: the TPH discriminator, the one-to-one to
+`UserMediaItem`, join keys, unique indexes) and the design-time factory
+`dotnet ef` uses.
 
 ### `Migrations/` — schema history
-EF Core-generated migrations. `InitialCreate` builds the whole schema. Applied
-automatically at startup (`db.Database.Migrate()` in `Program.cs`). Regenerate with
+EF Core migrations, applied on launch in `MauiProgram.cs`. Regenerate with
 `dotnet ef migrations add <Name>` after changing the models.
 
-### `Services/` — the read layer
-| File | Role |
+### `Services/` — the backend
+| Folder | Role |
 |---|---|
-| `LibraryService.cs` | All the queries the UI needs: the filtered Library, a single item's detail, currently-consuming, the diary feed, and aggregate profile stats. Uses `IDbContextFactory` (each call gets its own short-lived context — the recommended Blazor Server pattern). |
+| `Queries/` | Read models per surface: `HomeQueries`, `LibraryQueries`, `DiaryQueries`, `ProfileQueries`, `CommonQueries`, plus `EffortMath` and the widget's `WidgetQueries` |
+| `Logging/` | `LoggingService` — open, progress, finish and resume a pass |
+| `UserItems/` | `UserItemService` — rating, favourite, classification, runtime |
+| `Import/` | `MediaImportService` and `VocabularyResolver` — provider result → rows |
+| `Providers/` | IGDB, OpenLibrary and TMDb clients behind `IMediaProvider` |
+| `Infrastructure/` | `CoverCacheService`, `DeepLinkService` |
+| `Native/` | **The boundary**: `Contracts.cs` (page-shaped records and args), `NativeRoutes.cs` (the route table), `NativeApi.cs` (dispatch + JSON) |
 
-### `Components/` — the UI (Blazor)
+### `native/` — the UI (Swift)
 ```
-Components/
-├── App.razor            root HTML document (<head>, script tags, CSS links)
-├── Routes.razor         the router + default layout
-├── _Imports.razor       global @using for every component
-├── Layout/
-│   ├── MainLayout.razor  the sidebar + content shell
-│   ├── NavMenu.razor     the five-surface sidebar navigation
-│   └── ReconnectModal    Blazor Server reconnect UI (framework default)
-├── Pages/               one routable component per surface
-│   ├── Home.razor        "/"         currently-consuming, recent activity, lore widget
-│   ├── Log.razor         "/log"      universal add flow
-│   ├── Library.razor     "/library"  unified collection; status/type are FILTERS
-│   ├── Diary.razor       "/diary"    chronological consumption feed
-│   ├── Profile.razor     "/profile"  taste dashboard (aggregate stats)
-│   ├── ItemDetail.razor  "/item/{id}" one item's record + its consumption history
-│   ├── Error.razor / NotFound.razor  framework error pages
-└── Shared/              reusable UI primitives
-    ├── MediaCard.razor   a poster tile for the walls (cover + status/rating glyphs)
-    └── CoverArt.razor    cover image, with a typographic fallback tile when there's no art
+native/
+├── MediaArchiveUI.xcodeproj   one framework target over a synchronised Sources/ group
+└── Sources/
+    ├── Bridge/       Backend (the call + continuations), MANativeApp (ObjC entry), DateOnly, JSON, WidgetLink
+    ├── Generated/    Contracts.swift — do not edit; run scripts/sync-contracts.sh
+    ├── App/          RootView, Shell (app bar · tabs · custom tab bar), Router, Lexicon, Loadable
+    ├── Theme/        Palette (generated from colors.json), Typography
+    ├── Components/   CoverImage, StarRating, Blurb, VocabularyPicker, Controls, Confetti
+    ├── Home/ Explore/ Library/ Diary/ Profile/ Item/    one store + views per surface
 ```
 
-**The five surfaces** map to distinct jobs. The rule: *a tab is a distinct job; a
-filter is the same job sliced.* So Library is one collection and status/type/genre
-are filters on it — not separate tabs.
+Stores are classes with identity and a lifecycle; contracts and view state are
+structs. Views take what they are handed and render it — none decodes JSON or
+reaches across the bridge.
 
-### `wwwroot/` — static assets
-| Item | Role |
-|---|---|
-| `app.css` | The whole design system: dark theme, CSS variables, the poster-wall grid, cards, glyph badges, filter chips, stat bars, the diary timeline. Cover-first — artwork carries the UI. |
-| `lib/bootstrap/` | Bootstrap (from the template) — used only for reset/grid; the look is `app.css`. |
-| `favicon.png` | Tab icon. |
+### `MediaArchive.Mobile/` — the host
+`MauiProgram.cs` (DI, migrations, the deep-link mapping), `App.cs`, `MainPage.cs`
+(hosts the Swift root controller as a child view controller) and, under
+`Platforms/iOS/`, `NativeBackend.cs`, `NativeHost.cs` and `WidgetSnapshotPublisher.cs`.
+`appsettings.json` here holds the provider keys and is git-ignored.
+
+### `widget/` — the home-screen widget
+A Swift widget extension reading a snapshot the app writes into the shared App
+Group. Built and embedded by `./ma`.
 
 ### Root files
 | File | Role |
 |---|---|
-| `ma` | Project CLI — build/run on simulator or phone, renew signing, pull the phone's DB. Replaces running anything from Rider. |
-| `UiHelpers.cs` | Presentation helpers — maps `MediaStatus` / `MediaType` to glyphs, labels, and CSS classes (the shared visual vocabulary). |
-| `MediaArchive.csproj` | Project + NuGet package references. |
-| `MediaArchive.sln` | Solution file. |
-| `MediaArchive.Mobile/appsettings.json` | Provider keys (TMDB, IGDB), shipped as a `MauiAsset` and read via `AddJsonStream`. Git-ignored. |
+| `ma` | Project CLI — build/run on simulator or phone, renew signing, pull the phone's DB |
+| `colors.json` | The palette, defined once; `scripts/sync-colors.sh` generates both Swift copies |
+| `UiHelpers.cs` | The UI vocabulary — labels, units, glyphs, which contexts fit which type — served to Swift as the `lexicon` route |
+| `tools/SwiftGen/` | The contract generator |
+| `scripts/` | `new-branch.sh`, `sync-contracts.sh`, `sync-colors.sh` |
 | `mediaarchive.db` | **Design-time only** — gives `dotnet ef migrations` a schema to diff. The live DB is on the phone. |
-| `.gitignore` | Ignores `bin/`, `obj/`, `appsettings*.json`, `backups/`, `.provisioning/`, and the `*.db` files. |
 
 ---
 
 ## Design system in one line
 
 Media is visual, so **large cover art is the primary object**. Status, rating, and
-favourite are small glyphs on the cover; filtering is an unobtrusive bar above the
-gallery. When an item has no cover, a **typographic fallback tile** (title on a colour
-block keyed to media type) keeps the wall from breaking.
+favourite are small glyphs on the cover; the theme is a near-black ground with
+forest-green panels, bone-white ink, Cinzel and EB Garamond.
 
 Shared glyphs: `✓` completed · `▐▐` in progress · `○` interested · `✕` dropped ·
 `★` rating · `♥` favourite.
@@ -158,36 +162,14 @@ Shared glyphs: `✓` completed · `▐▐` in progress · `○` interested · `�
 
 ## Git workflow (issues live in Obsidian)
 
-There are no GitHub issues. Planning and design happen in the Obsidian vault, under
-`Personal Projects/MediaArchive/Issues/*.md` (each note has `fileClass: issue`
-frontmatter). A branch is named after the slug of the issue note it implements —
-e.g. the note `Log and capture.md` → branch `log-and-capture`.
-
-Start work on an issue:
+There are no GitHub issues. Planning and design happen in the Obsidian vault at
+`~/Documents/vault_personal` — hub note `Projects/MediaArchive.md`, one note per
+unit of work in `Issues/`. A branch is cut from the issue note:
 
 ```bash
-scripts/new-branch.sh "Log and capture"   # finds the vault note, branches off latest main
+scripts/new-branch.sh "build the profile page"   # feat/build-the-profile-page, off latest main
 ```
 
-The script slugifies the note's title, pulls the latest `main`, and creates (or
-switches to) the matching branch. It's just a convenience wrapper around:
-
-```bash
-git switch main && git pull        # start from latest main
-git switch -c log-and-capture      # branch named after the vault note's slug
-```
-
-Then commit in small steps and push:
-
-```bash
-git push -u origin log-and-capture   # -u sets tracking the first time
-```
-
-Merge into `main` when the slice is done — either a PR on GitHub, or locally:
-
-```bash
-git switch main && git merge log-and-capture && git push
-git branch -d log-and-capture        # delete the merged branch
-```
-
-Finally, mark the issue note's `status:` frontmatter `completed` in Obsidian.
+The note's `kind:` picks the prefix (`feature → feat/`, `bug → fix/`,
+`refactor → refactor/`). Commit in small steps, merge into `main` when the slice is
+done, and close the note.
