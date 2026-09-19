@@ -42,7 +42,8 @@ struct ItemView: View {
         }
         .sheet(isPresented: $store.logging) {
             if let detail = store.detail, let open = detail.openPass {
-                LogProgressSheet(entryId: open.entryId, title: detail.title, mediaType: detail.mediaType) { finished in
+                LogProgressSheet(entryId: open.entryId, title: detail.title, mediaType: detail.mediaType,
+                                 session: store.sessionHere ? store.live : nil) { finished in
                     store.logged(finished: finished)
                 }
             }

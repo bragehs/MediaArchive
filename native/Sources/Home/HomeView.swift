@@ -22,7 +22,8 @@ struct HomeView: View {
         .page()
         .task { await store.load() }
         .sheet(item: $store.logTarget) { target in
-            LogProgressSheet(entryId: target.openEntryId, title: target.title, mediaType: target.mediaType) { finished in
+            LogProgressSheet(entryId: target.openEntryId, title: target.title, mediaType: target.mediaType,
+                             session: store.live?.entryId == target.openEntryId ? store.live : nil) { finished in
                 store.logTarget = nil
                 confetti = finished
                 Task { await store.load() }
