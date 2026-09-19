@@ -64,3 +64,26 @@ struct UniverseSection: View {
         }
     }
 }
+
+private struct StatusGlyph: View {
+    let status: MediaStatus
+    @Environment(\.lexicon) private var lexicon
+
+    var body: some View {
+        Text(lexicon.glyph(status))
+            .font(.system(size: status == .inProgress ? 6 : 8, weight: .bold))
+            .foregroundStyle(color)
+            .frame(minWidth: 13, minHeight: 13)
+            .padding(.horizontal, 2)
+            .background(Color.black.opacity(0.82), in: RoundedRectangle(cornerRadius: 4))
+    }
+
+    private var color: Color {
+        switch status {
+        case .completed: Palette.ac
+        case .inProgress: Palette.ac2
+        case .interested: Palette.sage
+        case .dropped: Palette.dim
+        }
+    }
+}

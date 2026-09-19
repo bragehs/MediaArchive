@@ -101,6 +101,11 @@ struct ContextEntry: Codable, Hashable, Sendable {
     var label: String
 }
 
+struct ContextShare: Codable, Hashable, Sendable {
+    var context: ConsumptionContext?
+    var passes: Int
+}
+
 struct CoverCard: Codable, Hashable, Sendable {
     var userMediaItemId: Int
     var title: String
@@ -520,6 +525,7 @@ struct TypePanel: Codable, Hashable, Sendable {
     var stats: [PanelStat]
     var weekly: [WeekBucket]
     var yearly: [YearBucket]
+    var contexts: [ContextShare]
     var records: [TypeRecord]
 }
 

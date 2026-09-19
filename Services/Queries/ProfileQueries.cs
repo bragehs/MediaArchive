@@ -28,11 +28,15 @@ public record WeekBucket(DateOnly WeekStart, double Value);
 
 public record YearBucket(int Year, double Value);
 
+// How a medium reached you: print against audiobook, console against PC. A null
+// Context is its own share — unrecorded is a gap to fill, not an absence.
+public record ContextShare(ConsumptionContext? Context, int Passes);
+
 // One toggle pane per media type: an effort-per-week progression in the type's
 // native unit, and the extremes that make sense for that medium.
 public record TypePanel(MediaType MediaType, string Unit, IReadOnlyList<PanelStat> Stats,
     IReadOnlyList<WeekBucket> Weekly, IReadOnlyList<YearBucket> Yearly,
-    IReadOnlyList<TypeRecord> Records);
+    IReadOnlyList<ContextShare> Contexts, IReadOnlyList<TypeRecord> Records);
 
 public record MonthRecord(int Year, int Month, int Logs);
 
@@ -262,8 +266,16 @@ public class ProfileQueries(IDbContextFactory<AppDbContext> dbContextFactory)
 
         return new TypePanel(type, UiHelpers.LengthUnit(type),
             BuildStats(passes, type), BuildWeekly(passes, today),
-            BuildYearly(passes, today), records);
+            BuildYearly(passes, today), BuildContexts(passes), records);
     }
+
+    private static List<ContextShare> BuildContexts(
+        List<(UserMediaItem Item, ConsumptionEntry Entry)> passes) => passes
+        .GroupBy(p => p.Entry.Context)
+        .Select(g => new ContextShare(g.Key, g.Count()))
+        .OrderByDescending(c => c.Context is not null)
+        .ThenByDescending(c => c.Passes)
+        .ToList();
 
     // The headline totals above the chart, all from live passes only.
     private static List<PanelStat> BuildStats(
