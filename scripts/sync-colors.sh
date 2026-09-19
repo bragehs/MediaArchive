@@ -3,9 +3,9 @@
 # sync-colors.sh — push colors.json into the two places that consume it.
 #
 # The palette lives in colors.json. This rewrites the marked block in
-# wwwroot/app.css (CSS custom properties) and in widget/MediaArchiveWidget.swift
-# (SwiftUI Colors), so a colour is changed in one file and never drifts between
-# the WebView and the native widget.
+# native/Sources/Theme/Palette.swift (the app) and widget/MediaArchiveWidget.swift
+# (the widget, a separate process with its own copy), so a colour is changed in
+# one file and never drifts between the two.
 #
 # Run it after editing colors.json. Not wired into ./ma on purpose: the palette
 # changes rarely and codegen on every build hides itself.
@@ -34,15 +34,13 @@ def camel(name):
     head, *rest = name.split("-")
     return head + "".join(part.capitalize() for part in rest)
 
-css = "\n".join(f"    --{name}: {hex};" for name, hex in colors.items())
-
 swift = "\n".join(
     "    static let {} = Color(red: 0x{} / 255, green: 0x{} / 255, blue: 0x{} / 255)".format(
         camel(name), hex[1:3], hex[3:5], hex[5:7])
     for name, hex in colors.items())
 
 targets = [
-    ("wwwroot/app.css", r"(/\* colors:start.*?\*/).*?([ \t]*/\* colors:end \*/)", css),
+    ("native/Sources/Theme/Palette.swift", r"(// colors:start.*?)\n.*?([ \t]*// colors:end)", swift),
     ("widget/MediaArchiveWidget.swift", r"(// colors:start.*?)\n.*?([ \t]*// colors:end)", swift),
 ]
 
