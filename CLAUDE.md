@@ -24,6 +24,48 @@ mediaarchive.db`. The `mediaarchive.db` in the repo root is **design-time only**
 it exists so `dotnet ef migrations` has a schema to diff against. `./ma pull`
 refreshes it from the phone; treat the phone as the source of truth.
 
+## How the app is put together
+
+One process, two languages, one meeting point. The Swift UI is a client of the C#
+service layer, in the same process, talking through the Objective-C runtime:
+
+```
+Swift · native/Sources/                              C# · MediaArchive.csproj
+Views ──▶ Stores ──▶ Api (generated) ──▶ Bridge      Services/Native/  NativeRoutes · Contracts · NativeApi
+                                            │            │  one DI scope per call, like a request
+                              JSON strings  │            ▼
+                              through ObjC  └──────▶  Services/  Queries · Logging · UserItems · Import · Providers
+                                                         ▼
+MediaArchive.Mobile (MAUI host)                       Data/  AppDbContext · SQLite
+  MainPage embeds the Swift root controller
+  NativeBackend  the one [Export]ed C# selector Swift calls (transport, no logic)
+  NativeHost     the three objc_msgSend calls into Swift: makeRoot, complete, openRoute
+```
+
+- **Swift never touches the database, the DbContext or the services.** It calls
+  `api.<route>()` and gets a page-shaped struct back. Views never see JSON or the
+  bridge; one `@Observable` store per page owns fetch, decode and form state.
+- **The contract is generated.** `native/Sources/Generated/Contracts.swift` is written
+  by `tools/SwiftGen` from `NativeRoutes.All` and the records they reference. **Never
+  edit it by hand.** Whenever you touch a record, an args type or a route, run
+  `scripts/sync-contracts.sh` (or `./ma`, which runs it) and commit the regenerated file.
+- **Labels and rules come from C#.** Type/status/context labels, units and which
+  contexts fit which type are served by the `lexicon` route from `UiHelpers`; Swift reads
+  them from the environment. Don't hard-code that vocabulary in Swift.
+- **Adding a screen or an action:** (1) a query or service method in C# if the data
+  isn't there yet — draft it first, see below; (2) a record in `Services/Native/Contracts.cs`,
+  or reuse the query's own record; (3) a route in `NativeRoutes.cs` with its Swift name;
+  (4) regenerate the contracts; (5) a store that calls `api.<name>` and a view that
+  renders the store. Coarse calls only — everything a screen needs in one route, never a
+  call per row.
+- **Two mirrored things, on purpose:** the palette (`colors.json` → `scripts/sync-colors.sh`
+  → the app's `Palette.swift` and the widget's copy) and `pagesFromHours`, one line marked
+  as a mirror at both ends because the audiobook forms convert before they send.
+- **Tooling:** Rider opens `MediaArchive.sln` and sees only the .NET side. The Swift half is
+  edited in Xcode via `native/MediaArchiveUI.xcodeproj` (a synchronised group, so new files
+  need no project edit); Xcode can compile the framework but not run the app. `./ma` is the
+  only thing that builds and runs the whole app.
+
 ## The Obsidian vault is the memory
 
 Project memory lives in the vault at `~/Documents/vault_personal`, **not** in this
