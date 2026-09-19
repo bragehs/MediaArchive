@@ -90,10 +90,13 @@ struct RecordsPane: View {
     private func signature(_ panel: TypePanel) -> some View {
         // Under three reads there is no distribution, and the median is one of them.
         if panel.pace.count >= 3 {
-            Eyebrow("Pace", size: 8.5, tracking: 0.12, bold: false)
-            Aside("pages a day over each read's span", size: 11, color: Palette.dim)
-                .padding(.top, 2)
-                .padding(.bottom, 10)
+            HStack(spacing: 7) {
+                Eyebrow("Pace", size: 8.5, tracking: 0.12, bold: false)
+                InfoDot(text: "Pages a day across the span from a read's start to its finish. "
+                            + "Recalled means those two dates were remembered afterwards rather "
+                            + "than logged as it happened.")
+            }
+            .padding(.bottom, 10)
             let peak = panel.pace.map(\.pagesPerDay).max() ?? 1
             VStack(spacing: 0) {
                 ForEach(panel.pace, id: \.userMediaItemId) { row in
@@ -108,18 +111,19 @@ struct RecordsPane: View {
                 }
             }
             if let median = panel.paceMedian {
-                Aside("┊ your median, \(trimmed(median)) a day · recalled = dates remembered afterwards",
-                      size: 11, color: Palette.dim)
+                Aside("┊ your median, \(trimmed(median)) a day", size: 11, color: Palette.dim)
                     .padding(.top, 8)
             }
             Spacer().frame(height: 20)
         }
 
         if !panel.estimates.isEmpty {
-            Eyebrow("Against the estimate", size: 8.5, tracking: 0.12, bold: false)
-            Aside("your hours against the community's time to beat", size: 11, color: Palette.dim)
-                .padding(.top, 2)
-                .padding(.bottom, 10)
+            HStack(spacing: 7) {
+                Eyebrow("Against the estimate", size: 8.5, tracking: 0.12, bold: false)
+                InfoDot(text: "The hours you logged against the community's time to beat the "
+                            + "game. Over the estimate means you took the long way round.")
+            }
+            .padding(.bottom, 10)
             // One scale across hours and estimates, or the marker would sit
             // somewhere its own number doesn't justify.
             let peak = Double(panel.estimates.flatMap { [$0.hours, $0.estimate] }.max() ?? 1)

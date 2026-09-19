@@ -300,16 +300,6 @@ internal static class ProfilePanels
                 p.Item.Id, p.Item.MediaItem!.Title))
             .FirstOrDefault());
 
-        // Your hours against the community estimate: rusher or completionist.
-        records.Add(ClosedPasses(passes)
-            .Where(p => p.Entry.Outcome == PassOutcome.Completed
-                        && p.Entry.Effort is not null && p.Item.MediaItem!.Length is > 0)
-            .OrderByDescending(p => (double)p.Entry.Effort! / p.Item.MediaItem!.Length!.Value)
-            .Select(p => new TypeRecord("Against the clock",
-                $"{p.Entry.Effort} h vs {p.Item.MediaItem!.Length} h",
-                p.Item.Id, p.Item.MediaItem.Title))
-            .FirstOrDefault());
-
         records.Add(Bail(passes, "hours"));
         return records.Where(r => r is not null).Select(r => r!).ToList();
     }

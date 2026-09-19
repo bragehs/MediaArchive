@@ -85,8 +85,11 @@ struct YearMix: View {
                                 .frame(height: max(1, 56 * slice.minutes / peak))
                         }
                     }
-                    .frame(maxWidth: .infinity)
+                    // Capped, then centred in an even cell: with the empty years
+                    // dropped a handful of columns would otherwise stretch into slabs.
+                    .frame(maxWidth: 46)
                     .clipShape(UnevenRoundedRectangle(topLeadingRadius: 2, topTrailingRadius: 2))
+                    .frame(maxWidth: .infinity)
                 }
             }
             .frame(height: 56)
@@ -155,4 +158,34 @@ struct ItemBarRow: View {
     }
 
     private func clamped(_ value: Double) -> Double { min(max(value, 0), 1) }
+}
+
+// A chart's explanation, out of the way until asked for.
+struct InfoDot: View {
+    let text: String
+
+    @State private var open = false
+
+    var body: some View {
+        Button { open = true } label: {
+            Text("?")
+                .font(Fonts.display(9, bold: true))
+                .foregroundStyle(Palette.dim)
+                .frame(width: 15, height: 15)
+                .overlay(Circle().stroke(Palette.line, lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+        .popover(isPresented: $open) {
+            Text(text)
+                .font(Fonts.serif(12.5, italic: true))
+                .foregroundStyle(Palette.muted)
+                // A fixed width plus vertical fixedSize, or the popover clips the
+                // copy to one line's worth instead of growing to fit it.
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(14)
+                .frame(width: 236)
+                .presentationCompactAdaptation(.popover)
+                .presentationBackground(Palette.panel)
+        }
+    }
 }

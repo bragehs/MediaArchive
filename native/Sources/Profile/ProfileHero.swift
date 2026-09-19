@@ -21,8 +21,11 @@ struct TimeSpentHero: View {
                 Eyebrow("hours", size: 10, tracking: 0.1, bold: false)
             }
 
-            Eyebrow("across \(spent.items) \(plural(spent.items, "item"))", size: 8.5, tracking: 0.12, bold: false)
-                .padding(.top, 9)
+            if derived {
+                Aside("≈\(hours(spent.estimatedMinutes)) h of it estimated from length",
+                      size: 11, color: Palette.muted)
+                    .padding(.top, 5)
+            }
 
             if !mix.isEmpty {
                 SplitBar(slices: mix.map {
@@ -30,22 +33,30 @@ struct TimeSpentHero: View {
                 })
                 .padding(.top, 14)
 
-                Text(mix.map { "\(lexicon.label($0.type).lowercased())s \(hours($0.minutes)) h" }
-                        .joined(separator: " · "))
-                    .font(Fonts.serif(11.5, italic: true))
-                    .foregroundStyle(Palette.muted)
-                    .padding(.top, 7)
-            }
-
-            if let caveat {
-                Aside(caveat, size: 11, color: Palette.muted).padding(.top, 3)
+                HStack(spacing: 0) {
+                    ForEach(mix) { slice in
+                        VStack(alignment: .leading, spacing: 6) {
+                            HStack(spacing: 6) {
+                                RoundedRectangle(cornerRadius: 2)
+                                    .fill(Palette.accent(slice.type))
+                                    .frame(width: 8, height: 8)
+                                Text("\(hours(slice.minutes)) h")
+                                    .font(Fonts.title(16))
+                                    .foregroundStyle(Palette.ink)
+                            }
+                            Eyebrow(lexicon.label(slice.type) + "s", size: 8, tracking: 0.12, bold: false)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                }
+                .padding(.top, 11)
             }
 
             if columns.count > 1 {
-                YearMix(columns: columns).padding(.top, 16)
+                YearMix(columns: columns).padding(.top, 18)
             }
 
-            facts.padding(.top, 14)
+            facts.padding(.top, 18)
         }
         .padding(.vertical, 16)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -54,28 +65,32 @@ struct TimeSpentHero: View {
         .padding(.top, 2)
     }
 
-    // Says what the figure is made of: a derived share is not a measured one, and
-    // an item that couldn't convert is missing from the total, not zero in it.
-    private var caveat: String? {
-        var parts: [String] = []
-        if derived { parts.append("≈\(hours(spent.estimatedMinutes)) h of it estimated from length") }
-        if spent.withoutLength > 0 {
-            parts.append("\(spent.withoutLength) \(plural(spent.withoutLength, "item")) left out for want of a length")
+    private var facts: some View {
+        HStack(spacing: 0) {
+            statCell(String(snapshot.itemsLogged), "logged", first: true)
+            rule
+            statCell(String(snapshot.finished), "finished")
+            if let rating = snapshot.avgRating {
+                rule
+                statCell("★ \(stars(rating))", "of \(snapshot.ratedCount) rated", accent: Palette.ac2)
+            }
         }
-        return parts.isEmpty ? nil : parts.joined(separator: " · ")
+        .overlay(alignment: .top) { HairlineRule(color: Palette.line2) }
     }
 
-    private var facts: Text {
-        var line = Text("\(snapshot.itemsLogged)").fontWeight(.bold).foregroundStyle(Palette.ink)
-            + Text(" logged · ").italic()
-            + Text("\(snapshot.finished)").fontWeight(.bold).foregroundStyle(Palette.ink)
-            + Text(" finished").italic()
-        if let rating = snapshot.avgRating {
-            line = line + Text(" · ").italic()
-                + Text("★ \(stars(rating))").fontWeight(.bold).foregroundStyle(Palette.ac2)
-                + Text(" of \(snapshot.ratedCount) rated").italic()
+    private func statCell(_ value: String, _ label: String,
+                          first: Bool = false, accent: Color = Palette.ac) -> some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text(value).font(Fonts.title(21)).foregroundStyle(accent)
+            Eyebrow(label, size: 8, tracking: 0.12, bold: false)
         }
-        return line.font(Fonts.serif(11.5, italic: true)).foregroundStyle(Palette.muted)
+        .padding(.top, 11)
+        .padding(.leading, first ? 0 : 14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var rule: some View {
+        Rectangle().fill(Palette.line2).frame(width: 1).padding(.top, 11)
     }
 
     private func hours(_ minutes: Double) -> String {
@@ -90,16 +105,16 @@ struct TimeSpentHero: View {
             .sorted { $0.minutes > $1.minutes }
     }
 
-    // Empty years are kept: a decade you logged nothing in is a fact about you,
-    // and dropping it would make a long gap look like a short one.
+    // Only years you actually logged something in. Carrying the empty ones between
+    // them turned a decade of nothing into most of the chart.
     private var columns: [YearColumn] {
-        let years = spent.buckets.map(\.year)
-        guard let first = years.min(), let last = years.max() else { return [] }
-        let byYear = Dictionary(grouping: spent.buckets, by: \.year)
-        return (first...last).map { year in
-            YearColumn(year: year, slices: (byYear[year] ?? [])
-                .map { MediumSlice(type: $0.mediaType, minutes: $0.minutes) }
-                .sorted { $0.minutes > $1.minutes })
-        }
+        Dictionary(grouping: spent.buckets, by: \.year)
+            .map { year, buckets in
+                YearColumn(year: year, slices: buckets
+                    .map { MediumSlice(type: $0.mediaType, minutes: $0.minutes) }
+                    .sorted { $0.minutes > $1.minutes })
+            }
+            .filter { $0.total > 0 }
+            .sorted { $0.year < $1.year }
     }
 }
