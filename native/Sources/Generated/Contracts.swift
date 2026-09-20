@@ -324,6 +324,8 @@ struct LibraryItem: Codable, Hashable, Sendable {
     var rating: Int?
     var isFavorite: Bool
     var status: MediaStatus
+    var addedDate: DateOnly
+    var lastActivity: DateOnly?
     var universe: String?
     var genres: [String]
     var tags: [String]
