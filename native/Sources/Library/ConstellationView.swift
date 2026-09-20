@@ -8,6 +8,7 @@ struct ConstellationView: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var selected: Int?
+    @State private var moving: Int?
     @State private var covers = 0
     @State private var last: CGPoint?
     @State private var moved = false
@@ -29,7 +30,6 @@ struct ConstellationView: View {
                 .contentShape(Rectangle())
                 .gesture(drag(proxy.size))
                 .simultaneousGesture(pinch(proxy.size))
-                .ignoresSafeArea(edges: .bottom)
 
                 if let error = store.error {
                     Notice(text: error).padding(20).padding(.top, 60)
@@ -102,16 +102,26 @@ struct ConstellationView: View {
         DragGesture(minimumDistance: 0)
             .onChanged { value in
                 guard !pinching else { return }
-                if last == nil { last = value.startLocation; moved = false }
+                if last == nil {
+                    last = value.startLocation
+                    moved = false
+                    moving = map.hub(world: store.camera.world(value.startLocation, in: size))
+                }
                 let delta = CGPoint(x: value.location.x - last!.x, y: value.location.y - last!.y)
                 if abs(delta.x) + abs(delta.y) > 3 { moved = true }
-                store.camera.x += delta.x
-                store.camera.y += delta.y
+                if let moving {
+                    store.map.move(moving, by: CGPoint(x: delta.x / store.camera.z,
+                                                       y: delta.y / store.camera.z))
+                } else {
+                    store.camera.x += delta.x
+                    store.camera.y += delta.y
+                }
                 last = value.location
             }
             .onEnded { value in
                 if !pinching, !moved { tap(value.location, in: size) }
                 last = nil
+                moving = nil
             }
     }
 
@@ -153,6 +163,15 @@ struct ConstellationView: View {
             guard visible.intersects(CGRect(x: territory.x - territory.radius, y: territory.y - territory.radius,
                                             width: territory.radius * 2, height: territory.radius * 2)) else { continue }
 
+            for cover in territory.covers {
+                var spoke = world
+                spoke.opacity = selected == nil || selected == cover.itemIndex ? 0.4 : 0.1
+                var path = Path()
+                path.move(to: CGPoint(x: territory.x, y: territory.y))
+                path.addLine(to: CGPoint(x: territory.x + cover.x, y: territory.y + cover.y))
+                spoke.stroke(path, with: .color(colour), lineWidth: hairline)
+            }
+
             let hub = CGRect(x: territory.x - territory.hubRadius, y: territory.y - territory.hubRadius,
                              width: territory.hubRadius * 2, height: territory.hubRadius * 2)
             world.fill(Path(ellipseIn: hub), with: .radialGradient(
@@ -178,15 +197,14 @@ struct ConstellationView: View {
                 }
             }
 
-            // Zoomed into one territory its label is off-screen, so the orb
-            // carries the name itself once there is room for it.
-            let onOrb = territory.hubRadius * store.camera.z > 34
             var label = world
             label.opacity = selected == nil ? 1 : 0.4
+            // Over the spokes, so the hairlines do not run through the lettering.
+            label.addFilter(.shadow(color: Self.ground, radius: 2.5 / store.camera.z))
             label.draw(Text(territory.genre.capitalized)
-                .font(Fonts.title(onOrb ? territory.hubRadius * 0.34 : territory.labelSize))
-                .foregroundStyle(onOrb ? Palette.bg : Palette.ink),
-                       at: CGPoint(x: territory.x, y: territory.y + (onOrb ? 0 : territory.labelY)))
+                .font(Fonts.title(territory.labelSize))
+                .foregroundStyle(Palette.ink),
+                       at: CGPoint(x: territory.x, y: territory.y + territory.labelY))
         }
     }
 

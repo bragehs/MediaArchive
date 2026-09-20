@@ -1,9 +1,10 @@
 import CoreGraphics
 import Foundation
 
-// One territory per genre: a hub orb, that genre's covers packed in rings
-// around it, and its label in a band below. Positions are allocated, never
-// negotiated — territories are disjoint circles, so nothing can collide.
+// One territory per genre: a hub orb, its label just outside it, and that
+// genre's covers packed in rings around both, each spoked back to the orb.
+// Positions are allocated, never negotiated — territories are disjoint
+// circles, so nothing can collide until you drag one somewhere yourself.
 struct ConstellationMap {
     static let hues: [(Double, Double, Double)] = [
         (200, 84, 150), (92, 196, 224), (214, 167, 74), (139, 190, 90), (236, 140, 88),
@@ -25,6 +26,7 @@ struct ConstellationMap {
         let hue: (Double, Double, Double)
         let hubRadius: Double
         let labelSize: Double
+        let labelHalf: Double
         let labelY: Double
         let radius: Double
         let covers: [Cover]
@@ -54,8 +56,15 @@ struct ConstellationMap {
     private func build(genre: String, indices: [Int], hue: (Double, Double, Double)) -> Territory {
         let count = indices.count
         let hubRadius = 12 + sqrt(Double(count)) * 7
+        let labelSize = min(max(9, 8 + sqrt(Double(count)) * 2.2), 20)
+        let labelHalf = Double(genre.count) * labelSize * 0.32
+
+        // The label goes in the gap between the orb and the first ring, so the
+        // ring has to clear its width as well as its height — a long genre name
+        // otherwise reaches under the covers sitting below-left and below-right.
         var covers: [Cover] = []
-        var ring = hubRadius + 9 + Self.coverHeight / 2
+        var ring = max(hubRadius + labelSize * 2.2 + Self.coverHeight / 2,
+                       labelHalf + Self.coverWidth / 2 + 8)
 
         while covers.count < count {
             // The tall side clears every direction: two tiles a chord apart are
@@ -74,13 +83,10 @@ struct ConstellationMap {
         }
 
         let packed = ring - Self.coverHeight - Self.gap + hypot(Self.coverWidth, Self.coverHeight) / 2
-        let labelSize = min(max(9, 8 + sqrt(Double(count)) * 2.2), 20)
-        // The label lives inside the territory's radius, so it is covered by the
-        // same clearance the circles get and two labels can never collide.
-        let half = Double(genre.count) * labelSize * 0.32
         return Territory(genre: genre, hue: hue, hubRadius: hubRadius,
-                         labelSize: labelSize, labelY: packed + labelSize * 0.9,
-                         radius: max(packed + labelSize * 1.5, half + 4), covers: covers)
+                         labelSize: labelSize, labelHalf: labelHalf,
+                         labelY: hubRadius + labelSize * 1.05,
+                         radius: packed + 4, covers: covers)
     }
 
     // Biggest first onto a golden-angle spiral, the step scaled to what is being
@@ -124,6 +130,16 @@ struct ConstellationMap {
         case cover(Int)
     }
 
+    // Which orb a press landed on, so a drag can carry the whole territory.
+    func hub(world point: CGPoint) -> Int? {
+        territories.firstIndex { hypot(point.x - $0.x, point.y - $0.y) <= $0.hubRadius + 6 }
+    }
+
+    mutating func move(_ index: Int, by delta: CGPoint) {
+        territories[index].x += delta.x
+        territories[index].y += delta.y
+    }
+
     func hit(world point: CGPoint) -> Hit? {
         for territory in territories {
             let dx = point.x - territory.x, dy = point.y - territory.y
@@ -133,9 +149,8 @@ struct ConstellationMap {
                 return .cover(cover.itemIndex)
             }
             if hypot(dx, dy) <= territory.hubRadius + 6 { return .genre(territory.genre) }
-            if dy > territory.labelY - territory.labelSize, dy < territory.labelY + territory.labelSize {
-                return .genre(territory.genre)
-            }
+            if abs(dx) <= territory.labelHalf + 4,
+               abs(dy - territory.labelY) <= territory.labelSize { return .genre(territory.genre) }
         }
         return nil
     }
