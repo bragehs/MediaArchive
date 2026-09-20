@@ -26,12 +26,14 @@ final class LibraryStore {
         case only(MediaType)
     }
 
-    let graph = ConstellationGraph()
+    // The map is completed-only: it is the archive of things actually consumed.
+    var map = ConstellationMap()
+    var camera = MapCamera()
+    var fitted = false
 
     var items: [LibraryItem] = []
     var loaded = false
     var error: String?
-    var pendingFit = false
 
     var query = ""
     // nil while nothing is typed; the search reaches every status, the wall does not.
@@ -53,10 +55,8 @@ final class LibraryStore {
             let next = loadedItems.map { "\($0.userMediaItemId):\($0.genres.joined(separator: ","))" }
             if next != signature || !loaded {
                 signature = next
-                graph.camera = .init()
-                graph.build(loadedItems.filter { $0.status == .completed })
-                graph.relax()
-                pendingFit = true
+                map = ConstellationMap(loadedItems.filter { $0.status == .completed })
+                fitted = false
             }
             loaded = true
             error = nil
@@ -70,7 +70,7 @@ final class LibraryStore {
     }
 
     // Year rules only make sense while the order is chronological.
-    var groups: [(year: Int, items: [LibraryItem])]? {
+    func groups(of rows: [LibraryItem]) -> [(year: Int, items: [LibraryItem])]? {
         guard sort == .recent else { return nil }
         var out: [(year: Int, items: [LibraryItem])] = []
         for item in rows {

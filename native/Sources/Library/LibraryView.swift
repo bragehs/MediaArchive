@@ -86,7 +86,7 @@ struct LibraryView: View {
             Aside(store.hits == nil ? "Nothing finished or dropped yet." : "No matches in the archive.")
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 30)
-        } else if let groups = store.groups {
+        } else if let groups = store.groups(of: rows) {
             ForEach(groups, id: \.year) { group in
                 SectionHead("\(group.year)", right: works(group.items.count))
                 grid(group.items)
@@ -142,7 +142,7 @@ struct LibraryView: View {
     private func pill(_ filter: LibraryStore.TypeFilter) -> String {
         let count = store.count(filter)
         guard case .only(let type) = filter else { return "All \(count)" }
-        return "\(plural(count, lexicon.label(type))) \(count)"
+        return "\(lexicon.label(type))s \(count)"
     }
 
     private func works(_ count: Int) -> String { "\(count) \(plural(count, "work"))" }
