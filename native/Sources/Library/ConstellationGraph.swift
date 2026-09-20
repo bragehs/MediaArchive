@@ -67,12 +67,8 @@ final class ConstellationGraph {
     private(set) var genreItems: [String: [Int]] = [:]
 
     var camera = Camera()
-    var cameraTarget: (x: Double, y: Double)?
     var alpha = 1.0
     var dragging: Node?
-    var selected: Node?
-    var highlighted: Set<String>?
-    var searchHits: Set<String>?
     var viewport = CGSize(width: 1, height: 1)
 
     // Genres are stored lower case; capitalising is the view's job.
@@ -149,37 +145,6 @@ final class ConstellationGraph {
         var seen = Set<String>()
         return item.genres.filter { seen.insert($0).inserted }
     }
-
-    func itemIndices(of node: Node) -> [Int] {
-        node.kind == .item ? [node.itemIndex] : (genreItems[node.name] ?? [])
-    }
-
-    func connectedIds(_ node: Node) -> Set<String> {
-        var set: Set<String> = [node.id]
-        if node.kind == .item {
-            for other in nodes where other.kind == .item && other.itemIndex == node.itemIndex {
-                set.insert(other.id)
-                set.formUnion(adjacency[other.id] ?? [])
-            }
-            return set
-        }
-        for instance in adjacency[node.id] ?? [] {
-            set.insert(instance)
-            for next in adjacency[instance] ?? [] {
-                set.insert(next)
-                if next.hasPrefix("i") { set.formUnion(adjacency[next] ?? []) }
-            }
-        }
-        return set
-    }
-
-    func isActive(_ id: String) -> Bool {
-        if let highlighted { return highlighted.contains(id) }
-        if let searchHits { return searchHits.contains(id) }
-        return true
-    }
-
-    var dimming: Bool { highlighted != nil || searchHits != nil }
 
     // One relaxation step of the force layout; alpha cools it to a standstill.
     func step() {
@@ -290,30 +255,6 @@ final class ConstellationGraph {
             }
         }
         return best
-    }
-
-    func select(_ node: Node?) {
-        selected = node
-        guard let node else { highlighted = nil; return }
-        highlighted = connectedIds(node)
-        alpha = max(alpha, 0.4)
-    }
-
-    func center(on node: Node) {
-        cameraTarget = (-node.x * camera.z, -node.y * camera.z)
-        alpha = max(alpha, 0.2)
-    }
-
-    // Eases toward a requested centre; called once per frame.
-    func glide() {
-        guard let target = cameraTarget else { return }
-        camera.x += (target.x - camera.x) * 0.18
-        camera.y += (target.y - camera.y) * 0.18
-        if abs(target.x - camera.x) < 0.5 && abs(target.y - camera.y) < 0.5 {
-            camera.x = target.x
-            camera.y = target.y
-            cameraTarget = nil
-        }
     }
 }
 
