@@ -98,7 +98,7 @@ struct LibraryView: View {
     }
 
     private func grid(_ items: [LibraryItem]) -> some View {
-        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 9), count: 4),
+        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 9, alignment: .top), count: 4),
                   alignment: .leading, spacing: 12) {
             ForEach(items, id: \.userMediaItemId) { item in
                 Button { openItem(item.userMediaItemId) } label: { tile(item) }
