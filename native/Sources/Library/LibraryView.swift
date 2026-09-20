@@ -98,8 +98,8 @@ struct LibraryView: View {
     }
 
     private func grid(_ items: [LibraryItem]) -> some View {
-        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 3),
-                  alignment: .leading, spacing: 14) {
+        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 9), count: 4),
+                  alignment: .leading, spacing: 12) {
             ForEach(items, id: \.userMediaItemId) { item in
                 Button { openItem(item.userMediaItemId) } label: { tile(item) }
                     .buttonStyle(.plain)
@@ -109,15 +109,15 @@ struct LibraryView: View {
     }
 
     private func tile(_ item: LibraryItem) -> some View {
-        VStack(alignment: .leading, spacing: 7) {
-            CoverTile(url: item.imageUrl, title: item.title)
+        VStack(alignment: .leading, spacing: 5) {
+            CoverTile(url: item.imageUrl, title: item.title, radius: 6, fallbackPadding: 4, fallbackSize: 7)
                 .opacity(item.status == .completed ? 1 : 0.45)
                 .overlay(alignment: .topTrailing) { badge(item) }
                 .overlay(alignment: .bottomTrailing) {
-                    if item.status != .completed { StatusGlyph(status: item.status).padding(3) }
+                    if item.status != .completed { StatusGlyph(status: item.status).padding(2) }
                 }
             Text(item.title)
-                .font(Fonts.title(12))
+                .font(Fonts.title(9.5))
                 .foregroundStyle(Palette.ink)
                 .multilineTextAlignment(.leading)
                 .lineLimit(2)
@@ -130,12 +130,12 @@ struct LibraryView: View {
         let text = marks.compactMap { $0 }.joined(separator: " ")
         if !text.isEmpty {
             Text(text)
-                .font(Fonts.display(9, bold: true))
+                .font(Fonts.display(8, bold: true))
                 .foregroundStyle(Palette.ac2)
-                .padding(.horizontal, 5)
+                .padding(.horizontal, 4)
                 .padding(.vertical, 2)
-                .background(Color.black.opacity(0.7), in: RoundedRectangle(cornerRadius: 5))
-                .padding(4)
+                .background(Color.black.opacity(0.7), in: RoundedRectangle(cornerRadius: 4))
+                .padding(3)
         }
     }
 
