@@ -37,7 +37,7 @@ struct Shell: View {
         switch tab {
         case .home: HomeView()
         case .explore: ExploreView()
-        case .library: LibraryView(isActive: router.selected == .library && router.path(for: .library).isEmpty)
+        case .library: LibraryView()
         case .diary: DiaryView()
         case .profile: ProfileView()
         }
@@ -48,6 +48,7 @@ struct Shell: View {
         switch route {
         case .item(let id, let log): ItemView(userMediaItemId: id, openLog: log)
         case .diaryMonth(let year, let month): DiaryMonthView(year: year, month: month)
+        case .constellation: ConstellationView()
         case .universes: UniversesView()
         case .creators: CreatorsView()
         }

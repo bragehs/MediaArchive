@@ -14,6 +14,8 @@ public record LibraryItem(
     int? Rating,
     bool IsFavorite,
     MediaStatus Status,
+    DateOnly AddedDate,
+    DateOnly? LastActivity,
     string? Universe,
     IReadOnlyList<string> Genres,
     IReadOnlyList<string> Tags);
@@ -24,7 +26,7 @@ public class LibraryQueries(IDbContextFactory<AppDbContext> dbContextFactory)
     {
         await using var db = await dbContextFactory.CreateDbContextAsync(ct);
 
-        var items = await CompletedWithGraph(db).ToListAsync(ct);
+        var items = await ArchiveWithGraph(db).ToListAsync(ct);
         return items.Select(ToLibraryItem).ToList();
     }
 
@@ -50,8 +52,9 @@ public class LibraryQueries(IDbContextFactory<AppDbContext> dbContextFactory)
             .ToList();
     }
 
-    private static IQueryable<UserMediaItem> CompletedWithGraph(AppDbContext db) =>
-        WithGraph(db).Where(u => u.Status == MediaStatus.Completed);
+    // What you have been through: Interested is Explore's backlog, InProgress is Home's.
+    private static IQueryable<UserMediaItem> ArchiveWithGraph(AppDbContext db) =>
+        WithGraph(db).Where(u => u.Status == MediaStatus.Completed || u.Status == MediaStatus.Dropped);
 
     private static IQueryable<UserMediaItem> WithGraph(AppDbContext db) =>
         db.UserMediaItems
@@ -59,6 +62,7 @@ public class LibraryQueries(IDbContextFactory<AppDbContext> dbContextFactory)
             .Include(u => u.MediaItem).ThenInclude(m => m!.Tags).ThenInclude(mt => mt.Tag)
             .Include(u => u.MediaItem).ThenInclude(m => m!.Credits).ThenInclude(c => c.Person)
             .Include(u => u.MediaItem).ThenInclude(m => m!.Universe)
+            .Include(u => u.Entries)
             .AsSplitQuery()
             .AsNoTracking();
 
@@ -69,6 +73,7 @@ public class LibraryQueries(IDbContextFactory<AppDbContext> dbContextFactory)
             u.Id, m.Title, m.Creator, m.MediaType,
             m.DisplayImageUrl,
             m.ReleaseDate?.Year, u.Rating, u.IsFavorite, u.Status,
+            u.AddedDate, u.Entries.Select(e => e.EndDate ?? e.StartDate).Max(),
             m.Universe?.Name,
             m.Genres.Where(mg => mg.Genre is not null).Select(mg => mg.Genre!.Name).Order().ToList(),
             m.Tags.Where(mt => mt.Tag is not null).Select(mt => mt.Tag!.Name).Order().ToList());
