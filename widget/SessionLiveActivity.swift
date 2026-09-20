@@ -35,11 +35,14 @@ struct SessionLiveActivity: Widget {
                     }
                 }
             } compactLeading: {
-                RoundedRectangle(cornerRadius: 2)
-                    .fill(accent(context.attributes.kind))
-                    .frame(width: 10, height: 16)
+                Circle().fill(accent(context.attributes.kind)).frame(width: 8, height: 8)
             } compactTrailing: {
-                SessionClock(context: context, size: 14)
+                // Cover and clock together: the sensor sits between the two slots, so a cover
+                // on the leading side reads as unrelated to the time.
+                HStack(spacing: 5) {
+                    SessionCover(attributes: context.attributes, width: 11)
+                    CompactClock(context: context)
+                }
             } minimal: {
                 Circle().fill(accent(context.attributes.kind)).frame(width: 12, height: 12)
             }
@@ -127,6 +130,32 @@ private struct SessionClock: View {
     private func color(running: Color) -> Color {
         if context.state.pausedAt != nil { return Palette.dim }
         return context.isStale ? Palette.ac2 : running
+    }
+}
+
+// The compact island: a fixed width, or the timer text takes all it is offered and
+// pushes the two sides apart. Past an hour the stopwatch scales down instead.
+private struct CompactClock: View {
+    let context: ActivityViewContext<SessionAttributes>
+
+    var body: some View {
+        Group {
+            if let end = target(context) {
+                if let pausedAt = context.state.pausedAt, pausedAt >= end {
+                    Text("0:00")
+                } else {
+                    Text(timerInterval: context.state.anchor...end, pauseTime: context.state.pausedAt, countsDown: true)
+                }
+            } else {
+                Text(timerInterval: context.state.anchor...Date.distantFuture, pauseTime: context.state.pausedAt, countsDown: false)
+            }
+        }
+        .font(.system(size: 14, weight: .semibold, design: .rounded))
+        .monospacedDigit()
+        .lineLimit(1)
+        .minimumScaleFactor(0.55)
+        .frame(width: 34)
+        .foregroundStyle(context.state.pausedAt != nil ? Palette.dim : accent(context.attributes.kind))
     }
 }
 
