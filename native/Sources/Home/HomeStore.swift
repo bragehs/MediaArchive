@@ -31,10 +31,10 @@ final class HomeStore {
         error = nil
         defer { saving = false }
         do {
+            // Ending is logging: the sheet opens in session mode and closes the row with the note.
             if let live, live.entryId == item.openEntryId {
-                try await api.endSession(SessionEnd(sessionId: live.sessionId, endedAt: Date(),
-                                                    pausedMinutes: PauseLog.pausedMinutes(sessionId: live.sessionId)))
-                await SessionActivity.end(sessionId: live.sessionId)
+                logTarget = item
+                return
             } else if live == nil {
                 let session = try await api.startSession(StartSessionArgs(entryId: item.openEntryId, startedAt: Date()))
                 SessionActivity.start(session)

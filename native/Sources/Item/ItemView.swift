@@ -189,9 +189,8 @@ struct ItemView: View {
         if let live = store.live, store.sessionHere {
             Aside("Session running since \(live.startedAt.formatted(date: .omitted, time: .shortened))", size: 11)
                 .padding(.top, 10)
-            Button(store.saving ? "…" : "End the session") { Task { await store.endSession() } }
+            Button("End the session") { store.logging = true }
                 .buttonStyle(GhostButtonStyle(fullWidth: true))
-                .disabledLook(store.saving)
                 .padding(.top, 8)
         } else if store.live == nil {
             Button(store.saving ? "…" : "Start a session") { Task { await store.startSession() } }

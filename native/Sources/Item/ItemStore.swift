@@ -163,17 +163,6 @@ final class ItemStore {
         }
     }
 
-    // Closes it bare: nothing logged. The sheet is the way to end one with a note.
-    func endSession() async {
-        guard let live else { return }
-        await mutate {
-            try await api.endSession(SessionEnd(sessionId: live.sessionId, endedAt: Date(),
-                                                pausedMinutes: PauseLog.pausedMinutes(sessionId: live.sessionId)))
-            await SessionActivity.end(sessionId: live.sessionId)
-            await load()
-        }
-    }
-
     func logged(finished: Bool) {
         logging = false
         celebrate = finished
