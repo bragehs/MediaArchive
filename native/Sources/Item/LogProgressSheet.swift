@@ -113,6 +113,28 @@ final class LogProgressStore {
         if episodes > 0 { runtime = elapsed / episodes }
     }
 
+    // One line under the field that was filled: where the number came from.
+    var sessionHint: String? {
+        guard let elapsed = elapsedMinutes else { return nil }
+        return "Estimated from this sitting's \(elapsed) min" + (pausedMinutes > 0 ? " (\(pausedMinutes) paused)" : "")
+    }
+
+    // A sitting that produced nothing worth a note: the row still keeps its minutes.
+    func endWithoutLogging() async -> Bool {
+        guard let session else { return false }
+        saving = true
+        error = nil
+        defer { saving = false }
+        do {
+            try await api.endSession(SessionEnd(sessionId: session.sessionId, endedAt: Date(), pausedMinutes: pausedMinutes))
+            await SessionActivity.end(sessionId: session.sessionId)
+            return true
+        } catch {
+            self.error = error.localizedDescription
+            return false
+        }
+    }
+
     private func pages(fromHours hours: Double?) -> Int? {
         pagesFromHours(hours, entry.value?.audioHours, entry.value?.pageCount)
     }
@@ -194,13 +216,6 @@ struct LogProgressSheet: View {
             .padding(.bottom, 12)
                 .overlay(alignment: .bottom) { HairlineRule(height: 2) }
 
-                if let elapsed = store.elapsedMinutes {
-                    Notice(text: "Timed \(elapsed) min this sitting"
-                                 + (store.pausedMinutes > 0 ? ", \(store.pausedMinutes) paused" : "")
-                                 + " — filled in below; correct anything you didn't pause for.",
-                           kind: .good)
-                }
-
                 VStack(alignment: .leading, spacing: 0) {
                     FieldLabel("What are you logging?")
                     SegmentBar(options: [.progress, .finish], selection: $store.mode) {
@@ -213,7 +228,7 @@ struct LogProgressSheet: View {
                         FieldLabel(lexicon.type(mediaType).runtimeLabel, required: true)
                         NumberField(value: $store.runtime)
                         Eyebrow(store.measuredRuntime
-                                ? "Measured by this sitting, breaks excluded — correct it if it's off."
+                                ? "Measured by this sitting"
                                 : "Not known for this \(lexicon.label(mediaType).lowercased()) — without it the time never counts.",
                                 size: 9.5, tracking: 0.05, bold: false)
                             .padding(.top, 6)
@@ -239,7 +254,7 @@ struct LogProgressSheet: View {
 
                 HStack(spacing: 14) {
                     Spacer()
-                    Button("Cancel") { dismiss() }.buttonStyle(GhostButtonStyle())
+                    Button(store.session == nil ? "Cancel" : "Keep going") { dismiss() }.buttonStyle(GhostButtonStyle())
                     Button(store.saving ? "…" : store.mode == .progress ? "Save progress" : "Finish it") {
                         Task {
                             if let finished = await store.submit() {
@@ -249,6 +264,17 @@ struct LogProgressSheet: View {
                     }
                     .buttonStyle(PrimaryButtonStyle())
                     .disabledLook(store.saving || !store.canSubmit)
+                }
+                if store.session != nil {
+                    Button {
+                        Task { if await store.endWithoutLogging() { onLogged(false) } }
+                    } label: {
+                        Eyebrow("End without logging", size: 9, color: Palette.ac2, tracking: 0.1)
+                    }
+                    .buttonStyle(.plain)
+                    .disabledLook(store.saving)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+                    .padding(.top, -6)
                 }
             }
             .padding(26)
@@ -269,20 +295,26 @@ struct LogProgressSheet: View {
             if store.audiobook {
                 FieldLabel("Hours left", required: true)
                 DecimalField(value: $store.progressHoursLeft, placeholder: store.previousHoursLeft.map(trimmed) ?? "")
-                if let left = store.previousHoursLeft {
-                    Eyebrow("Last logged with \(trimmed(left)) h left", size: 9.5, tracking: 0.05, bold: false).padding(.top, 6)
-                }
+                hint(store.previousHoursLeft.map { "last logged with \(trimmed($0)) h left" })
             } else {
                 FieldLabel("Effort so far (\(unit))", required: true)
                 NumberField(value: $store.progressEffort, placeholder: entry.effort.map(String.init) ?? "")
-                if let previous = entry.effort {
-                    Eyebrow("Last logged at \(previous) \(unit)", size: 9.5, tracking: 0.05, bold: false).padding(.top, 6)
-                }
+                hint(entry.effort.map { "last logged at \($0) \(unit)" })
             }
         }
         VStack(alignment: .leading, spacing: 0) {
             FieldLabel("Progress note", optional: true)
             TextArea(text: $store.progressNote)
+        }
+    }
+
+    // The sitting's estimate first, the last logged figure after it; nothing when there is neither.
+    @ViewBuilder
+    private func hint(_ previous: String?) -> some View {
+        let parts = [store.sessionHint, previous.map { store.sessionHint == nil ? $0.prefix(1).uppercased() + $0.dropFirst() : $0 }]
+            .compactMap { $0 }
+        if !parts.isEmpty {
+            Eyebrow(parts.joined(separator: " · "), size: 9.5, tracking: 0.05, bold: false).padding(.top, 6)
         }
     }
 
@@ -301,6 +333,7 @@ struct LogProgressSheet: View {
                     FieldLabel("Effort (\(unit))", optional: true)
                     NumberField(value: $store.finishEffort)
                 }
+                hint(nil)
             }
         }
         HStack(alignment: .top, spacing: 22) {

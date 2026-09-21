@@ -16,33 +16,36 @@ struct SessionLiveActivity: Widget {
         } dynamicIsland: { context in
             DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
-                    SessionCover(attributes: context.attributes, width: 34)
+                    SessionCover(attributes: context.attributes, width: 30).padding(.leading, 4)
+                }
+                DynamicIslandExpandedRegion(.center) {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(context.attributes.title)
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(Palette.ink)
+                            .lineLimit(1)
+                        Text(sessionSubtitle(context).text)
+                            .font(.system(size: 9.5, weight: .medium))
+                            .tracking(1)
+                            .foregroundStyle(sessionSubtitle(context).color)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 DynamicIslandExpandedRegion(.trailing) {
-                    SessionClock(context: context, size: 20)
+                    CompactClock(context: context, size: 18, width: 62).padding(.trailing, 4)
                 }
                 DynamicIslandExpandedRegion(.bottom) {
-                    HStack(alignment: .center, spacing: 10) {
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text(context.attributes.title)
-                                .font(.system(size: 14, weight: .semibold))
-                                .foregroundStyle(Palette.ink)
-                                .lineLimit(1)
-                            SessionBar(context: context)
-                        }
-                        .widgetURL(logURL(context))
+                    HStack(alignment: .center, spacing: 12) {
+                        SessionBar(context: context).frame(maxWidth: .infinity)
                         PauseButton(context: context)
                     }
+                    .padding(.top, 4)
                 }
             } compactLeading: {
-                Circle().fill(accent(context.attributes.kind)).frame(width: 8, height: 8)
+                SessionCover(attributes: context.attributes, width: 11)
             } compactTrailing: {
-                // Cover and clock together: the sensor sits between the two slots, so a cover
-                // on the leading side reads as unrelated to the time.
-                HStack(spacing: 5) {
-                    SessionCover(attributes: context.attributes, width: 11)
-                    CompactClock(context: context)
-                }
+                // Leading-aligned so the digits sit right of the sensor, like a system timer.
+                CompactClock(context: context, size: 14, width: 34)
             } minimal: {
                 Circle().fill(accent(context.attributes.kind)).frame(width: 12, height: 12)
             }
@@ -78,13 +81,15 @@ private struct LockScreenSession: View {
         .widgetURL(logURL(context))
     }
 
-    // The stale date is an hour before the system takes the timer away.
-    private var subtitle: (text: String, color: Color) {
-        let kind = context.attributes.kind.uppercased()
-        if context.isStale { return ("\(kind) · 1H LEFT · LOG IT", Palette.ac2) }
-        if context.state.pausedAt != nil { return ("\(kind) · PAUSED", Palette.dim) }
-        return (context.attributes.targetMinutes == nil ? "\(kind) · LENGTH UNKNOWN" : kind, Palette.dim)
-    }
+    private var subtitle: (text: String, color: Color) { sessionSubtitle(context) }
+}
+
+// The stale date is an hour before the system takes the timer away.
+private func sessionSubtitle(_ context: ActivityViewContext<SessionAttributes>) -> (text: String, color: Color) {
+    let kind = context.attributes.kind.uppercased()
+    if context.isStale { return ("\(kind) · 1H LEFT · LOG IT", Palette.ac2) }
+    if context.state.pausedAt != nil { return ("\(kind) · PAUSED", Palette.dim) }
+    return (context.attributes.targetMinutes == nil ? "\(kind) · LENGTH UNKNOWN" : kind, Palette.dim)
 }
 
 private struct PauseButton: View {
@@ -133,10 +138,12 @@ private struct SessionClock: View {
     }
 }
 
-// The compact island: a fixed width, or the timer text takes all it is offered and
+// The island's clock: a fixed width, or the timer text takes all it is offered and
 // pushes the two sides apart. Past an hour the stopwatch scales down instead.
 private struct CompactClock: View {
     let context: ActivityViewContext<SessionAttributes>
+    let size: CGFloat
+    let width: CGFloat
 
     var body: some View {
         Group {
@@ -150,11 +157,11 @@ private struct CompactClock: View {
                 Text(timerInterval: context.state.anchor...Date.distantFuture, pauseTime: context.state.pausedAt, countsDown: false)
             }
         }
-        .font(.system(size: 14, weight: .semibold, design: .rounded))
+        .font(.system(size: size, weight: .semibold, design: .rounded))
         .monospacedDigit()
         .lineLimit(1)
         .minimumScaleFactor(0.55)
-        .frame(width: 34)
+        .frame(width: width, alignment: .leading)
         .foregroundStyle(context.state.pausedAt != nil ? Palette.dim : accent(context.attributes.kind))
     }
 }
