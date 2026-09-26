@@ -98,7 +98,7 @@ run_timeout() {
 # one. "Usable" now also means it carries the App Group entitlement — an older
 # profile without it would make codesigning fail, so it counts as absent.
 profile_days_left() {
-    local bundle="${1:-$BUNDLE_ID}" tmp appid exp epoch now best=-1
+    local bundle="${1:-$BUNDLE_ID}" tmp appid exp epoch now left best=-1
     tmp=$(mktemp)
     for p in "$PROFILE_DIR"/*.mobileprovision(N); do
         security cms -D -i "$p" >"$tmp" 2>/dev/null || continue
@@ -108,7 +108,10 @@ profile_days_left() {
         exp=$(/usr/libexec/PlistBuddy -c "Print :ExpirationDate" "$tmp" 2>/dev/null) || continue
         epoch=$(date -j -f "%a %b %d %H:%M:%S %Z %Y" "$exp" +%s 2>/dev/null) || continue
         now=$(date +%s)
-        (( best = (epoch - now) / 86400 > best ? (epoch - now) / 86400 : best ))
+        # Never let an arithmetic statement's value be this function's exit status: under
+        # set -e a zero (an expired profile) would kill it before it prints.
+        left=$(( (epoch - now) / 86400 ))
+        if (( left > best )); then best=$left; fi
     done
     rm -f "$tmp"
     print -- "$best"
