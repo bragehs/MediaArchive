@@ -65,9 +65,13 @@ extension View {
             .background(Palette.bg.ignoresSafeArea())
     }
 
-    // The `.viewport` padding — pages scroll inside it.
+    // The viewport gutter, applied to the scroll content rather than the scroll
+    // view, so the indicator stays at the screen edge and over nothing.
     func page() -> some View {
-        self.padding(.horizontal, 16).padding(.top, 2).padding(.bottom, 24)
+        self
+            .contentMargins(.horizontal, 16, for: .scrollContent)
+            .contentMargins(.top, 2, for: .scrollContent)
+            .contentMargins(.bottom, 24, for: .scrollContent)
     }
 }
 
