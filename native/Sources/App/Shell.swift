@@ -123,7 +123,7 @@ extension View {
 // The system's indicator is as long as the page is short; this one is a small
 // pill in the gutter that follows the scroll and fades a moment after it stops.
 private struct ThinScroller: ViewModifier {
-    private let height: CGFloat = 28
+    private let height: CGFloat = 56
     private let inset: CGFloat = 6
 
     @State private var fraction: CGFloat = 0
