@@ -57,7 +57,7 @@ public record ActivityCalendar(IReadOnlyList<ActivityMonth> Months);
 
 public class ActivityQueries(IDbContextFactory<AppDbContext> dbContextFactory)
 {
-    // Every month from the first pass to today, newest first, empty months included
+    // Every month from the first pass to today, oldest first, empty months included
     // so the calendar scrolls without gaps.
     public async Task<ActivityCalendar> GetCalendarAsync(CancellationToken ct = default)
     {
@@ -67,7 +67,7 @@ public class ActivityQueries(IDbContextFactory<AppDbContext> dbContextFactory)
         var oldest = new DateOnly(first.Year, first.Month, 1);
 
         var months = new List<ActivityMonth>();
-        for (var cursor = new DateOnly(today.Year, today.Month, 1); cursor >= oldest; cursor = cursor.AddMonths(-1))
+        for (var cursor = oldest; cursor <= today; cursor = cursor.AddMonths(1))
         {
             var inMonth = events.Where(e => e.Date.Year == cursor.Year && e.Date.Month == cursor.Month).ToList();
             var days = inMonth

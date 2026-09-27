@@ -19,8 +19,8 @@ extension ActivityDay: Identifiable {
     var id: DateOnly { date }
 }
 
-// Every month back to the first pass, a cover on each day something was logged
-// or sat with; a day opens as a sheet.
+// Every month from the first pass to today, opened at the bottom so the past is
+// up; a cover on each day something was logged or sat with, and a day opens as a sheet.
 struct ActivityView: View {
     @State private var store = ActivityStore()
     @Environment(\.dismiss) private var dismiss
@@ -44,6 +44,7 @@ struct ActivityView: View {
                 }
             }
         }
+        .defaultScrollAnchor(.bottom)
         .page()
         .task { await store.load() }
         .sheet(item: $store.day) { day in
