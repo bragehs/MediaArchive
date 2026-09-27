@@ -1,12 +1,15 @@
 import SwiftUI
 
-// One item's record: hero, facts, the open pass or the pass forms, the blurb,
-// the classification editor and the pass history.
+// One item's record: hero and facts, then three tabs — the pass controls with
+// the whole description, the pass history, and the classification editor.
 struct ItemView: View {
+    private enum Section: Hashable { case overview, passes, classification }
+
     let openLog: Bool
 
     @State private var store: ItemStore
     @State private var armedLog = false
+    @State private var section: Section = .overview
     @Environment(\.lexicon) private var lexicon
     @Environment(\.dismiss) private var dismiss
 
@@ -79,6 +82,24 @@ struct ItemView: View {
         hero(item)
         facts(item)
 
+        SegmentedPills(options: [.overview, .passes, .classification], selection: $section) {
+            switch $0 {
+            case .overview: "Overview"
+            case .passes: "Passes"
+            case .classification: "Classification"
+            }
+        }
+        .padding(.top, 16)
+
+        switch section {
+        case .overview: overview(item, unit: unit)
+        case .passes: passes(page)
+        case .classification: classificationTab(page, unit: unit)
+        }
+    }
+
+    @ViewBuilder
+    private func overview(_ item: ItemDetail, unit: String) -> some View {
         if let open = item.openPass {
             openPass(open, item: item, unit: unit)
         } else if store.form != .none {
@@ -88,9 +109,29 @@ struct ItemView: View {
         }
 
         if let description = item.description, !description.trimmingCharacters(in: .whitespaces).isEmpty {
-            Blurb(text: description)
+            Text(description)
+                .font(Fonts.serif(13.5))
+                .lineSpacing(3)
+                .foregroundStyle(Palette.muted)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.top, 18)
         }
+    }
 
+    @ViewBuilder
+    private func passes(_ page: ItemPage) -> some View {
+        SectionHead("Passes", right: "\(page.history.count) total", rightColor: Palette.ac2)
+        if page.history.isEmpty {
+            Aside("No passes yet.").padding(.vertical, 16)
+        } else {
+            ForEach(page.history, id: \.entryId) { pass in
+                PassRow(pass: pass)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func classificationTab(_ page: ItemPage, unit: String) -> some View {
         SectionHead("Classification", right: store.dirty ? "unsaved" : nil, rightColor: Palette.ac2)
         classification(page, unit: unit)
 
@@ -102,15 +143,6 @@ struct ItemView: View {
             .buttonStyle(GhostButtonStyle(fullWidth: true))
             .disabledLook(store.saving || !store.dirty)
             .padding(.top, 14)
-
-        SectionHead("Passes", right: "\(page.history.count) total", rightColor: Palette.ac2)
-        if page.history.isEmpty {
-            Aside("No passes yet.").padding(.vertical, 16)
-        } else {
-            ForEach(page.history, id: \.entryId) { pass in
-                PassRow(pass: pass)
-            }
-        }
     }
 
     private func hero(_ item: ItemDetail) -> some View {
@@ -312,23 +344,23 @@ private struct PassRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .firstTextBaseline, spacing: 10) {
-                Eyebrow(label.0, size: 9, color: label.1, tracking: 0.1)
-                Eyebrow(meta, size: 10, tracking: 0.05, bold: false)
+                Eyebrow(label.0, size: 10.5, color: label.1, tracking: 0.1)
+                Eyebrow(meta, size: 11.5, tracking: 0.05, bold: false)
             }
             if let rated = pass.ratingAtTime {
                 Text("★ \(stars(Double(rated)))")
-                    .font(Fonts.display(11))
+                    .font(Fonts.display(12.5))
                     .foregroundStyle(Palette.ac2)
                     .padding(.top, 6)
             }
             ForEach(Array(pass.notes.enumerated()), id: \.offset) { _, note in
                 if let text = note.text, !text.trimmingCharacters(in: .whitespaces).isEmpty {
                     VStack(alignment: .leading, spacing: 2) {
-                        Eyebrow(note.kind.rawValue, size: 8, tracking: 0.1, bold: false)
+                        Eyebrow(note.kind.rawValue, size: 9, tracking: 0.1, bold: false)
                         Text(text)
-                            .font(Fonts.serif(12.5, italic: true))
+                            .font(Fonts.serif(14.5, italic: true))
                             .foregroundStyle(Palette.muted)
-                            .lineSpacing(3)
+                            .lineSpacing(4)
                     }
                     .padding(.leading, 10)
                     .overlay(alignment: .leading) { Rectangle().fill(Palette.ac).frame(width: 2) }
@@ -336,7 +368,7 @@ private struct PassRow: View {
                 }
             }
         }
-        .padding(.vertical, 12)
+        .padding(.vertical, 14)
         .frame(maxWidth: .infinity, alignment: .leading)
         .overlay(alignment: .bottom) { HairlineRule(color: Palette.line2) }
     }
