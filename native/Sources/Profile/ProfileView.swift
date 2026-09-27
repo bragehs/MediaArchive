@@ -51,24 +51,7 @@ struct ProfileView: View {
         TimeSpentHero(snapshot: snapshot)
 
         if !snapshot.hallOfFame.isEmpty {
-            SectionHead("Hall of fame")
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 9), count: 4), spacing: 9) {
-                ForEach(snapshot.hallOfFame, id: \.userMediaItemId) { fame in
-                    Button { openItem(fame.userMediaItemId) } label: {
-                        CoverTile(url: fame.imageUrl, title: fame.title, radius: 7)
-                            .overlay(alignment: .bottomTrailing) {
-                                Text(fame.isFavorite ? "♥" : "★ \(stars(Double(fame.rating)))")
-                                    .font(Fonts.display(9, bold: true))
-                                    .foregroundStyle(Palette.ac2)
-                                    .padding(.horizontal, 5)
-                                    .padding(.vertical, 2)
-                                    .background(Color.black.opacity(0.82), in: RoundedRectangle(cornerRadius: 5))
-                                    .padding(4)
-                            }
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
+            HallOfFame(items: snapshot.hallOfFame)
         }
 
         if !snapshot.universes.isEmpty || !snapshot.canon.isEmpty {
@@ -127,5 +110,51 @@ private struct PortalRow: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+    }
+}
+
+// The best of everything logged, gilded: marigold is the app's gold.
+private struct HallOfFame: View {
+    let items: [FameItem]
+
+    private var gold: LinearGradient {
+        LinearGradient(colors: [Palette.ac2, Palette.ac2.opacity(0.35)], startPoint: .topLeading, endPoint: .bottomTrailing)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(alignment: .firstTextBaseline) {
+                Eyebrow("✦ Hall of fame", size: 10.5, color: Palette.ac2, tracking: 0.2)
+                Spacer()
+                Eyebrow("\(items.count) \(plural(items.count, "work"))", size: 9, color: Palette.ac2.opacity(0.7), tracking: 0.1, bold: false)
+            }
+            .padding(.bottom, 12)
+
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 3), spacing: 14) {
+                ForEach(items, id: \.userMediaItemId) { fame in
+                    Button { openItem(fame.userMediaItemId) } label: {
+                        CoverTile(url: fame.imageUrl, title: fame.title, radius: 8)
+                            .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(gold, lineWidth: 1.5))
+                            .shadow(color: Palette.ac2.opacity(0.28), radius: 12, y: 4)
+                            .overlay(alignment: .bottomLeading) {
+                                Text(fame.isFavorite ? "♥" : "★ \(stars(Double(fame.rating)))")
+                                    .font(Fonts.display(9.5, bold: true))
+                                    .foregroundStyle(Palette.onAc)
+                                    .padding(.horizontal, 7)
+                                    .padding(.vertical, 3)
+                                    .background(Palette.ac2, in: Capsule())
+                                    .padding(6)
+                            }
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+        .padding(14)
+        .background(
+            LinearGradient(colors: [Palette.ac2.opacity(0.14), Palette.ac2.opacity(0.03)], startPoint: .top, endPoint: .bottom),
+            in: RoundedRectangle(cornerRadius: 14))
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Palette.ac2.opacity(0.35), lineWidth: 1))
+        .padding(.top, 24)
     }
 }
