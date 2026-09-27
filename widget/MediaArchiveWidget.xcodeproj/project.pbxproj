@@ -12,6 +12,7 @@
 		BB0000000000000000000013 /* SessionAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000011 /* SessionAttributes.swift */; };
 		BB0000000000000000000015 /* PauseIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000014 /* PauseIntent.swift */; };
 		BB0000000000000000000017 /* PauseLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000016 /* PauseLog.swift */; };
+		BB0000000000000000000019 /* appicon.png in Resources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000018 /* appicon.png */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -23,6 +24,7 @@
 		BB0000000000000000000003 /* MediaArchiveWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = MediaArchiveWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		BB000000000000000000000E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		BB000000000000000000000F /* MediaArchiveWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MediaArchiveWidget.entitlements; sourceTree = "<group>"; };
+		BB0000000000000000000018 /* appicon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = appicon.png; path = ../MediaArchive.Mobile/Resources/AppIcon/appicon.png; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -44,6 +46,7 @@
 				BB0000000000000000000011 /* SessionAttributes.swift */,
 				BB0000000000000000000014 /* PauseIntent.swift */,
 				BB0000000000000000000016 /* PauseLog.swift */,
+				BB0000000000000000000018 /* appicon.png */,
 				BB000000000000000000000E /* Info.plist */,
 				BB000000000000000000000F /* MediaArchiveWidget.entitlements */,
 				BB0000000000000000000006 /* Products */,
@@ -67,6 +70,7 @@
 			buildPhases = (
 				BB0000000000000000000009 /* Sources */,
 				BB0000000000000000000004 /* Frameworks */,
+				BB000000000000000000001A /* Resources */,
 			);
 			buildRules = (
 			);
@@ -109,6 +113,17 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		BB000000000000000000001A /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BB0000000000000000000019 /* appicon.png in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		BB0000000000000000000009 /* Sources */ = {
