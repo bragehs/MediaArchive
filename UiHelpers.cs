@@ -105,12 +105,13 @@ public static class UiHelpers
         _ => "Minutes per episode"
     };
 
-    public static string KindLabel(DiaryEventKind kind) => kind switch
+    public static string KindLabel(ActivityKind kind) => kind switch
     {
-        DiaryEventKind.Finished => "Finished",
-        DiaryEventKind.Dropped => "Dropped",
-        DiaryEventKind.Started => "Started",
-        DiaryEventKind.Resumed => "Resumed",
+        ActivityKind.Finished => "Finished",
+        ActivityKind.Dropped => "Dropped",
+        ActivityKind.Started => "Started",
+        ActivityKind.Resumed => "Resumed",
+        ActivityKind.Sat => "Session",
         _ => "Logged"
     };
 

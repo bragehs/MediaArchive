@@ -102,7 +102,7 @@ EF Core migrations, applied on launch in `MauiProgram.cs`. Regenerate with
 ### `Services/` — the backend
 | Folder | Role |
 |---|---|
-| `Queries/` | Read models per surface: `HomeQueries`, `LibraryQueries`, `DiaryQueries`, `ProfileQueries`, `CommonQueries`, plus `EffortMath` and the widget's `WidgetQueries` |
+| `Queries/` | Read models per surface: `HomeQueries`, `LibraryQueries`, `ActivityQueries`, `ProfileQueries`, `CommonQueries`, plus `EffortMath` and the widget's `WidgetQueries` |
 | `Logging/` | `LoggingService` — open, progress, finish and resume a pass |
 | `UserItems/` | `UserItemService` — rating, favourite, classification, runtime |
 | `Import/` | `MediaImportService` and `VocabularyResolver` — provider result → rows |
@@ -120,7 +120,7 @@ native/
     ├── App/          RootView, Shell (app bar · tabs · custom tab bar), Router, Lexicon, Loadable
     ├── Theme/        Palette (generated from colors.json), Typography
     ├── Components/   CoverImage, StarRating, Blurb, VocabularyPicker, Controls, Confetti
-    ├── Home/ Explore/ Library/ Diary/ Profile/ Item/    one store + views per surface
+    ├── Home/ Explore/ Search/ Library/ Activity/ Profile/ Item/    one store + views per surface
 ```
 
 Stores are classes with identity and a lifecycle; contracts and view state are

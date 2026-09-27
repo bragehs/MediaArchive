@@ -35,7 +35,8 @@ struct HomeView: View {
     @ViewBuilder
     private func content(_ page: HomePage) -> some View {
         VStack(alignment: .leading, spacing: 0) {
-            WeekStrip(week: page.weekly)
+            Button { Router.shared.push(.activity) } label: { WeekStrip(week: page.weekly) }
+                .buttonStyle(.plain)
 
             SectionHead("Open now", right: "\(page.openNow.count) open")
             if let error = store.error {
@@ -166,14 +167,10 @@ private struct WeekStrip: View {
             }
             Spacer(minLength: 12)
             if week.sittings > 0 {
-                Aside("\(week.sittings) \(plural(week.sittings, "sitting")) · \(sat) sat", size: 11, color: Palette.muted)
+                Aside("\(week.sittings) \(plural(week.sittings, "session")) · \(duration(week.minutesSat)) sat", size: 11, color: Palette.muted)
             }
         }
         .padding(.vertical, 9)
-    }
-
-    private var sat: String {
-        week.minutesSat < 60 ? "\(week.minutesSat) min" : "\(trimmed(Double(week.minutesSat) / 60)) h"
     }
 
     private func value(_ bucket: WeeklyBucketStat) -> String {

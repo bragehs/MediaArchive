@@ -20,8 +20,6 @@ public record HomePage(
 public record ItemPage(ItemDetail Detail, List<PassSummary> History, Vocabulary Vocabulary,
     LiveSession? Live);
 
-public record DiaryIndex(List<int> Years, DiaryYear? Current);
-
 public record Created(int Id);
 
 public record TypeEntry(MediaType Value, string Label, string Unit, string RuntimeLabel,
@@ -33,7 +31,7 @@ public record ContextEntry(ConsumptionContext Value, string Label);
 
 public record DiscoveryEntry(DiscoverySource Value, string Label);
 
-public record KindEntry(DiaryEventKind Value, string Label);
+public record KindEntry(ActivityKind Value, string Label);
 
 // The UI vocabulary, served once at launch so the label tables and the
 // which-context-fits-which-type rule live in UiHelpers only.
@@ -46,10 +44,6 @@ public record Lexicon(
     List<TagFacet> Facets);
 
 public record ItemArgs(int UserMediaItemId);
-
-public record YearArgs(int Year);
-
-public record MonthArgs(int Year, int Month);
 
 public record QueryArgs(string Query);
 

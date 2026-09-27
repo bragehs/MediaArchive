@@ -1,81 +1,49 @@
 import SwiftUI
 
-// One month, day by day: milestones with a cover, the quieter ticks below.
-struct DiaryMonthView: View {
-    let year: Int
-    let month: Int
+// One day: milestones with a cover and their note, the quieter ticks below,
+// each session's minutes beside the log it produced or on its own line.
+struct ActivityDayView: View {
+    let day: ActivityDay
 
-    @State private var data: Loadable<DiaryMonthDetail> = .loading
     @Environment(\.lexicon) private var lexicon
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                Crumb("Diary", trail: data.value?.name ?? "") { dismiss() }
+                HStack(alignment: .firstTextBaseline, spacing: 10) {
+                    Text(day.date.formatted("EEEE d MMMM")).font(Fonts.title(20)).foregroundStyle(Palette.ink)
+                    Spacer()
+                    if day.minutesSat > 0 {
+                        Aside("\(duration(day.minutesSat)) sat", size: 11.5, color: Palette.muted)
+                    }
+                }
+                .padding(.bottom, 8)
+                .overlay(alignment: .bottom) { HairlineRule(height: 2) }
 
-                switch data {
-                case .loading:
-                    Aside("Loading…").padding(.vertical, 10)
-                case .failed(let message):
-                    Notice(text: message)
-                case .loaded(let detail) where detail.days.isEmpty:
-                    Aside("Nothing logged in \(detail.name) \(String(year)).").padding(.vertical, 10)
-                case .loaded(let detail):
-                    content(detail)
+                ForEach(Array(day.events.enumerated()), id: \.offset) { _, event in
+                    if event.isMilestone {
+                        milestone(event)
+                    } else {
+                        tick(title: event.title, type: event.mediaType, detail: progress(event),
+                             note: event.note, said: true, id: event.userMediaItemId)
+                    }
+                }
+
+                ForEach(Array(day.runs.enumerated()), id: \.offset) { _, run in
+                    tick(title: run.title + (run.logs > 1 ? " — logged \(run.logs)×" : ""),
+                         type: run.mediaType, detail: detail(run),
+                         note: nil, said: false, id: run.userMediaItemId)
                 }
             }
-        }
-        .page()
-        .task {
-            do {
-                data = .loaded(try await api.diaryMonth(MonthArgs(year: year, month: month)))
-            } catch {
-                data = .failed(error.localizedDescription)
-            }
+            .padding(.horizontal, 16)
+            .padding(.top, 22)
+            .padding(.bottom, 24)
         }
     }
 
-    @ViewBuilder
-    private func content(_ detail: DiaryMonthDetail) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 10) {
-            Text(detail.name).font(Fonts.title(22)).foregroundStyle(Palette.ink)
-            Spacer()
-            (Text("\(detail.logCount)").fontWeight(.bold).foregroundStyle(Palette.ink)
-                + Text(" logs · ").italic()
-                + Text("\(detail.finishedCount)").fontWeight(.bold).foregroundStyle(Palette.ink)
-                + Text(" finished").italic())
-                .font(Fonts.serif(11.5, italic: true))
-                .foregroundStyle(Palette.muted)
-        }
-        .padding(.bottom, 8)
-        .overlay(alignment: .bottom) { HairlineRule(height: 2) }
-
-        ForEach(detail.days, id: \.date) { day in
-            Eyebrow(day.date.formatted("EEE d"), size: 9, tracking: 0.16, bold: false)
-                .padding(.top, 22)
-                .padding(.bottom, 4)
-
-            ForEach(Array(day.events.enumerated()), id: \.offset) { _, event in
-                if event.isMilestone {
-                    milestone(event)
-                } else {
-                    tick(title: event.title, type: event.mediaType, detail: progress(event),
-                         note: event.note, said: true, id: event.userMediaItemId)
-                }
-            }
-
-            ForEach(Array(day.runs.enumerated()), id: \.offset) { _, run in
-                tick(title: run.title + (run.count > 1 ? " — logged \(run.count)×" : ""),
-                     type: run.mediaType,
-                     detail: "+\(trimmed(run.effortDelta)) \(lexicon.unit(run.mediaType))",
-                     note: nil, said: false, id: run.userMediaItemId)
-            }
-        }
-    }
-
-    private func milestone(_ event: DiaryEvent) -> some View {
-        Button { openItem(event.userMediaItemId) } label: {
+    private func milestone(_ event: ActivityEvent) -> some View {
+        Button { go(event.userMediaItemId) } label: {
             HStack(alignment: .top, spacing: 12) {
                 CoverImage(url: event.imageUrl, title: event.title, fallbackPadding: 4, fallbackSize: 7.5)
                     .frame(width: 46, height: 69)
@@ -108,15 +76,16 @@ struct DiaryMonthView: View {
         .buttonStyle(.plain)
     }
 
-    private func kindLine(_ event: DiaryEvent) -> String {
+    private func kindLine(_ event: ActivityEvent) -> String {
         var text = lexicon.label(event.kind)
         if event.isReread { text += " · ↻ reread" }
         if let context = event.context { text += " · " + lexicon.label(context).lowercased() }
+        if let minutes = event.minutes, minutes > 0 { text += " · \(duration(minutes))" }
         return text
     }
 
     private func tick(title: String, type: MediaType, detail: String, note: String?, said: Bool, id: Int) -> some View {
-        Button { openItem(id) } label: {
+        Button { go(id) } label: {
             VStack(alignment: .leading, spacing: 4) {
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
                     Circle().fill(Palette.accent(type)).frame(width: 6, height: 6).offset(y: -1)
@@ -140,13 +109,27 @@ struct DiaryMonthView: View {
         .buttonStyle(.plain)
     }
 
-    private func progress(_ event: DiaryEvent) -> String {
+    private func progress(_ event: ActivityEvent) -> String {
         let unit = lexicon.unit(event.mediaType)
         var parts: [String] = []
         if let delta = event.effortDelta, delta > 0 { parts.append("+\(trimmed(delta)) \(unit)") }
         if let at = event.effortAtTime {
             parts.append("→ \(trimmed(at))" + (event.length.map { "/\($0)" } ?? ""))
         }
+        if let minutes = event.minutes, minutes > 0 { parts.append("· \(duration(minutes))") }
         return parts.joined(separator: " ")
+    }
+
+    private func detail(_ run: ActivityRun) -> String {
+        var parts: [String] = []
+        if run.effortDelta > 0 { parts.append("+\(trimmed(run.effortDelta)) \(lexicon.unit(run.mediaType))") }
+        if run.minutesSat > 0 { parts.append(duration(run.minutesSat)) }
+        if run.logs == 0 { parts.append("not logged") }
+        return parts.joined(separator: " · ")
+    }
+
+    private func go(_ id: Int) {
+        dismiss()
+        openItem(id)
     }
 }

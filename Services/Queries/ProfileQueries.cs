@@ -209,7 +209,7 @@ public class ProfileQueries(IDbContextFactory<AppDbContext> dbContextFactory)
         .ThenByDescending(c => c.AvgRating ?? 0)
         .ToList();
 
-    // A "log" here matches the Diary's event grammar: a start, a finish, and
+    // A "log" here matches the activity calendar's event grammar: a start, a finish, and
     // every progress note each count once, on their own dates.
     private static MonthRecord? BuildBusiestMonth(List<UserMediaItem> items)
     {
