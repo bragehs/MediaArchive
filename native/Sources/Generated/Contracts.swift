@@ -421,6 +421,13 @@ struct PassNote: Codable, Hashable, Sendable {
     var text: String?
 }
 
+struct PassSession: Codable, Hashable, Sendable {
+    var day: DateOnly
+    var minutes: Int
+    var pausedMinutes: Int
+    var logged: Bool
+}
+
 struct PassStart: Codable, Hashable, Sendable {
     var startDate: DateOnly?
     var context: ConsumptionContext?
@@ -436,6 +443,8 @@ struct PassSummary: Codable, Hashable, Sendable {
     var effort: Int?
     var context: ConsumptionContext?
     var notes: [PassNote]
+    var sessions: [PassSession]
+    var minutesSat: Int
 }
 
 struct ProfileSnapshot: Codable, Hashable, Sendable {

@@ -53,6 +53,9 @@ public record ItemDetail(
 
 public record PassNote(DateTime CreatedAt, NoteKind Kind, int? EffortAtTime, string? Text);
 
+// Logged is whether the sitting resolved into a note; its minutes are net of pauses.
+public record PassSession(DateOnly Day, int Minutes, int PausedMinutes, bool Logged);
+
 public record PassSummary(
     int EntryId,
     DateOnly? StartDate,
@@ -61,7 +64,9 @@ public record PassSummary(
     int? RatingAtTime,
     int? Effort,
     ConsumptionContext? Context,
-    List<PassNote> Notes);
+    List<PassNote> Notes,
+    List<PassSession> Sessions,
+    int MinutesSat);
 
 public class CommonQueries(IDbContextFactory<AppDbContext> dbContextFactory)
 {
@@ -214,18 +219,31 @@ public class CommonQueries(IDbContextFactory<AppDbContext> dbContextFactory)
         var entries = await db.ConsumptionEntries
             .Where(e => e.UserMediaItemId == userMediaItemId)
             .Include(e => e.Notes)
+            .Include(e => e.Sessions)
             .OrderByDescending(e => e.StartDate)
             .ThenByDescending(e => e.Id)
+            .AsSplitQuery()
             .AsNoTracking()
             .ToListAsync(ct);
 
         return entries
-            .Select(e => new PassSummary(
-                e.Id, e.StartDate, e.EndDate, e.Outcome, e.RatingAtTime, e.Effort, e.Context,
-                e.Notes
-                    .OrderBy(n => n.CreatedAt)
-                    .Select(n => new PassNote(n.CreatedAt, n.Kind, n.EffortAtTime, n.Text))
-                    .ToList()))
+            .Select(e =>
+            {
+                var sessions = e.Sessions
+                    .Where(s => s.EndedAt != null)
+                    .OrderByDescending(s => s.StartedAt)
+                    .Select(s => new PassSession(EffortMath.LocalDay(s.StartedAt), s.Minutes ?? 0,
+                        s.PausedMinutes, s.EntryNoteId != null))
+                    .ToList();
+                return new PassSummary(
+                    e.Id, e.StartDate, e.EndDate, e.Outcome, e.RatingAtTime, e.Effort, e.Context,
+                    e.Notes
+                        .OrderBy(n => n.CreatedAt)
+                        .Select(n => new PassNote(n.CreatedAt, n.Kind, n.EffortAtTime, n.Text))
+                        .ToList(),
+                    sessions,
+                    sessions.Sum(s => s.Minutes));
+            })
             .ToList();
     }
 }

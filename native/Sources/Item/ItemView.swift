@@ -101,7 +101,8 @@ struct ItemView: View {
     @ViewBuilder
     private func overview(_ item: ItemDetail, unit: String) -> some View {
         if let open = item.openPass {
-            openPass(open, item: item, unit: unit)
+            openPass(open, item: item, unit: unit,
+                     pass: store.page.value?.history.first { $0.entryId == open.entryId })
         } else if store.form != .none {
             passForm(item)
         } else {
@@ -201,17 +202,20 @@ struct ItemView: View {
         .padding(.top, 18)
     }
 
-    private func openPassLine(_ open: OpenPassSummary, unit: String) -> String {
+    private func openPassLine(_ open: OpenPassSummary, unit: String, pass: PassSummary?) -> String {
         var line = "In progress since \(open.startDate?.formatted("d MMM") ?? "—")"
         if let effort = open.effort {
             line += " · \(effort) \(unit)" + (open.progress.map { " (\(Int($0.rounded()))%)" } ?? "")
+        }
+        if let pass, !pass.sessions.isEmpty {
+            line += " · \(duration(pass.minutesSat)) sat over \(pass.sessions.count) \(plural(pass.sessions.count, "session"))"
         }
         return line
     }
 
     @ViewBuilder
-    private func openPass(_ open: OpenPassSummary, item: ItemDetail, unit: String) -> some View {
-        Aside(openPassLine(open, unit: unit), size: 12).padding(.top, 16)
+    private func openPass(_ open: OpenPassSummary, item: ItemDetail, unit: String, pass: PassSummary?) -> some View {
+        Aside(openPassLine(open, unit: unit, pass: pass), size: 12).padding(.top, 16)
         if let progress = open.progress {
             ProgressBar(percent: progress, height: 5).padding(.top, 8)
         }
@@ -353,6 +357,7 @@ private struct PassRow: View {
                     .foregroundStyle(Palette.ac2)
                     .padding(.top, 6)
             }
+            Aside(stats, size: 11.5, color: Palette.muted).padding(.top, 6)
             ForEach(Array(pass.notes.enumerated()), id: \.offset) { _, note in
                 if let text = note.text, !text.trimmingCharacters(in: .whitespaces).isEmpty {
                     VStack(alignment: .leading, spacing: 2) {
@@ -367,10 +372,39 @@ private struct PassRow: View {
                     .padding(.top, 8)
                 }
             }
+            ForEach(Array(pass.sessions.enumerated()), id: \.offset) { index, session in
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Circle().fill(session.logged ? Palette.ac2 : Palette.line2).frame(width: 5, height: 5).offset(y: -1)
+                    Eyebrow(session.day.formatted("EEE d MMM"), size: 9, tracking: 0.1, bold: false)
+                    Spacer(minLength: 6)
+                    Aside(sessionLine(session), size: 11)
+                }
+                .padding(.top, index == 0 ? 10 : 5)
+            }
         }
         .padding(.vertical, 14)
         .frame(maxWidth: .infinity, alignment: .leading)
         .overlay(alignment: .bottom) { HairlineRule(color: Palette.line2) }
+    }
+
+    // Logs and sessions are two counts; the minutes are measured, the effort is not.
+    private var stats: String {
+        var parts = ["\(pass.notes.count) \(plural(pass.notes.count, "log"))"]
+        if !pass.sessions.isEmpty {
+            parts.append("\(pass.sessions.count) \(plural(pass.sessions.count, "session"))")
+            parts.append("\(duration(pass.minutesSat)) sat")
+            if pass.sessions.count > 1 {
+                parts.append("avg \(duration(pass.minutesSat / pass.sessions.count))")
+            }
+        }
+        return parts.joined(separator: " · ")
+    }
+
+    private func sessionLine(_ session: PassSession) -> String {
+        var text = duration(session.minutes)
+        if session.pausedMinutes > 0 { text += " · \(session.pausedMinutes) paused" }
+        text += session.logged ? " · logged" : " · not logged"
+        return text
     }
 
     private var meta: String {
