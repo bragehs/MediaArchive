@@ -21,7 +21,7 @@ struct ActivityDayView: View {
                 .padding(.bottom, 8)
                 .overlay(alignment: .bottom) { HairlineRule(height: 2) }
 
-                ForEach(Array(day.events.enumerated()), id: \.offset) { _, event in
+                ForEach(Array(events.enumerated()), id: \.offset) { _, event in
                     if event.isMilestone {
                         milestone(event)
                     } else {
@@ -35,12 +35,20 @@ struct ActivityDayView: View {
                          type: run.mediaType, detail: detail(run),
                          note: nil, said: false, id: run.userMediaItemId)
                 }
+
+                ForEach(Array(drops.enumerated()), id: \.offset) { _, event in
+                    milestone(event)
+                }
             }
             .padding(.horizontal, 16)
             .padding(.top, 22)
             .padding(.bottom, 24)
         }
     }
+
+    // Drops come after everything the day did, even a silent log.
+    private var events: [ActivityEvent] { day.events.filter { $0.kind != .dropped } }
+    private var drops: [ActivityEvent] { day.events.filter { $0.kind == .dropped } }
 
     private func milestone(_ event: ActivityEvent) -> some View {
         Button { go(event.userMediaItemId) } label: {

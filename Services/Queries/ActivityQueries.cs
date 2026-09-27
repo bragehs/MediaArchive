@@ -194,13 +194,14 @@ public class ActivityQueries(IDbContextFactory<AppDbContext> dbContextFactory)
         .OrderBy(n => n.CreatedAt)
         .FirstOrDefault();
 
+    // A drop is the quiet event: anything else done that day takes the cover.
     private static int KindRank(ActivityKind kind) => kind switch
     {
         ActivityKind.Finished => 0,
-        ActivityKind.Dropped => 1,
-        ActivityKind.Started => 2,
-        ActivityKind.Resumed => 3,
-        ActivityKind.Progress => 4,
+        ActivityKind.Started => 1,
+        ActivityKind.Resumed => 2,
+        ActivityKind.Progress => 3,
+        ActivityKind.Sat => 4,
         _ => 5
     };
 
