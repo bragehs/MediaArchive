@@ -3,6 +3,15 @@
 
 import Foundation
 
+enum ActivityKind: String, Codable, Hashable, Sendable, CaseIterable {
+    case started = "Started"
+    case resumed = "Resumed"
+    case progress = "Progress"
+    case finished = "Finished"
+    case dropped = "Dropped"
+    case sat = "Sat"
+}
+
 enum ConsumptionContext: String, Codable, Hashable, Sendable, CaseIterable {
     case print = "Print"
     case ebook = "Ebook"
@@ -24,14 +33,6 @@ enum CreditRole: String, Codable, Hashable, Sendable, CaseIterable {
     case director = "Director"
     case screenplay = "Screenplay"
     case studio = "Studio"
-}
-
-enum DiaryEventKind: String, Codable, Hashable, Sendable, CaseIterable {
-    case started = "Started"
-    case resumed = "Resumed"
-    case progress = "Progress"
-    case finished = "Finished"
-    case dropped = "Dropped"
 }
 
 enum DiscoverySource: String, Codable, Hashable, Sendable, CaseIterable {
@@ -86,6 +87,60 @@ enum TagFacet: String, Codable, Hashable, Sendable, CaseIterable {
     case pacing = "Pacing"
 }
 
+struct ActivityCalendar: Codable, Hashable, Sendable {
+    var months: [ActivityMonth]
+}
+
+struct ActivityDay: Codable, Hashable, Sendable {
+    var date: DateOnly
+    var imageUrl: String?
+    var title: String
+    var loudest: ActivityKind
+    var items: Int
+    var minutesSat: Int
+    var events: [ActivityEvent]
+    var runs: [ActivityRun]
+}
+
+struct ActivityEvent: Codable, Hashable, Sendable {
+    var userMediaItemId: Int
+    var title: String
+    var mediaType: MediaType
+    var imageUrl: String?
+    var kind: ActivityKind
+    var date: DateOnly
+    var note: String?
+    var rating: Int?
+    var context: ConsumptionContext?
+    var effortDelta: Double?
+    var effortAtTime: Double?
+    var length: Int?
+    var isReread: Bool
+    var minutes: Int?
+    var isMilestone: Bool
+    var isSilent: Bool
+}
+
+struct ActivityMonth: Codable, Hashable, Sendable {
+    var year: Int
+    var month: Int
+    var name: String
+    var logs: Int
+    var finished: Int
+    var minutesSat: Int
+    var days: [ActivityDay]
+}
+
+struct ActivityRun: Codable, Hashable, Sendable {
+    var userMediaItemId: Int
+    var title: String
+    var mediaType: MediaType
+    var imageUrl: String?
+    var logs: Int
+    var effortDelta: Double
+    var minutesSat: Int
+}
+
 struct AddItemArgs: Codable, Hashable, Sendable {
     var item: MediaItemDto
     var details: WorkDetails
@@ -127,75 +182,6 @@ struct CreatorLine: Codable, Hashable, Sendable {
 struct CreditDto: Codable, Hashable, Sendable {
     var name: String
     var role: CreditRole
-}
-
-struct DiaryDay: Codable, Hashable, Sendable {
-    var date: DateOnly
-    var events: [DiaryEvent]
-    var runs: [DiaryRun]
-}
-
-struct DiaryEvent: Codable, Hashable, Sendable {
-    var userMediaItemId: Int
-    var title: String
-    var mediaType: MediaType
-    var imageUrl: String?
-    var kind: DiaryEventKind
-    var date: DateOnly
-    var note: String?
-    var rating: Int?
-    var context: ConsumptionContext?
-    var effortDelta: Double?
-    var effortAtTime: Double?
-    var length: Int?
-    var isReread: Bool
-    var isMilestone: Bool
-    var isSilent: Bool
-}
-
-struct DiaryIndex: Codable, Hashable, Sendable {
-    var years: [Int]
-    var current: DiaryYear?
-}
-
-struct DiaryMonthDetail: Codable, Hashable, Sendable {
-    var year: Int
-    var month: Int
-    var name: String
-    var logCount: Int
-    var finishedCount: Int
-    var days: [DiaryDay]
-}
-
-struct DiaryMonthSummary: Codable, Hashable, Sendable {
-    var month: Int
-    var name: String
-    var logCount: Int
-    var finishedCount: Int
-    var touched: [DiaryTouch]
-}
-
-struct DiaryRun: Codable, Hashable, Sendable {
-    var userMediaItemId: Int
-    var title: String
-    var mediaType: MediaType
-    var from: DateOnly
-    var to: DateOnly
-    var count: Int
-    var effortDelta: Double
-}
-
-struct DiaryTouch: Codable, Hashable, Sendable {
-    var userMediaItemId: Int
-    var title: String
-    var imageUrl: String?
-    var mediaType: MediaType
-    var kind: DiaryEventKind
-}
-
-struct DiaryYear: Codable, Hashable, Sendable {
-    var year: Int
-    var months: [DiaryMonthSummary]
 }
 
 struct DiscoveryEntry: Codable, Hashable, Sendable {
@@ -301,7 +287,7 @@ struct JustClosedItem: Codable, Hashable, Sendable {
 }
 
 struct KindEntry: Codable, Hashable, Sendable {
-    var value: DiaryEventKind
+    var value: ActivityKind
     var label: String
 }
 
@@ -376,11 +362,6 @@ struct MediaSearchResultDto: Codable, Hashable, Sendable {
     var imageUrl: String?
     var releaseDate: DateOnly?
     var releaseYear: Int?
-}
-
-struct MonthArgs: Codable, Hashable, Sendable {
-    var year: Int
-    var month: Int
 }
 
 struct MonthRecord: Codable, Hashable, Sendable {
@@ -649,10 +630,6 @@ struct WorkDetails: Codable, Hashable, Sendable {
     var audioHours: Double?
 }
 
-struct YearArgs: Codable, Hashable, Sendable {
-    var year: Int
-}
-
 struct YearBucket: Codable, Hashable, Sendable {
     var year: Int
     var value: Double
@@ -665,9 +642,7 @@ struct Api {
     func backlog() async throws -> [CoverCard] { try await backend.call("backlog", NoArgs()) }
     func library() async throws -> [LibraryItem] { try await backend.call("library", NoArgs()) }
     func searchLibrary(_ args: QueryArgs) async throws -> [LibraryItem] { try await backend.call("library/search", args) }
-    func diary() async throws -> DiaryIndex { try await backend.call("diary", NoArgs()) }
-    func diaryYear(_ args: YearArgs) async throws -> DiaryYear { try await backend.call("diary/year", args) }
-    func diaryMonth(_ args: MonthArgs) async throws -> DiaryMonthDetail { try await backend.call("diary/month", args) }
+    func activity() async throws -> ActivityCalendar { try await backend.call("activity", NoArgs()) }
     func profile() async throws -> ProfileSnapshot { try await backend.call("profile", NoArgs()) }
     func item(_ args: ItemArgs) async throws -> ItemPage { try await backend.call("item", args) }
     func entryEffort(_ args: EntryArgs) async throws -> EntryEffort { try await backend.call("entry/effort", args) }

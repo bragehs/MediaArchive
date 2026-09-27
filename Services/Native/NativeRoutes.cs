@@ -43,18 +43,7 @@ public static class NativeRoutes
         Get<QueryArgs, List<LibraryItem>>("library/search", "searchLibrary",
             (sp, a) => sp.GetRequiredService<LibraryQueries>().SearchArchiveAsync(a.Query)),
 
-        Get("diary", "diary", async sp =>
-        {
-            var diary = sp.GetRequiredService<DiaryQueries>();
-            var years = await diary.GetYearsAsync();
-            return new DiaryIndex(years, years.Count > 0 ? await diary.GetYearAsync(years[0]) : null);
-        }),
-
-        Get<YearArgs, DiaryYear>("diary/year", "diaryYear",
-            (sp, a) => sp.GetRequiredService<DiaryQueries>().GetYearAsync(a.Year)),
-
-        Get<MonthArgs, DiaryMonthDetail>("diary/month", "diaryMonth",
-            (sp, a) => sp.GetRequiredService<DiaryQueries>().GetMonthAsync(a.Year, a.Month)),
+        Get("activity", "activity", sp => sp.GetRequiredService<ActivityQueries>().GetCalendarAsync()),
 
         Get("profile", "profile", sp => sp.GetRequiredService<ProfileQueries>().GetSnapshotAsync()),
 
@@ -159,6 +148,6 @@ public static class NativeRoutes
         [.. Enum.GetValues<MediaStatus>().Select(s => new StatusEntry(s, UiHelpers.StatusLabel(s), UiHelpers.StatusGlyph(s)))],
         [.. Enum.GetValues<ConsumptionContext>().Select(c => new ContextEntry(c, UiHelpers.ContextLabel(c)))],
         [.. Enum.GetValues<DiscoverySource>().Select(d => new DiscoveryEntry(d, UiHelpers.DiscoveryLabel(d)))],
-        [.. Enum.GetValues<DiaryEventKind>().Select(k => new KindEntry(k, UiHelpers.KindLabel(k)))],
+        [.. Enum.GetValues<ActivityKind>().Select(k => new KindEntry(k, UiHelpers.KindLabel(k)))],
         [.. Enum.GetValues<TagFacet>()]);
 }

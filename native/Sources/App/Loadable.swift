@@ -36,6 +36,11 @@ func grouped(_ value: Double) -> String {
     return formatter.string(from: NSNumber(value: value)) ?? String(Int(value))
 }
 
+// "42 min" under an hour, "2.5 h" past it.
+func duration(_ minutes: Int) -> String {
+    minutes < 60 ? "\(minutes) min" : "\(trimmed(Double(minutes) / 60)) h"
+}
+
 // Ratings live on /10 in the model; the app speaks stars.
 func stars(_ tenScale: Double) -> String { trimmed(tenScale / 2) }
 

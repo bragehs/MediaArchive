@@ -27,7 +27,7 @@ extension Lexicon {
         discovery.first { $0.value == source }?.label ?? source.rawValue
     }
 
-    func label(_ kind: DiaryEventKind) -> String {
+    func label(_ kind: ActivityKind) -> String {
         kinds.first { $0.value == kind }?.label ?? kind.rawValue
     }
 }

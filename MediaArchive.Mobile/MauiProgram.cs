@@ -97,7 +97,7 @@ public static class MauiProgram
         builder.Services.AddScoped<HomeQueries>();
         builder.Services.AddScoped<LibraryQueries>();
         builder.Services.AddScoped<ProfileQueries>();
-        builder.Services.AddScoped<DiaryQueries>();
+        builder.Services.AddScoped<ActivityQueries>();
 
         builder.Services.AddSingleton<DeepLinkService>();
 

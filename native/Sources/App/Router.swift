@@ -21,7 +21,7 @@ enum AppTab: String, CaseIterable, Hashable {
 
 enum Route: Hashable {
     case item(Int, log: Bool = false)
-    case diaryMonth(year: Int, month: Int)
+    case activity
     case onDeck
     case constellation
     case universes
