@@ -31,6 +31,21 @@ public class EffortMathTests
     }
 
     [Fact]
+    public void Walk_CountsTheFinishStep_WhetherOrNotItWasSaid()
+    {
+        var entry = new ConsumptionEntry
+        {
+            Notes =
+            [
+                new EntryNote { Kind = NoteKind.Progress, EffortAtTime = 14, CreatedAt = new DateTime(2026, 9, 19) },
+                new EntryNote { Kind = NoteKind.Finish, EffortAtTime = 19, Text = null, CreatedAt = new DateTime(2026, 9, 27) }
+            ]
+        };
+
+        Assert.Equal([14, 5], EffortMath.Walk(entry).Select(s => s.Delta));
+    }
+
+    [Fact]
     public void ToMinutes_AppliesTheTypesConstant()
     {
         var book = new Book { Title = "The Final Empire", PageCount = 669 };
