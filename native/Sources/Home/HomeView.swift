@@ -166,11 +166,19 @@ private struct WeekStrip: View {
                 }
             }
             Spacer(minLength: 12)
-            if week.sittings > 0 {
-                Aside("\(week.sittings) \(plural(week.sittings, "session")) · \(duration(week.minutesSat)) sat", size: 11, color: Palette.muted)
-            }
+            Aside(line, size: 11, color: Palette.muted)
         }
         .padding(.vertical, 9)
+    }
+
+    // Leads with the days so the dots and the words agree.
+    private var line: String {
+        var parts = ["\(week.activeDays.count) \(plural(week.activeDays.count, "day"))"]
+        if week.sittings > 0 {
+            parts.append("\(week.sittings) \(plural(week.sittings, "session"))")
+            parts.append("\(duration(week.minutesSat)) sat")
+        }
+        return parts.joined(separator: " · ")
     }
 
     private func value(_ bucket: WeeklyBucketStat) -> String {
