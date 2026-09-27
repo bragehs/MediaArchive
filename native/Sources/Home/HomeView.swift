@@ -70,9 +70,19 @@ struct HomeView: View {
             }
 
             SectionHead("On deck")
+                .overlay(alignment: .topTrailing) {
+                    if !page.onDeck.isEmpty {
+                        Button { Router.shared.push(.onDeck) } label: {
+                            Eyebrow("See all \(page.onDeck.count) →", size: 9, color: Palette.ac, tracking: 0.1)
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.top, 24)
+                    }
+                }
             if page.onDeck.isEmpty {
                 Aside("Nothing lined up.").padding(.vertical, 10)
             } else {
+                // One rail, never more; the rest is a screen away.
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 11) {
                         ForEach(page.onDeck.prefix(onDeckCap)) { card in
@@ -80,12 +90,6 @@ struct HomeView: View {
                                 CoverTile(url: card.imageUrl, title: card.title, width: 82)
                             }
                             .buttonStyle(.plain)
-                        }
-                        if page.onDeck.count > onDeckCap {
-                            Text("+\(page.onDeck.count - onDeckCap)")
-                                .font(Fonts.display(13, bold: true))
-                                .foregroundStyle(Palette.ac)
-                                .padding(.horizontal, 6)
                         }
                     }
                     .padding(.bottom, 6)

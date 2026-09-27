@@ -48,6 +48,7 @@ struct Shell: View {
         switch route {
         case .item(let id, let log): ItemView(userMediaItemId: id, openLog: log)
         case .diaryMonth(let year, let month): DiaryMonthView(year: year, month: month)
+        case .onDeck: OnDeckView()
         case .constellation: ConstellationView()
         case .universes: UniversesView()
         case .creators: CreatorsView()
