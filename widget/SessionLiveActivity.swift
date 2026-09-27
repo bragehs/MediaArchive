@@ -42,7 +42,7 @@ struct SessionLiveActivity: Widget {
                     .padding(.top, 4)
                 }
             } compactLeading: {
-                SessionCover(attributes: context.attributes, width: 11)
+                AppMark(size: 14)
             } compactTrailing: {
                 // Leading-aligned so the digits sit right of the sensor, like a system timer.
                 CompactClock(context: context, size: 14, width: 34)
@@ -118,11 +118,11 @@ private struct SessionClock: View {
                 if let pausedAt = context.state.pausedAt, pausedAt >= end {
                     Text("0:00").foregroundStyle(Palette.dim)
                 } else {
-                    Text(timerInterval: context.state.anchor...end, pauseTime: context.state.pausedAt, countsDown: true)
+                    Text(timerInterval: context.state.anchor...end, pauseTime: context.state.pausedAt, countsDown: true, showsHours: false)
                         .foregroundStyle(color(running: accent(context.attributes.kind)))
                 }
             } else {
-                Text(timerInterval: context.state.anchor...Date.distantFuture, pauseTime: context.state.pausedAt, countsDown: false)
+                Text(timerInterval: context.state.anchor...Date.distantFuture, pauseTime: context.state.pausedAt, countsDown: false, showsHours: false)
                     .foregroundStyle(color(running: Palette.ink))
             }
         }
@@ -151,10 +151,10 @@ private struct CompactClock: View {
                 if let pausedAt = context.state.pausedAt, pausedAt >= end {
                     Text("0:00")
                 } else {
-                    Text(timerInterval: context.state.anchor...end, pauseTime: context.state.pausedAt, countsDown: true)
+                    Text(timerInterval: context.state.anchor...end, pauseTime: context.state.pausedAt, countsDown: true, showsHours: false)
                 }
             } else {
-                Text(timerInterval: context.state.anchor...Date.distantFuture, pauseTime: context.state.pausedAt, countsDown: false)
+                Text(timerInterval: context.state.anchor...Date.distantFuture, pauseTime: context.state.pausedAt, countsDown: false, showsHours: false)
             }
         }
         .font(.system(size: size, weight: .semibold, design: .rounded))
@@ -208,6 +208,27 @@ private struct SessionCover: View {
                 )
         }
     }
+}
+
+// The app's own icon, for the slot where a cover would be too small to read.
+private struct AppMark: View {
+    let size: CGFloat
+
+    var body: some View {
+        if let image = appIcon() {
+            Image(uiImage: image)
+                .resizable()
+                .frame(width: size, height: size)
+                .clipShape(RoundedRectangle(cornerRadius: size * 0.22))
+        } else {
+            Circle().fill(Palette.ac).frame(width: size, height: size)
+        }
+    }
+}
+
+private func appIcon() -> UIImage? {
+    guard let path = Bundle.main.path(forResource: "appicon", ofType: "png") else { return nil }
+    return UIImage(contentsOfFile: path)?.preparingThumbnail(of: CGSize(width: 96, height: 96))
 }
 
 private func target(_ context: ActivityViewContext<SessionAttributes>) -> Date? {
