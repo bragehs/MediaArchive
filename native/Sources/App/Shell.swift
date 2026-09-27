@@ -72,6 +72,7 @@ extension View {
             .contentMargins(.horizontal, 16, for: .scrollContent)
             .contentMargins(.top, 2, for: .scrollContent)
             .contentMargins(.bottom, 24, for: .scrollContent)
+            .modifier(ThinScroller())
     }
 }
 
@@ -116,5 +117,46 @@ extension View {
         } else {
             self
         }
+    }
+}
+
+// The system's indicator is as long as the page is short; this one is a small
+// pill in the gutter that follows the scroll and fades a moment after it stops.
+private struct ThinScroller: ViewModifier {
+    private let height: CGFloat = 28
+    private let inset: CGFloat = 6
+
+    @State private var fraction: CGFloat = 0
+    @State private var scrollable = false
+    @State private var visible = false
+    @State private var fade: Task<Void, Never>?
+
+    func body(content: Content) -> some View {
+        content
+            .scrollIndicators(.hidden)
+            .onScrollGeometryChange(for: ScrollGeometry.self) { $0 } action: { _, geometry in
+                let travel = geometry.contentSize.height + geometry.contentInsets.top + geometry.contentInsets.bottom
+                    - geometry.containerSize.height
+                scrollable = travel > 1
+                guard scrollable else { return }
+                fraction = min(max((geometry.contentOffset.y + geometry.contentInsets.top) / travel, 0), 1)
+                visible = true
+                fade?.cancel()
+                fade = Task {
+                    try? await Task.sleep(for: .seconds(1.2))
+                    guard !Task.isCancelled else { return }
+                    withAnimation(.easeOut(duration: 0.35)) { visible = false }
+                }
+            }
+            .overlay(alignment: .topTrailing) {
+                GeometryReader { geo in
+                    Capsule()
+                        .fill(Palette.dim.opacity(0.75))
+                        .frame(width: 3, height: height)
+                        .offset(x: geo.size.width - inset, y: inset + fraction * (geo.size.height - height - inset * 2))
+                        .opacity(visible && scrollable ? 1 : 0)
+                }
+                .allowsHitTesting(false)
+            }
     }
 }
