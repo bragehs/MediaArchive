@@ -1,68 +1,45 @@
 import SwiftUI
 
-// Two jobs that are both "what next?": find something new, or pick from the backlog.
+// The search tab: the system field rises out of the tab bar with the type as its
+// scope; a submitted search lists results, and a picked result hands over to
+// the add flow.
 struct SearchView: View {
-    private enum Mode: Hashable { case search, upNext }
-
-    @State private var mode: Mode = .search
     @State private var add = AddStore()
-    @State private var upNext: Loadable<[CoverCard]>?
+    @FocusState private var focused: Bool
+    @Environment(\.lexicon) private var lexicon
+
+    private var router: Router { Router.shared }
+
+    private var scope: Binding<MediaType> {
+        Binding(get: { add.mediaType }, set: { type in Task { await add.setType(type) } })
+    }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                SegmentedPills(options: [.search, .upNext], selection: $mode) { $0 == .search ? "Search" : "Up next" }
-                    .padding(.top, 4)
-                    .padding(.bottom, 14)
-
-                switch mode {
-                case .search:
+                // The type is picked up here, in view above the keyboard: the system's
+                // search scopes hang off the navigation bar, which this shell hides.
+                if add.selected == nil {
+                    SegmentedPills(options: MediaType.allCases, selection: scope) { lexicon.label($0) }
+                        .padding(.top, 4)
+                        .padding(.bottom, 6)
+                }
+                if add.searching || add.searched || add.selected != nil {
                     AddFlowView(store: add)
-                case .upNext:
-                    backlog
+                } else {
+                    Aside("A title or an author, then Return.")
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 24)
                 }
             }
         }
         .page()
         .scrollDismissesKeyboard(.interactively)
-        .onChange(of: mode) { if mode == .upNext { Task { await loadUpNext() } } }
-    }
-
-    @ViewBuilder
-    private var backlog: some View {
-        switch upNext {
-        case nil, .loading:
-            Aside("Loading…").frame(maxWidth: .infinity).padding(.vertical, 24)
-        case .failed(let message):
-            Notice(text: message)
-        case .loaded(let cards) where cards.isEmpty:
-            Aside("Nothing lined up yet.").frame(maxWidth: .infinity).padding(.vertical, 24)
-        case .loaded(let cards):
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 3), alignment: .leading, spacing: 14) {
-                ForEach(cards) { card in
-                    Button { openItem(card.userMediaItemId) } label: {
-                        VStack(alignment: .leading, spacing: 7) {
-                            CoverTile(url: card.imageUrl, title: card.title)
-                            Text(card.title)
-                                .font(Fonts.title(12))
-                                .foregroundStyle(Palette.ink)
-                                .multilineTextAlignment(.leading)
-                                .lineLimit(2)
-                        }
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-            .padding(.bottom, 8)
-        }
-    }
-
-    private func loadUpNext() async {
-        if upNext?.value == nil { upNext = .loading }
-        do {
-            upNext = .loaded(try await api.backlog())
-        } catch {
-            upNext = .failed(error.localizedDescription)
-        }
+        .searchable(text: $add.query, prompt: "Title or author")
+        .searchFocused($focused)
+        .onSubmit(of: .search) { Task { await add.runSearch() } }
+        .onChange(of: add.query) { if add.query.isEmpty { add.clearResults() } }
+        .onAppear { focused = true }
+        .onChange(of: router.selected) { if router.selected == .search { focused = true } }
     }
 }

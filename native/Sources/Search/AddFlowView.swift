@@ -1,7 +1,7 @@
 import SwiftUI
 
-// Search → the work → the form, each its own screen, the header chevron
-// popping one level. Embedded in Explore.
+// The work → the form, each its own screen, the header chevron popping one
+// level. The search field itself is the Search tab's system field.
 struct AddFlowView: View {
     @Bindable var store: AddStore
     @Environment(\.lexicon) private var lexicon
@@ -49,27 +49,6 @@ struct AddFlowView: View {
 
     @ViewBuilder
     private var searchScreen: some View {
-        HStack(spacing: 9) {
-            Text("⌕").font(.system(size: 15, weight: .bold)).foregroundStyle(Palette.dim)
-            TextField("Title or author, then Enter…", text: $store.query)
-                .font(Fonts.display(14))
-                .foregroundStyle(Palette.ink)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-                .submitLabel(.search)
-                .onSubmit { Task { await store.runSearch() } }
-        }
-        .padding(.horizontal, 13)
-        .padding(.vertical, 11)
-        .background(Palette.well, in: RoundedRectangle(cornerRadius: 12))
-        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Palette.line, lineWidth: 1))
-        .padding(.top, 8)
-
-        SegmentedPills(options: MediaType.allCases, selection: Binding(
-            get: { store.mediaType },
-            set: { type in Task { await store.setType(type) } })) { lexicon.label($0) }
-            .padding(.top, 11)
-
         if let saved = store.savedMessage {
             Notice(text: saved, kind: .good, trailing: store.savedItemId.map { id in
                 AnyView(Button("Open it →") { openItem(id) }

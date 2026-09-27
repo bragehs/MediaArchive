@@ -226,6 +226,13 @@ final class AddStore {
         }
     }
 
+    // The field was cleared: the page goes back to the backlog.
+    func clearResults() {
+        results = []
+        searched = false
+        error = nil
+    }
+
     func reset() {
         selected = nil
         detail = nil
