@@ -627,6 +627,9 @@ struct WeeklyActivity: Codable, Hashable, Sendable {
     var weekStart: DateOnly
     var weekEnd: DateOnly
     var buckets: [WeeklyBucketStat]
+    var activeDays: [DateOnly]
+    var sittings: Int
+    var minutesSat: Int
 }
 
 struct WeeklyBucketStat: Codable, Hashable, Sendable {

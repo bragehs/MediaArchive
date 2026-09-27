@@ -107,6 +107,17 @@ private struct WeekStrip: View {
     let week: WeeklyActivity
 
     var body: some View {
+        VStack(spacing: 0) {
+            buckets
+            HairlineRule()
+            days
+        }
+        .overlay(alignment: .top) { Rectangle().fill(Palette.ink).frame(height: 2) }
+        .overlay(alignment: .bottom) { Rectangle().fill(Palette.line).frame(height: 1) }
+        .padding(.top, 2)
+    }
+
+    private var buckets: some View {
         HStack(spacing: 0) {
             ForEach(Array(week.buckets.enumerated()), id: \.offset) { index, bucket in
                 VStack(alignment: .leading, spacing: 0) {
@@ -135,9 +146,34 @@ private struct WeekStrip: View {
         .overlay(alignment: .bottomTrailing) {
             Eyebrow("This week", size: 8, tracking: 0.1, bold: false).padding(.bottom, 12)
         }
-        .overlay(alignment: .top) { Rectangle().fill(Palette.ink).frame(height: 2) }
-        .overlay(alignment: .bottom) { Rectangle().fill(Palette.line).frame(height: 1) }
-        .padding(.top, 2)
+    }
+
+    // One dot per day of the week, lit when anything was logged or sat with.
+    private var days: some View {
+        HStack(alignment: .center, spacing: 0) {
+            HStack(spacing: 9) {
+                ForEach(0..<7, id: \.self) { offset in
+                    let day = week.weekStart.adding(days: offset)
+                    let active = week.activeDays.contains(day)
+                    VStack(spacing: 4) {
+                        Circle()
+                            .fill(active ? Palette.ac : Color.clear)
+                            .frame(width: 7, height: 7)
+                            .overlay(Circle().stroke(day == .today ? Palette.ink : Palette.line, lineWidth: 1))
+                        Eyebrow(String(day.formatted("EEEEE")), size: 7.5, color: day == .today ? Palette.ink : Palette.dim, tracking: 0, bold: false)
+                    }
+                }
+            }
+            Spacer(minLength: 12)
+            if week.sittings > 0 {
+                Aside("\(week.sittings) \(plural(week.sittings, "sitting")) · \(sat) sat", size: 11, color: Palette.muted)
+            }
+        }
+        .padding(.vertical, 9)
+    }
+
+    private var sat: String {
+        week.minutesSat < 60 ? "\(week.minutesSat) min" : "\(trimmed(Double(week.minutesSat) / 60)) h"
     }
 
     private func value(_ bucket: WeeklyBucketStat) -> String {
