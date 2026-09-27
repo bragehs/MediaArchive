@@ -1,7 +1,7 @@
 import SwiftUI
 
-// Fixed app bar, one NavigationStack per tab, custom tab bar — the Blazor
-// shell's grammar. The system bars are hidden so the theme carries the chrome.
+// Fixed app bar and one NavigationStack per tab over the system's glass tab bar.
+// The navigation bars stay hidden so the theme carries the top chrome.
 struct Shell: View {
     @Bindable private var router = Router.shared
 
@@ -9,37 +9,37 @@ struct Shell: View {
         VStack(spacing: 0) {
             AppBar()
             TabView(selection: $router.selected) {
-                ForEach(Tab.allCases, id: \.self) { tab in
-                    NavigationStack(path: pathBinding(tab)) {
-                        root(tab)
-                            .screen()
-                            .navigationDestination(for: Route.self) { route in
-                                destination(route).screen()
-                            }
+                ForEach(AppTab.allCases, id: \.self) { tab in
+                    Tab(tab.label, systemImage: tab.symbol, value: tab, role: tab == .search ? .search : nil) {
+                        NavigationStack(path: pathBinding(tab)) {
+                            root(tab)
+                                .screen()
+                                .navigationDestination(for: Route.self) { route in
+                                    destination(route).screen()
+                                }
+                        }
                     }
-                    .toolbar(.hidden, for: .tabBar)
-                    .tag(tab)
                 }
             }
-            .toolbar(.hidden, for: .tabBar)
-            TabBar(selected: $router.selected)
+            .tint(Palette.ac)
+            .minimizingTabBar()
         }
         .background(Palette.bg.ignoresSafeArea())
         .onAppear { router.ready = true }
     }
 
-    private func pathBinding(_ tab: Tab) -> Binding<[Route]> {
+    private func pathBinding(_ tab: AppTab) -> Binding<[Route]> {
         Binding(get: { router.path(for: tab) }, set: { router.setPath($0, for: tab) })
     }
 
     @ViewBuilder
-    private func root(_ tab: Tab) -> some View {
+    private func root(_ tab: AppTab) -> some View {
         switch tab {
-        case .home: HomeView()
+        case .now: HomeView()
         case .explore: ExploreView()
         case .library: LibraryView()
-        case .diary: DiaryView()
         case .profile: ProfileView()
+        case .search: SearchView()
         }
     }
 
@@ -102,37 +102,14 @@ private struct AppBar: View {
     }
 }
 
-private struct TabBar: View {
-    @Binding var selected: Tab
-
-    var body: some View {
-        HStack(alignment: .bottom, spacing: 0) {
-            ForEach(Tab.allCases, id: \.self) { tab in
-                Button {
-                    if selected == tab {
-                        Router.shared.setPath([], for: tab)
-                    } else {
-                        selected = tab
-                    }
-                } label: {
-                    VStack(spacing: 4) {
-                        Text(tab.glyph)
-                            .font(.system(size: 17))
-                            .frame(height: 18)
-                        Eyebrow(tab.label, size: 8, color: selected == tab ? Palette.ac : Palette.dim,
-                                tracking: 0.08)
-                    }
-                    .foregroundStyle(selected == tab ? Palette.ac : Palette.dim)
-                    .frame(maxWidth: .infinity)
-                    .padding(.bottom, 2)
-                }
-                .buttonStyle(.plain)
-            }
+extension View {
+    // The glass bar shrinks to a pill as content scrolls; older systems keep the plain bar.
+    @ViewBuilder
+    func minimizingTabBar() -> some View {
+        if #available(iOS 26, *) {
+            self.tabBarMinimizeBehavior(.onScrollDown)
+        } else {
+            self
         }
-        .padding(.horizontal, 14)
-        .padding(.top, 8)
-        .padding(.bottom, 8)
-        .background(Color(red: 10 / 255, green: 17 / 255, blue: 10 / 255).opacity(0.92))
-        .overlay(alignment: .top) { Rectangle().fill(Palette.line).frame(height: 1) }
     }
 }
