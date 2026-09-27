@@ -127,17 +127,15 @@ public class LoggingService(
         entry.Outcome = outcome;
         entry.RatingAtTime = finish.Rating;
 
-        EntryNote? finishNote = null;
-        if (!string.IsNullOrWhiteSpace(finish.Note))
+        // Every pass ends with a Finish note, said or not: it carries the final
+        // effort into the walk and is what a closing session links to.
+        var finishNote = new EntryNote
         {
-            finishNote = new EntryNote
-            {
-                Kind = NoteKind.Finish,
-                EffortAtTime = entry.Effort,
-                Text = finish.Note.Trim()
-            };
-            entry.Notes.Add(finishNote);
-        }
+            Kind = NoteKind.Finish,
+            EffortAtTime = entry.Effort,
+            Text = string.IsNullOrWhiteSpace(finish.Note) ? null : finish.Note.Trim()
+        };
+        entry.Notes.Add(finishNote);
 
         if (session is not null)
             await CloseSessionAsync(db, entryId, session, finishNote, ct);

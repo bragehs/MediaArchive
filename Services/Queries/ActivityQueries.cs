@@ -190,7 +190,7 @@ public class ActivityQueries(IDbContextFactory<AppDbContext> dbContextFactory)
     }
 
     private static EntryNote? NoteOf(ConsumptionEntry entry, NoteKind kind) => entry.Notes
-        .Where(n => n.Kind == kind && !string.IsNullOrWhiteSpace(n.Text))
+        .Where(n => n.Kind == kind)
         .OrderBy(n => n.CreatedAt)
         .FirstOrDefault();
 
