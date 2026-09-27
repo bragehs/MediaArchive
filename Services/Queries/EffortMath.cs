@@ -77,8 +77,13 @@ public static class EffortMath
     // entries land on the right day.
     public static DateTime ActivityDate(ConsumptionEntry entry, EntryNote note) => note.Kind switch
     {
-        NoteKind.Finish => (entry.EndDate ?? DateOnly.FromDateTime(note.CreatedAt)).ToDateTime(TimeOnly.MinValue),
-        NoteKind.Start => (entry.StartDate ?? DateOnly.FromDateTime(note.CreatedAt)).ToDateTime(TimeOnly.MinValue),
-        _ => note.CreatedAt
+        NoteKind.Finish => (entry.EndDate ?? LocalDay(note.CreatedAt)).ToDateTime(TimeOnly.MinValue),
+        NoteKind.Start => (entry.StartDate ?? LocalDay(note.CreatedAt)).ToDateTime(TimeOnly.MinValue),
+        _ => Local(note.CreatedAt)
     };
+
+    // Timestamps are stored UTC and come back Unspecified; a day is the phone's day.
+    public static DateTime Local(DateTime utc) => DateTime.SpecifyKind(utc, DateTimeKind.Utc).ToLocalTime();
+
+    public static DateOnly LocalDay(DateTime utc) => DateOnly.FromDateTime(Local(utc));
 }

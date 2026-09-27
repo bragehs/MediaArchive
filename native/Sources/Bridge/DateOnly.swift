@@ -30,6 +30,10 @@ struct DateOnly: Codable, Hashable, Sendable, Comparable {
         Calendar.current.date(from: DateComponents(year: year, month: month, day: day)) ?? Date()
     }
 
+    func adding(days: Int) -> DateOnly {
+        DateOnly(Calendar.current.date(byAdding: .day, value: days, to: date) ?? date)
+    }
+
     var iso: String { String(format: "%04d-%02d-%02d", year, month, day) }
 
     var dayNumber: Int {

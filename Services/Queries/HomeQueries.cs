@@ -26,8 +26,10 @@ public enum MediaBucket { Gaming, Viewing, Reading }
 
 public record WeeklyBucketStat(MediaBucket Bucket, double Value, string Unit, int ItemsTouched);
 
+// Effort per bucket from logs; days touched and time sat from logs and sittings.
 public record WeeklyActivity(DateOnly WeekStart, DateOnly WeekEnd,
-    IReadOnlyList<WeeklyBucketStat> Buckets);
+    IReadOnlyList<WeeklyBucketStat> Buckets,
+    IReadOnlyList<DateOnly> ActiveDays, int Sittings, int MinutesSat);
 
 public class HomeQueries(
     IDbContextFactory<AppDbContext> dbContextFactory)
@@ -97,13 +99,20 @@ public class HomeQueries(
         var weekEnd = weekStart.AddDays(6);
         var from = weekStart.ToDateTime(TimeOnly.MinValue);
         var toExclusive = weekStart.AddDays(7).ToDateTime(TimeOnly.MinValue);
+        var fromUtc = from.ToUniversalTime();
+        var toUtc = toExclusive.ToUniversalTime();
 
         // The effort walk needs each pass's full note history as its baseline —
         // filtering the Include to this week would corrupt the deltas.
         var entries = await db.ConsumptionEntries
-            .Where(e => e.Notes.Any(n => n.CreatedAt >= from && n.CreatedAt < toExclusive))
+            .Where(e => e.Notes.Any(n => n.CreatedAt >= fromUtc && n.CreatedAt < toUtc))
             .Include(e => e.Notes)
             .Include(e => e.UserMediaItem!).ThenInclude(u => u.MediaItem)
+            .AsNoTracking()
+            .ToListAsync(ct);
+
+        var sittings = await db.Sessions
+            .Where(s => s.EndedAt != null && s.StartedAt >= fromUtc && s.StartedAt < toUtc)
             .AsNoTracking()
             .ToListAsync(ct);
 
@@ -111,16 +120,18 @@ public class HomeQueries(
         var gamingItems = new HashSet<int>();
         var viewingItems = new HashSet<int>();
         var readingItems = new HashSet<int>();
+        var activeDays = sittings.Select(s => EffortMath.LocalDay(s.StartedAt)).ToHashSet();
 
         foreach (var entry in entries)
         {
-            var touchedThisWeek = entry.Notes.Any(n =>
-            {
-                var when = EffortMath.ActivityDate(entry, n);
-                return when >= from && when < toExclusive;
-            });
-            if (!touchedThisWeek)
+            var daysTouched = entry.Notes
+                .Select(n => EffortMath.ActivityDate(entry, n))
+                .Where(when => when >= from && when < toExclusive)
+                .Select(DateOnly.FromDateTime)
+                .ToList();
+            if (daysTouched.Count == 0)
                 continue;
+            activeDays.UnionWith(daysTouched);
 
             var media = entry.UserMediaItem!.MediaItem!;
             var units = EffortMath.UnitsLogged(entry, from, toExclusive);
@@ -150,7 +161,8 @@ public class HomeQueries(
             new(MediaBucket.Reading, Math.Round(readingPages), "pages", readingItems.Count)
         };
 
-        return new WeeklyActivity(weekStart, weekEnd, buckets);
+        return new WeeklyActivity(weekStart, weekEnd, buckets,
+            activeDays.Order().ToList(), sittings.Count, sittings.Sum(s => s.Minutes ?? 0));
     }
 
 }
