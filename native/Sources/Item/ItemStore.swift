@@ -24,6 +24,11 @@ final class ItemStore {
     var passNote = ""
     var passRating = 0
 
+    // The pass whose dates are open for editing, and the dates as typed.
+    var editingPass: Int?
+    var editStart: DateOnly?
+    var editEnd: DateOnly?
+
     var logging = false
     var celebrate = false
     var saving = false
@@ -148,6 +153,21 @@ final class ItemStore {
             passStart = .today
             passEnd = .today
             passContext = nil
+            await load()
+        }
+    }
+
+    func editDates(_ pass: PassSummary) {
+        editingPass = pass.entryId
+        editStart = pass.startDate
+        editEnd = pass.endDate
+    }
+
+    func saveDates() async {
+        guard let entryId = editingPass, let start = editStart else { return }
+        await mutate {
+            try await api.setPassDates(SetPassDatesArgs(entryId: entryId, dates: PassDates(startDate: start, endDate: editEnd)))
+            editingPass = nil
             await load()
         }
     }

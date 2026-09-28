@@ -78,6 +78,25 @@ public class LoggingService(
         return entry;
     }
 
+    // Dates only: a pass is opened or closed by logging, never by moving a date.
+    public async Task SetPassDatesAsync(int entryId, PassDates dates, CancellationToken ct = default)
+    {
+        await using var db = await dbContextFactory.CreateDbContextAsync(ct);
+
+        var entry = await db.ConsumptionEntries.FirstAsync(e => e.Id == entryId, ct);
+
+        if ((entry.EndDate is null) != (dates.EndDate is null))
+            throw new InvalidOperationException($"Pass {entryId} is {(entry.EndDate is null ? "open" : "closed")}; its dates cannot change that.");
+
+        if (dates.EndDate is { } end && end < dates.StartDate)
+            throw new InvalidOperationException("The end date is before the start date.");
+
+        entry.StartDate = dates.StartDate;
+        entry.EndDate = dates.EndDate;
+
+        await db.SaveChangesAsync(ct);
+    }
+
     // With a session, the sitting is closed and linked to the new note in the same save.
     public async Task AddNoteAsync(int entryId, NoteInput note, SessionEnd? session = null,
         CancellationToken ct = default)

@@ -126,7 +126,7 @@ struct ItemView: View {
             Aside("No passes yet.").padding(.vertical, 16)
         } else {
             ForEach(page.history, id: \.entryId) { pass in
-                PassRow(pass: pass)
+                PassRow(pass: pass, store: store)
             }
         }
     }
@@ -337,6 +337,7 @@ struct ItemView: View {
 
 private struct PassRow: View {
     let pass: PassSummary
+    @Bindable var store: ItemStore
     @Environment(\.lexicon) private var lexicon
 
     private var label: (String, Color) {
@@ -350,6 +351,14 @@ private struct PassRow: View {
             HStack(alignment: .firstTextBaseline, spacing: 10) {
                 Eyebrow(label.0, size: 10.5, color: label.1, tracking: 0.1)
                 Eyebrow(meta, size: 11.5, tracking: 0.05, bold: false)
+                Spacer(minLength: 8)
+                if store.editingPass != pass.entryId {
+                    Button { store.editDates(pass) } label: { Eyebrow("Edit", size: 10, color: Palette.ac, tracking: 0.1) }
+                        .buttonStyle(.plain)
+                }
+            }
+            if store.editingPass == pass.entryId {
+                dateForm
             }
             if let rated = pass.ratingAtTime {
                 Text("★ \(stars(Double(rated)))")
@@ -385,6 +394,26 @@ private struct PassRow: View {
         .padding(.vertical, 14)
         .frame(maxWidth: .infinity, alignment: .leading)
         .overlay(alignment: .bottom) { HairlineRule(color: Palette.line2) }
+    }
+
+    // Only the dates: opening and closing a pass are logging acts, not edits.
+    private var dateForm: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            FieldLabel("Start date").padding(.top, 10)
+            DateField(date: $store.editStart)
+            if pass.endDate != nil {
+                FieldLabel("End date").padding(.top, 12)
+                DateField(date: $store.editEnd)
+            }
+            HStack(spacing: 10) {
+                Button("Cancel") { store.editingPass = nil }
+                    .buttonStyle(GhostButtonStyle())
+                Button("Save dates") { Task { await store.saveDates() } }
+                    .buttonStyle(PrimaryButtonStyle())
+                    .disabled(store.saving)
+            }
+            .padding(.top, 14)
+        }
     }
 
     // Logs and sessions are two counts; the minutes are measured, the effort is not.

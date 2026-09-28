@@ -73,6 +73,8 @@ public record StartPassArgs(int UserMediaItemId, PassStart Start, bool AllowConc
 
 public record ResumePassArgs(int EntryId, PassStart Start);
 
+public record SetPassDatesArgs(int EntryId, PassDates Dates);
+
 public record AddNoteArgs(int EntryId, NoteInput Note, SessionEnd? Session = null);
 
 public record FinishPassArgs(int EntryId, PassFinish Finish, SessionEnd? Session = null);

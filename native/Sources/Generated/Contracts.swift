@@ -406,6 +406,11 @@ struct PanelStat: Codable, Hashable, Sendable {
     var label: String
 }
 
+struct PassDates: Codable, Hashable, Sendable {
+    var startDate: DateOnly
+    var endDate: DateOnly?
+}
+
 struct PassFinish: Codable, Hashable, Sendable {
     var endDate: DateOnly
     var rating: Int?
@@ -498,6 +503,11 @@ struct SessionEnd: Codable, Hashable, Sendable {
 struct SetFavoriteArgs: Codable, Hashable, Sendable {
     var userMediaItemId: Int
     var isFavorite: Bool
+}
+
+struct SetPassDatesArgs: Codable, Hashable, Sendable {
+    var entryId: Int
+    var dates: PassDates
 }
 
 struct SetRatingArgs: Codable, Hashable, Sendable {
@@ -668,6 +678,7 @@ struct Api {
     func setFavorite(_ args: SetFavoriteArgs) async throws { try await backend.perform("item/favorite", args) }
     func startPass(_ args: StartPassArgs) async throws -> Created { try await backend.call("pass/start", args) }
     func resumePass(_ args: ResumePassArgs) async throws -> Created { try await backend.call("pass/resume", args) }
+    func setPassDates(_ args: SetPassDatesArgs) async throws { try await backend.perform("pass/dates", args) }
     func addNote(_ args: AddNoteArgs) async throws { try await backend.perform("pass/note", args) }
     func finishPass(_ args: FinishPassArgs) async throws { try await backend.perform("pass/finish", args) }
     func startSession(_ args: StartSessionArgs) async throws -> LiveSession { try await backend.call("session/start", args) }
