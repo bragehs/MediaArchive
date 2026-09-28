@@ -105,6 +105,9 @@ public static class NativeRoutes
         Post<ResumePassArgs, Created>("pass/resume", "resumePass", async (sp, a) =>
             new Created(await sp.GetRequiredService<LoggingService>().ResumePassAsync(a.EntryId, a.Start))),
 
+        Post<SetPassDatesArgs>("pass/dates", "setPassDates",
+            (sp, a) => sp.GetRequiredService<LoggingService>().SetPassDatesAsync(a.EntryId, a.Dates)),
+
         Post<AddNoteArgs>("pass/note", "addNote",
             (sp, a) => sp.GetRequiredService<LoggingService>().AddNoteAsync(a.EntryId, a.Note, a.Session)),
 

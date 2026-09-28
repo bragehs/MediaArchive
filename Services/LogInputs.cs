@@ -26,6 +26,10 @@ public record PassFinish(
     string? Note,
     bool Dropped = false);
 
+public record PassDates(
+    DateOnly StartDate,
+    DateOnly? EndDate);
+
 public record NoteInput(
     string? Text,
     int? EffortAtTime);
