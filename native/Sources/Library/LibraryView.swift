@@ -6,9 +6,6 @@ struct LibraryView: View {
     @Bindable private var store = LibraryStore.shared
     @Environment(\.lexicon) private var lexicon
 
-    private static let types: [LibraryStore.TypeFilter] =
-        [.all, .only(.book), .only(.game), .only(.movie), .only(.show)]
-
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
@@ -43,26 +40,11 @@ struct LibraryView: View {
                 .buttonStyle(.plain)
             }
 
-            SegmentedPills(options: Self.types, selection: $store.type) { pill($0) }
-
-            if store.genre != nil || !store.genreMatches.isEmpty {
-                FlowLayout(spacing: 7) {
-                    if let genre = store.genre {
-                        Chip(text: genre) { store.genre = nil }
-                    }
-                    ForEach(store.genreMatches.filter { $0 != store.genre }, id: \.self) { genre in
-                        Button { store.filter(byGenre: genre) } label: {
-                            HStack(spacing: 6) {
-                                Eyebrow(genre, size: 9.5, color: Palette.muted, tracking: 0.08)
-                                Text("→").font(.system(size: 10)).foregroundStyle(Palette.dim)
-                            }
-                            .padding(.horizontal, 9)
-                            .padding(.vertical, 5)
-                            .overlay(Capsule().stroke(Palette.line, lineWidth: 1))
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
+            HStack(spacing: 8) {
+                FilterMenu(all: "All types", selection: $store.type, options: store.types,
+                           label: { "\(lexicon.label($0))s" }, count: store.count)
+                FilterMenu(all: "All genres", selection: $store.genre, options: store.genres,
+                           label: { $0 }, count: store.count)
             }
         }
         .padding(.top, 4)
@@ -137,12 +119,6 @@ struct LibraryView: View {
                 .background(Color.black.opacity(0.7), in: RoundedRectangle(cornerRadius: 4))
                 .padding(3)
         }
-    }
-
-    private func pill(_ filter: LibraryStore.TypeFilter) -> String {
-        let count = store.count(filter)
-        guard case .only(let type) = filter else { return "All \(count)" }
-        return "\(lexicon.label(type))s \(count)"
     }
 
     private func works(_ count: Int) -> String { "\(count) \(plural(count, "work"))" }
