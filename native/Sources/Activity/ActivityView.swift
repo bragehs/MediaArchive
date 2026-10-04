@@ -3,8 +3,12 @@ import SwiftUI
 @MainActor
 @Observable
 final class ActivityStore {
+    enum Zoom { case week, month }
+
     var calendar: Loadable<ActivityCalendar> = .loading
     var day: ActivityDay?
+    var zoom: Zoom = .week
+    var weekStart = DateOnly.today.monday
 
     func load() async {
         do {
@@ -13,39 +17,49 @@ final class ActivityStore {
             calendar = .failed(error.localizedDescription)
         }
     }
+
+    var days: [DateOnly: ActivityDay] {
+        Dictionary(uniqueKeysWithValues: (calendar.value?.months ?? []).flatMap(\.days).map { ($0.date, $0) })
+    }
+
+    var week: [DateOnly] { (0..<7).map { weekStart.adding(days: $0) } }
+
+    var isCurrentWeek: Bool { weekStart >= DateOnly.today.monday }
+
+    func step(_ weeks: Int) {
+        weekStart = weekStart.adding(days: 7 * weeks)
+    }
+
+    func open(weekOf date: DateOnly) {
+        weekStart = date.monday
+        zoom = .week
+    }
 }
 
 extension ActivityDay: Identifiable {
     var id: DateOnly { date }
 }
 
-// Every month from the first pass to today, opened at the bottom so the past is
-// up; a cover on each day something was logged or sat with, and a day opens as a sheet.
+extension DateOnly {
+    // Monday-first: Sunday is 1 in Calendar's weekday numbering.
+    var monday: DateOnly {
+        adding(days: -((Calendar.current.component(.weekday, from: date) + 5) % 7))
+    }
+}
+
+// Opens on this week, every item of every day side by side; Month zooms out to
+// the grid, and a week tapped there zooms back in. A day opens as a sheet.
 struct ActivityView: View {
     @State private var store = ActivityStore()
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
-                Crumb("Now", trail: "Activity") { dismiss() }
-
-                switch store.calendar {
-                case .loading:
-                    Aside("Loading…").padding(.vertical, 10)
-                case .failed(let message):
-                    Notice(text: message)
-                case .loaded(let calendar):
-                    LazyVStack(alignment: .leading, spacing: 0) {
-                        ForEach(calendar.months, id: \.self) { month in
-                            MonthGrid(month: month) { store.day = $0 }
-                        }
-                    }
-                }
+        Group {
+            switch store.zoom {
+            case .week: weekPage
+            case .month: monthPage
             }
         }
-        .defaultScrollAnchor(.bottom)
-        .page()
         .task { await store.load() }
         .sheet(item: $store.day) { day in
             ActivityDayView(day: day)
@@ -53,14 +67,212 @@ struct ActivityView: View {
                 .presentationBackground(Palette.bg)
         }
     }
+
+    private var weekPage: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                header(zoomLabel: "Month") { store.zoom = .month }
+                content {
+                    WeekHeader(store: store)
+                    ForEach(store.week, id: \.self) { date in
+                        WeekDayRow(date: date, day: store.days[date]) { store.day = $0 }
+                    }
+                }
+            }
+        }
+        .page()
+    }
+
+    private var monthPage: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                header(zoomLabel: "Week") { store.open(weekOf: .today) }
+                content {
+                    LazyVStack(alignment: .leading, spacing: 0) {
+                        ForEach(store.calendar.value?.months ?? [], id: \.self) { month in
+                            MonthGrid(month: month) { store.open(weekOf: $0) }
+                        }
+                    }
+                }
+            }
+        }
+        .defaultScrollAnchor(.bottom)
+        .page()
+    }
+
+    private func header(zoomLabel: String, zoom: @escaping () -> Void) -> some View {
+        HStack(alignment: .center) {
+            Crumb("Now", trail: "Activity") { dismiss() }
+            Spacer()
+            Button(action: zoom) {
+                Eyebrow(zoomLabel, size: 10, color: Palette.ac, tracking: 0.1)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .overlay(Capsule().stroke(Palette.line, lineWidth: 1))
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    @ViewBuilder
+    private func content<Content: View>(@ViewBuilder _ loaded: () -> Content) -> some View {
+        switch store.calendar {
+        case .loading:
+            Aside("Loading…").padding(.vertical, 10)
+        case .failed(let message):
+            Notice(text: message)
+        case .loaded:
+            loaded()
+        }
+    }
+}
+
+// The week's dates with arrows either side, and what the week added up to.
+private struct WeekHeader: View {
+    let store: ActivityStore
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .firstTextBaseline, spacing: 12) {
+                arrow("‹", enabled: true) { store.step(-1) }
+                Text(range).font(Fonts.title(20)).foregroundStyle(Palette.ink)
+                arrow("›", enabled: !store.isCurrentWeek) { store.step(1) }
+                Spacer()
+            }
+            Aside(summary, size: 11.5, color: Palette.muted)
+        }
+        .padding(.bottom, 8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .overlay(alignment: .bottom) { HairlineRule(height: 2) }
+        .padding(.top, 4)
+    }
+
+    private func arrow(_ glyph: String, enabled: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(glyph)
+                .font(.system(size: 22, weight: .medium))
+                .foregroundStyle(enabled ? Palette.ac : Palette.line)
+                .frame(width: 28, height: 28)
+        }
+        .buttonStyle(.plain)
+        .disabled(!enabled)
+    }
+
+    private var range: String {
+        let end = store.weekStart.adding(days: 6)
+        return "\(store.weekStart.formatted("d MMM")) – \(end.formatted("d MMM"))"
+    }
+
+    private var summary: String {
+        let days = store.week.compactMap { store.days[$0] }
+        let logs = days.reduce(0) { $0 + $1.events.count { $0.kind != .sat } + $1.runs.reduce(0) { $0 + $1.logs } }
+        let minutes = days.reduce(0) { $0 + $1.minutesSat }
+        var parts = ["\(days.count) \(plural(days.count, "day"))", "\(logs) \(plural(logs, "log"))"]
+        if minutes > 0 { parts.append("\(duration(minutes)) sat") }
+        return parts.joined(separator: " · ")
+    }
+}
+
+// One day: its date on the left, every item it touched as its own cover on the right.
+private struct WeekDayRow: View {
+    let date: DateOnly
+    let day: ActivityDay?
+    let open: (ActivityDay) -> Void
+
+    var body: some View {
+        Button { if let day { open(day) } } label: {
+            HStack(alignment: .top, spacing: 14) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Eyebrow(date.formatted("EEE"), size: 8.5, color: today ? Palette.ac : Palette.dim, tracking: 0.12, bold: false)
+                    Text(String(date.day))
+                        .font(Fonts.title(20))
+                        .foregroundStyle(today ? Palette.ac : (day == nil ? Palette.dim : Palette.ink))
+                    if let minutes = day?.minutesSat, minutes > 0 {
+                        Aside(duration(minutes), size: 10.5, color: Palette.muted).padding(.top, 2)
+                    }
+                }
+                .frame(width: 44, alignment: .leading)
+
+                if let day {
+                    FlowLayout(spacing: 6) {
+                        ForEach(DayItem.of(day)) { item in
+                            DayCover(item: item)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                } else {
+                    Spacer()
+                }
+            }
+            .padding(.vertical, day == nil ? 8 : 12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
+            .overlay(alignment: .bottom) { HairlineRule() }
+        }
+        .buttonStyle(.plain)
+        .disabled(day == nil)
+    }
+
+    private var today: Bool { date == .today }
+}
+
+// One item on one day, at its loudest: a finish beats a log beats a session, and a drop comes last.
+struct DayItem: Identifiable {
+    let id: Int
+    let title: String
+    let imageUrl: String?
+    let kind: ActivityKind
+
+    static func of(_ day: ActivityDay) -> [DayItem] {
+        let touches = day.events.map { DayItem(id: $0.userMediaItemId, title: $0.title, imageUrl: $0.imageUrl, kind: $0.kind) }
+            + day.runs.map { DayItem(id: $0.userMediaItemId, title: $0.title, imageUrl: $0.imageUrl, kind: $0.logs > 0 ? .progress : .sat) }
+        var loudest: [Int: DayItem] = [:]
+        for touch in touches where loudest[touch.id].map({ rank(touch.kind) < rank($0.kind) }) ?? true {
+            loudest[touch.id] = touch
+        }
+        return loudest.values.sorted { (rank($0.kind), $0.title) < (rank($1.kind), $1.title) }
+    }
+
+    private static func rank(_ kind: ActivityKind) -> Int {
+        switch kind {
+        case .finished: 0
+        case .started: 1
+        case .resumed: 2
+        case .progress: 3
+        case .sat: 4
+        case .dropped: 5
+        }
+    }
+}
+
+private struct DayCover: View {
+    let item: DayItem
+
+    var body: some View {
+        CoverImage(url: item.imageUrl, title: item.title, fallbackPadding: 3, fallbackSize: 6)
+            .frame(width: 44, height: 66)
+            .clipShape(RoundedRectangle(cornerRadius: 5))
+            .opacity(item.kind == .sat ? 0.55 : 1)
+            .overlay(RoundedRectangle(cornerRadius: 5).stroke(item.kind == .finished ? Palette.ac2 : Palette.line2,
+                                                              lineWidth: item.kind == .finished ? 1.5 : 1))
+            .overlay(alignment: .bottomTrailing) { KindGlyph(kind: item.kind).padding(2) }
+    }
 }
 
 private struct MonthGrid: View {
     let month: ActivityMonth
-    let open: (ActivityDay) -> Void
+    let open: (DateOnly) -> Void
 
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 6), count: 7)
     private let letters = ["M", "T", "W", "T", "F", "S", "S"]
+
+    // One identity space for the whole grid: letters, blanks and days numbered
+    // separately collide, and a lazy grid drops the duplicates.
+    private enum Cell: Hashable { case letter(Int), blank(Int), day(Int) }
+
+    private var cells: [Cell] {
+        (0..<7).map(Cell.letter) + (0..<leadingBlanks).map(Cell.blank) + (1...daysInMonth).map(Cell.day)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -73,15 +285,23 @@ private struct MonthGrid: View {
             .overlay(alignment: .bottom) { HairlineRule(height: 2) }
 
             LazyVGrid(columns: columns, spacing: 6) {
-                ForEach(0..<7, id: \.self) { index in
-                    Eyebrow(letters[index], size: 7.5, tracking: 0, bold: false)
-                }
-                ForEach(0..<leadingBlanks, id: \.self) { _ in Color.clear.aspectRatio(2 / 3, contentMode: .fit) }
-                ForEach(1...daysInMonth, id: \.self) { number in
-                    if let day = days[number] {
-                        Button { open(day) } label: { DayCell(day: day) }.buttonStyle(.plain)
-                    } else {
-                        EmptyDay(number: number, today: first.adding(days: number - 1) == .today)
+                ForEach(cells, id: \.self) { cell in
+                    switch cell {
+                    case .letter(let index):
+                        Eyebrow(letters[index], size: 7.5, tracking: 0, bold: false)
+                    case .blank:
+                        Color.clear.aspectRatio(2 / 3, contentMode: .fit)
+                    case .day(let number):
+                        let date = first.adding(days: number - 1)
+                        Button { open(date) } label: {
+                            if let day = days[number] {
+                                DayCell(day: day)
+                            } else {
+                                EmptyDay(number: number, today: date == .today)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(date > .today)
                     }
                 }
             }
