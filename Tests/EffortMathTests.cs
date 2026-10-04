@@ -46,6 +46,14 @@ public class EffortMathTests
     }
 
     [Fact]
+    public void DayOf_RollsOverAtFour_SoTheSmallHoursBelongToTheEveningBefore()
+    {
+        Assert.Equal(new DateOnly(2026, 9, 26), EffortMath.DayOf(new DateTime(2026, 9, 27, 0, 58, 0)));
+        Assert.Equal(new DateOnly(2026, 9, 27), EffortMath.DayOf(new DateTime(2026, 9, 27, 4, 1, 0)));
+        Assert.Equal(new DateOnly(2026, 9, 26), EffortMath.DayOf(new DateTime(2026, 9, 27, 3, 59, 0)));
+    }
+
+    [Fact]
     public void ToMinutes_AppliesTheTypesConstant()
     {
         var book = new Book { Title = "The Final Empire", PageCount = 669 };

@@ -74,16 +74,24 @@ public static class EffortMath
         effort is { } e && length is > 0 ? (double)e / length.Value * 100 : null;
 
     // Start/finish notes are filed under the pass's own date, so backfilled
-    // entries land on the right day.
+    // entries land on the right day. A progress time is shifted by the rollover
+    // so its date part is the day it belongs to.
     public static DateTime ActivityDate(ConsumptionEntry entry, EntryNote note) => note.Kind switch
     {
         NoteKind.Finish => (entry.EndDate ?? LocalDay(note.CreatedAt)).ToDateTime(TimeOnly.MinValue),
         NoteKind.Start => (entry.StartDate ?? LocalDay(note.CreatedAt)).ToDateTime(TimeOnly.MinValue),
-        _ => Local(note.CreatedAt)
+        _ => Local(note.CreatedAt).AddHours(-DayStartsAt)
     };
+
+    // An evening does not end at midnight: the day rolls over at four. Mirrored by DateOnly.today in Swift.
+    public const int DayStartsAt = 4;
 
     // Timestamps are stored UTC and come back Unspecified; a day is the phone's day.
     public static DateTime Local(DateTime utc) => DateTime.SpecifyKind(utc, DateTimeKind.Utc).ToLocalTime();
 
-    public static DateOnly LocalDay(DateTime utc) => DateOnly.FromDateTime(Local(utc));
+    public static DateOnly DayOf(DateTime local) => DateOnly.FromDateTime(local.AddHours(-DayStartsAt));
+
+    public static DateOnly LocalDay(DateTime utc) => DayOf(Local(utc));
+
+    public static DateOnly Today => LocalDay(DateTime.UtcNow);
 }

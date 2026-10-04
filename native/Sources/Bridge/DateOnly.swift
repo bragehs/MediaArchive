@@ -24,7 +24,10 @@ struct DateOnly: Codable, Hashable, Sendable, Comparable {
         self.init(year: parts[0], month: parts[1], day: parts[2])
     }
 
-    static var today: DateOnly { DateOnly(Date()) }
+    // Mirror of EffortMath.DayStartsAt: an evening does not end at midnight.
+    private static let dayStartsAt: TimeInterval = 4 * 3600
+
+    static var today: DateOnly { DateOnly(Date().addingTimeInterval(-dayStartsAt)) }
 
     var date: Date {
         Calendar.current.date(from: DateComponents(year: year, month: month, day: day)) ?? Date()

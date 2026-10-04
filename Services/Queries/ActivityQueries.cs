@@ -62,7 +62,7 @@ public class ActivityQueries(IDbContextFactory<AppDbContext> dbContextFactory)
     public async Task<ActivityCalendar> GetCalendarAsync(CancellationToken ct = default)
     {
         var events = await EventsAsync(ct);
-        var today = DateOnly.FromDateTime(DateTime.Today);
+        var today = EffortMath.Today;
         var first = events.Count == 0 ? today : events.Min(e => e.Date);
         var oldest = new DateOnly(first.Year, first.Month, 1);
 
