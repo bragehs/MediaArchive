@@ -21,11 +21,6 @@ final class LibraryStore {
         }
     }
 
-    enum TypeFilter: Hashable {
-        case all
-        case only(MediaType)
-    }
-
     // The map is completed-only: it is the archive of things actually consumed.
     var map = ConstellationMap()
     var camera = MapCamera()
@@ -38,9 +33,8 @@ final class LibraryStore {
     var query = ""
     // nil while nothing is typed; the search reaches every status, the wall does not.
     var hits: [LibraryItem]?
-    var genreMatches: [String] = []
 
-    var type: TypeFilter = .all
+    var type: MediaType?
     var sort: Sort = .recent
     var hideDropped = false
     var genre: String?
@@ -66,7 +60,7 @@ final class LibraryStore {
     }
 
     var rows: [LibraryItem] {
-        (hits ?? items).filter { passes($0, type: type) }.sorted(by: ordered)
+        (hits ?? items).filter { passes($0, type: type, genre: genre) }.sorted(by: ordered)
     }
 
     // Year rules only make sense while the order is chronological.
@@ -80,14 +74,29 @@ final class LibraryStore {
         return out
     }
 
-    func count(_ filter: TypeFilter) -> Int {
-        (hits ?? items).count { passes($0, type: filter) }
+    // Each dropdown counts against the other filters, never against itself.
+    func count(_ type: MediaType) -> Int {
+        (hits ?? items).count { passes($0, type: type, genre: genre) }
+    }
+
+    func count(_ genre: String) -> Int {
+        (hits ?? items).count { passes($0, type: type, genre: genre) }
+    }
+
+    var types: [MediaType] {
+        MediaType.allCases.filter { type in (hits ?? items).contains { $0.mediaType == type } }
+    }
+
+    var genres: [String] {
+        var shown = Set((hits ?? items).filter { passes($0, type: type, genre: nil) }.flatMap(\.genres))
+        if let genre { shown.insert(genre) }
+        return shown.sorted()
     }
 
     func touched(_ item: LibraryItem) -> DateOnly { item.lastActivity ?? item.addedDate }
 
-    private func passes(_ item: LibraryItem, type: TypeFilter) -> Bool {
-        if case .only(let wanted) = type, item.mediaType != wanted { return false }
+    private func passes(_ item: LibraryItem, type: MediaType?, genre: String?) -> Bool {
+        if let type, item.mediaType != type { return false }
         if hideDropped, item.status == .dropped { return false }
         if let genre, !item.genres.contains(genre) { return false }
         return true
@@ -102,20 +111,16 @@ final class LibraryStore {
         }
     }
 
-    // Genres match against what is already loaded; titles and credits go to the archive search.
+    // Titles, credits and genre names all go to the archive search.
     func search() async {
         let text = query.trimmingCharacters(in: .whitespaces)
         guard !text.isEmpty else { clearSearch(); return }
-
-        let lowered = text.lowercased()
-        genreMatches = Set(items.flatMap(\.genres)).filter { $0.contains(lowered) }.sorted()
         hits = (try? await api.searchLibrary(QueryArgs(query: text))) ?? []
     }
 
     func clearSearch() {
         query = ""
         hits = nil
-        genreMatches = []
     }
 
     func filter(byGenre genre: String) {
