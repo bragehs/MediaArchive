@@ -162,6 +162,7 @@ struct FrameChip<Content: View>: View {
 
 struct SearchField: View {
     @Binding var text: String
+    var prompt = "Search the archive…"
     let clear: () -> Void
 
     @FocusState private var focused: Bool
@@ -169,7 +170,7 @@ struct SearchField: View {
     var body: some View {
         HStack(spacing: 9) {
             Text("⌕").font(.system(size: 14, weight: .bold)).foregroundStyle(Palette.dim)
-            TextField("Search the archive…", text: $text)
+            TextField(prompt, text: $text)
                 .font(Fonts.display(13))
                 .foregroundStyle(Palette.ink)
                 .textInputAutocapitalization(.never)

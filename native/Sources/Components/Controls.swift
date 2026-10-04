@@ -267,6 +267,46 @@ struct MenuField<Option: Hashable>: View {
     }
 }
 
+// A framed dropdown that narrows a list: reads "All types" until narrowed, then
+// the choice in the accent. Every option carries its count.
+struct FilterMenu<Option: Hashable>: View {
+    let all: String
+    @Binding var selection: Option?
+    let options: [Option]
+    let label: (Option) -> String
+    let count: (Option) -> Int
+
+    var body: some View {
+        Menu {
+            choice(all, selected: selection == nil) { selection = nil }
+            ForEach(options, id: \.self) { option in
+                choice("\(label(option)) · \(count(option))", selected: selection == option) { selection = option }
+            }
+        } label: {
+            HStack(spacing: 6) {
+                Text(selection.map(label) ?? all)
+                    .font(Fonts.display(10.5))
+                    .tracking(0.8)
+                    .textCase(.uppercase)
+                    .foregroundStyle(selection == nil ? Palette.muted : Palette.ac)
+                    .lineLimit(1)
+                Spacer(minLength: 4)
+                Text("▾").font(.system(size: 10)).foregroundStyle(Palette.dim)
+            }
+            .padding(.horizontal, 12)
+            .frame(maxWidth: .infinity)
+            .frame(height: 38)
+            .overlay(RoundedRectangle(cornerRadius: 10).stroke(selection == nil ? Palette.line : Palette.ac, lineWidth: 1))
+        }
+    }
+
+    private func choice(_ text: String, selected: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            if selected { Label(text, systemImage: "checkmark") } else { Text(text) }
+        }
+    }
+}
+
 // Wraps its children onto as many rows as they need.
 struct FlowLayout: Layout {
     var spacing: CGFloat = 6

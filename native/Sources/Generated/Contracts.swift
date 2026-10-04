@@ -375,6 +375,20 @@ struct NoteInput: Codable, Hashable, Sendable {
     var effortAtTime: Int?
 }
 
+struct OnDeckItem: Codable, Hashable, Sendable {
+    var userMediaItemId: Int
+    var title: String
+    var creator: String?
+    var mediaType: MediaType
+    var imageUrl: String?
+    var year: Int?
+    var length: Int?
+    var estimatedMinutes: Int?
+    var addedDate: DateOnly
+    var discovery: DiscoverySource?
+    var genres: [String]
+}
+
 struct OpenNowItem: Codable, Hashable, Sendable {
     var userMediaItemId: Int
     var title: String
@@ -658,7 +672,7 @@ struct Api {
     let backend: Backend
     func lexicon() async throws -> Lexicon { try await backend.call("lexicon", NoArgs()) }
     func home() async throws -> HomePage { try await backend.call("home", NoArgs()) }
-    func backlog() async throws -> [CoverCard] { try await backend.call("backlog", NoArgs()) }
+    func onDeck() async throws -> [OnDeckItem] { try await backend.call("onDeck", NoArgs()) }
     func library() async throws -> [LibraryItem] { try await backend.call("library", NoArgs()) }
     func searchLibrary(_ args: QueryArgs) async throws -> [LibraryItem] { try await backend.call("library/search", args) }
     func activity() async throws -> ActivityCalendar { try await backend.call("activity", NoArgs()) }
