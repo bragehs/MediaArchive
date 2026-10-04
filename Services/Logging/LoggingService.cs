@@ -2,6 +2,7 @@ using MediaArchive.Data;
 using MediaArchive.Models;
 using MediaArchive.Services.Import;
 using MediaArchive.Services.Providers;
+using MediaArchive.Services.Queries;
 using Microsoft.EntityFrameworkCore;
 
 namespace MediaArchive.Services.Logging;
@@ -62,7 +63,7 @@ public class LoggingService(
     {
         var entry = new ConsumptionEntry
         {
-            StartDate = start.StartDate ?? DateOnly.FromDateTime(DateTime.Today),
+            StartDate = start.StartDate ?? EffortMath.Today,
             Context = start.Context ?? resumes?.Context,
             ResumesEntryId = resumes?.Id,
             StartingEffort = resumes?.Effort,

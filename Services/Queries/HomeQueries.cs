@@ -44,7 +44,7 @@ public class HomeQueries(
             .Include(u => u.Entries.Where(e => e.EndDate == null)).ThenInclude(e => e.Notes)
             .ToListAsync(ct);
 
-        var today = DateOnly.FromDateTime(DateTime.Today);
+        var today = EffortMath.Today;
 
         return items.Select(u =>
             {
@@ -55,7 +55,7 @@ public class HomeQueries(
                 var daysOpen = today.DayNumber - startDate.DayNumber;
 
                 var lastTouched = entry is not null && entry.Notes.Count > 0
-                    ? DateOnly.FromDateTime(entry.Notes.Max(n => n.CreatedAt))
+                    ? EffortMath.LocalDay(entry.Notes.Max(n => n.CreatedAt))
                     : startDate;
                 var daysSinceTouched = today.DayNumber - lastTouched.DayNumber;
 
@@ -82,7 +82,7 @@ public class HomeQueries(
         if (entry is null) return null;
 
         var media = entry.UserMediaItem!.MediaItem!;
-        var today = DateOnly.FromDateTime(DateTime.Today);
+        var today = EffortMath.Today;
         var daysSinceClosed = today.DayNumber - entry.EndDate!.Value.DayNumber;
 
         return new JustClosedItem(
@@ -94,13 +94,13 @@ public class HomeQueries(
     {
         await using var db = await dbContextFactory.CreateDbContextAsync(ct);
 
-        var today = DateOnly.FromDateTime(DateTime.Today);
+        var today = EffortMath.Today;
         var weekStart = today.AddDays(-(((int)today.DayOfWeek + 6) % 7));
         var weekEnd = weekStart.AddDays(6);
         var from = weekStart.ToDateTime(TimeOnly.MinValue);
         var toExclusive = weekStart.AddDays(7).ToDateTime(TimeOnly.MinValue);
-        var fromUtc = from.ToUniversalTime();
-        var toUtc = toExclusive.ToUniversalTime();
+        var fromUtc = from.AddHours(EffortMath.DayStartsAt).ToUniversalTime();
+        var toUtc = toExclusive.AddHours(EffortMath.DayStartsAt).ToUniversalTime();
 
         // The effort walk needs each pass's full note history as its baseline —
         // filtering the Include to this week would corrupt the deltas.
