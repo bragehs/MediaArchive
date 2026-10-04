@@ -7,6 +7,20 @@ namespace MediaArchive.Services.Queries;
 
 public record CoverCard(int UserMediaItemId, string Title, string? ImageUrl);
 
+// What choosing the next thing needs: how long it is, how long it has waited, why it was added.
+public record OnDeckItem(
+    int UserMediaItemId,
+    string Title,
+    string? Creator,
+    MediaType MediaType,
+    string? ImageUrl,
+    int? Year,
+    int? Length,
+    int? EstimatedMinutes,
+    DateOnly AddedDate,
+    DiscoverySource? Discovery,
+    IReadOnlyList<string> Genres);
+
 public record OpenPassSummary(int EntryId, DateOnly? StartDate, int? Effort, double? Progress);
 
 public record ResumablePass(int EntryId, DateOnly? EndDate, int? Effort);
@@ -84,6 +98,30 @@ public class CommonQueries(IDbContextFactory<AppDbContext> dbContextFactory)
             .OrderBy(u => u.AddedDate)
             .Select(ToCoverCard)
             .ToListAsync(ct);
+    }
+
+    public async Task<List<OnDeckItem>> GetOnDeckAsync(CancellationToken ct = default)
+    {
+        await using var db = await dbContextFactory.CreateDbContextAsync(ct);
+
+        var items = await db.UserMediaItems
+            .Where(u => u.Status == MediaStatus.Interested)
+            .Include(u => u.MediaItem).ThenInclude(m => m!.Genres).ThenInclude(mg => mg.Genre)
+            .Include(u => u.MediaItem).ThenInclude(m => m!.Credits).ThenInclude(c => c.Person)
+            .AsSplitQuery()
+            .AsNoTracking()
+            .ToListAsync(ct);
+
+        return items
+            .Select(u =>
+            {
+                var m = u.MediaItem!;
+                return new OnDeckItem(u.Id, m.Title, m.Creator, m.MediaType, m.DisplayImageUrl,
+                    m.ReleaseDate?.Year, m.Length, m.EstimatedMinutes, u.AddedDate, u.Discovery,
+                    m.Genres.Where(mg => mg.Genre is not null).Select(mg => mg.Genre!.Name).Order().ToList());
+            })
+            .OrderBy(i => i.AddedDate)
+            .ToList();
     }
 
     public async Task<ItemDetail?> GetItemDetailAsync(int userMediaItemId,

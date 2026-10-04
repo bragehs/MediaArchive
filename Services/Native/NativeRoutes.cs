@@ -36,7 +36,7 @@ public static class NativeRoutes
                 await common.GetLiveSessionAsync());
         }),
 
-        Get("backlog", "backlog", sp => sp.GetRequiredService<CommonQueries>().GetBacklogAsync()),
+        Get("onDeck", "onDeck", sp => sp.GetRequiredService<CommonQueries>().GetOnDeckAsync()),
 
         Get("library", "library", sp => sp.GetRequiredService<LibraryQueries>().GetLibraryAsync()),
 

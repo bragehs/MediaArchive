@@ -48,6 +48,16 @@ func ago(_ days: Int) -> String {
     days <= 0 ? "today" : days == 1 ? "yesterday" : "\(days) days ago"
 }
 
+// "3 weeks ago", "8 months ago": coarser the further back, for things that wait.
+func age(_ days: Int) -> String {
+    switch days {
+    case ..<14: ago(days)
+    case ..<60: "\(days / 7) weeks ago"
+    case ..<730: "\(days / 30) months ago"
+    default: "\(days / 365) years ago"
+    }
+}
+
 // Mirrors Book.PagesFromHours: hours only convert when both lengths are known.
 func pagesFromHours(_ hours: Double?, _ audioHours: Double?, _ pageCount: Int?) -> Int? {
     guard let hours, let audioHours, audioHours > 0, let pageCount, pageCount > 0 else { return nil }
