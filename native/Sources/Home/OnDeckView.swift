@@ -4,12 +4,12 @@ import SwiftUI
 @Observable
 final class OnDeckStore {
     enum Sort: String, CaseIterable, Hashable {
-        case oldest, newest, shortest, title, year
+        case newest, oldest, shortest, title, year
 
         var label: String {
             switch self {
-            case .oldest: "Oldest added"
             case .newest: "Newest added"
+            case .oldest: "Oldest added"
             case .shortest: "Shortest first"
             case .title: "Title"
             case .year: "Year"
@@ -21,7 +21,7 @@ final class OnDeckStore {
     var query = ""
     var type: MediaType?
     var genre: String?
-    var sort: Sort = .oldest
+    var sort: Sort = .newest
 
     func load() async {
         do { items = .loaded(try await api.onDeck()) } catch { items = .failed(error.localizedDescription) }
