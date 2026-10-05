@@ -9,6 +9,8 @@ final class ActivityStore {
     var day: ActivityDay?
     var zoom: Zoom = .week
     var weekStart = DateOnly.today.monday
+    // Which way the last step went, so the next week slides in from that side.
+    var direction = 1
 
     func load() async {
         do {
@@ -27,6 +29,7 @@ final class ActivityStore {
     var isCurrentWeek: Bool { weekStart >= DateOnly.today.monday }
 
     func step(_ weeks: Int) {
+        direction = weeks
         weekStart = weekStart.adding(days: 7 * weeks)
     }
 
@@ -53,13 +56,18 @@ struct ActivityView: View {
     @State private var store = ActivityStore()
     @Environment(\.dismiss) private var dismiss
 
+    // Zooming out shrinks both views, zooming in grows them: the week lives below
+    // full size, the month above it, so the two always move the same way.
     var body: some View {
-        Group {
+        ZStack {
             switch store.zoom {
-            case .week: weekPage
-            case .month: monthPage
+            case .week:
+                weekPage.transition(.scale(scale: 0.94).combined(with: .opacity))
+            case .month:
+                monthPage.transition(.scale(scale: 1.06).combined(with: .opacity))
             }
         }
+        .animation(.smooth(duration: 0.35), value: store.zoom)
         .task { await store.load() }
         .sheet(item: $store.day) { day in
             ActivityDayView(day: day)
@@ -74,9 +82,17 @@ struct ActivityView: View {
                 header(zoomLabel: "Month") { store.zoom = .month }
                 content {
                     WeekHeader(store: store)
-                    ForEach(store.week, id: \.self) { date in
-                        WeekDayRow(date: date, day: store.days[date]) { store.day = $0 }
+                    ZStack(alignment: .top) {
+                        VStack(spacing: 0) {
+                            ForEach(store.week, id: \.self) { date in
+                                WeekDayRow(date: date, day: store.days[date]) { store.day = $0 }
+                            }
+                        }
+                        .id(store.weekStart)
+                        .transition(.push(from: store.direction > 0 ? .trailing : .leading))
                     }
+                    .clipped()
+                    .animation(.smooth(duration: 0.3), value: store.weekStart)
                 }
             }
         }
@@ -135,7 +151,11 @@ private struct WeekHeader: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .firstTextBaseline, spacing: 12) {
                 arrow("‹", enabled: true) { store.step(-1) }
-                Text(range).font(Fonts.title(20)).foregroundStyle(Palette.ink)
+                Text(range)
+                    .font(Fonts.title(20))
+                    .foregroundStyle(Palette.ink)
+                    .contentTransition(.numericText(countsDown: store.direction < 0))
+                    .animation(.smooth(duration: 0.3), value: store.weekStart)
                 arrow("›", enabled: !store.isCurrentWeek) { store.step(1) }
                 Spacer()
             }
