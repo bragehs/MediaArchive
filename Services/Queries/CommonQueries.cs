@@ -95,7 +95,8 @@ public class CommonQueries(IDbContextFactory<AppDbContext> dbContextFactory)
 
         return await db.UserMediaItems
             .Where(u => u.Status == MediaStatus.Interested)
-            .OrderBy(u => u.AddedDate)
+            .OrderByDescending(u => u.AddedDate)
+            .ThenByDescending(u => u.Id)
             .Select(ToCoverCard)
             .ToListAsync(ct);
     }
