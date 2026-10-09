@@ -20,34 +20,56 @@ public class TmdbProvider(HttpClient httpClient) : IMediaProvider
         return mediaType is MediaType.Movie or MediaType.Show;
     }
 
-    public Task<IReadOnlyList<MediaSearchResultDto>> SearchAsync(string query,
+    public async Task<IReadOnlyList<MediaSearchResultDto>> SearchAsync(string query,
         MediaType mediaType,
         CancellationToken cancellationToken = default)
     {
-        return mediaType switch
-        {
-            MediaType.Movie => SearchMoviesAsync(query, cancellationToken),
-            MediaType.Show => SearchShowsAsync(query, cancellationToken),
-            _ => throw new ArgumentOutOfRangeException(nameof(mediaType), mediaType, null)
-        };
+        var encodedQuery = Uri.EscapeDataString(query);
+        var url = $"search/{PathSegment(mediaType)}?query={encodedQuery}&include_adult=false";
+
+        var response =
+            await httpClient.GetFromJsonAsync<TmdbResponse<TmdbSearchResult>>(url, JsonOptions, cancellationToken);
+
+        if (response?.Results is null)
+            return [];
+
+        return response.Results
+            .Select(result => MapToSearchResult(result, mediaType))
+            .ToList();
     }
 
     public Task<MediaItemDto?> GetByIdAsync(string id,
         MediaType mediaType,
         CancellationToken cancellationToken = default)
     {
+        var url = $"{PathSegment(mediaType)}/{id}?append_to_response=credits,keywords";
+
+        return mediaType == MediaType.Movie
+            ? GetItemAsync<TmdbMovieDetail>(url, MapToItem, cancellationToken)
+            : GetItemAsync<TmdbTvDetail>(url, MapToItem, cancellationToken);
+    }
+
+    private static string PathSegment(MediaType mediaType)
+    {
         return mediaType switch
         {
-            MediaType.Movie => GetMovieAsync(id, cancellationToken),
-            MediaType.Show => GetShowAsync(id, cancellationToken),
+            MediaType.Movie => "movie",
+            MediaType.Show => "tv",
             _ => throw new ArgumentOutOfRangeException(nameof(mediaType), mediaType, null)
         };
     }
 
-    private async Task<MediaItemDto?> GetMovieAsync(string id, CancellationToken cancellationToken)
+    private async Task<MediaItemDto?> GetItemAsync<TDetail>(string url,
+        Func<TDetail, MediaItemDto> map,
+        CancellationToken cancellationToken) where TDetail : class
     {
-        var url = $"movie/{id}?append_to_response=credits,keywords";
+        var detail = await GetOrNullAsync<TDetail>(url, cancellationToken);
 
+        return detail is null ? null : map(detail);
+    }
+
+    private async Task<T?> GetOrNullAsync<T>(string url, CancellationToken cancellationToken) where T : class
+    {
         var response = await httpClient.GetAsync(url, cancellationToken);
 
         if (response.StatusCode == HttpStatusCode.NotFound)
@@ -55,27 +77,20 @@ public class TmdbProvider(HttpClient httpClient) : IMediaProvider
 
         response.EnsureSuccessStatusCode();
 
-        var volume = await response.Content
-            .ReadFromJsonAsync<TmdbMovieDetail>(JsonOptions, cancellationToken);
-
-        return volume is null ? null : MapToItem(volume);
+        return await response.Content.ReadFromJsonAsync<T>(JsonOptions, cancellationToken);
     }
 
-    private async Task<IReadOnlyList<MediaSearchResultDto>> SearchMoviesAsync(string query,
-        CancellationToken cancellationToken)
+    private static MediaSearchResultDto MapToSearchResult(TmdbSearchResult result, MediaType mediaType)
     {
-        var encodedQuery = Uri.EscapeDataString(query);
-        var url = $"search/movie?query={encodedQuery}&include_adult=false";
-
-        var response =
-            await httpClient.GetFromJsonAsync<TmdbResponse<TmdbMovieResult>>(url, JsonOptions, cancellationToken);
-
-        if (response?.Results is null)
-            return [];
-
-        return response.Results
-            .Select(MapToSearchResult)
-            .ToList();
+        return new MediaSearchResultDto
+        {
+            ExternalSource = SourceName,
+            ExternalId = result.Id.ToString(),
+            MediaType = mediaType,
+            Title = result.Title ?? result.Name ?? "Untitled",
+            ImageUrl = PosterUrl(result.PosterPath),
+            ReleaseDate = ParseDate(result.ReleaseDate ?? result.FirstAirDate)
+        };
     }
 
     private static MediaItemDto MapToItem(TmdbMovieDetail movie)
@@ -84,7 +99,7 @@ public class TmdbProvider(HttpClient httpClient) : IMediaProvider
             SourceName,
             movie.Id.ToString(),
             movie.Title ?? "Untitled",
-            movie.PosterPath is not null ? $"{ImageBaseUrl}{movie.PosterPath}" : null,
+            PosterUrl(movie.PosterPath),
             ParseDate(movie.ReleaseDate),
             MediaType.Movie,
             movie.Runtime,
@@ -108,76 +123,10 @@ public class TmdbProvider(HttpClient httpClient) : IMediaProvider
         };
     }
 
-    private static MediaSearchResultDto MapToSearchResult(TmdbMovieResult movie)
-    {
-        return new MediaSearchResultDto(
-            SourceName,
-            movie.Id.ToString(),
-            MediaType.Movie,
-            movie.Title ?? "Untitled",
-            movie.PosterPath is not null ? $"{ImageBaseUrl}{movie.PosterPath}" : null,
-            ParseDate(movie.ReleaseDate)
-        );
-    }
-
-    private async Task<IReadOnlyList<MediaSearchResultDto>> SearchShowsAsync(string query,
-        CancellationToken cancellationToken)
-    {
-        var encodedQuery = Uri.EscapeDataString(query);
-        var url = $"search/tv?query={encodedQuery}&include_adult=false";
-
-        var response =
-            await httpClient.GetFromJsonAsync<TmdbResponse<TmdbTvResult>>(url, JsonOptions, cancellationToken);
-
-        if (response?.Results is null)
-            return [];
-
-        return response.Results
-            .Select(MapToSearchResult)
-            .ToList();
-    }
-
-    private static MediaSearchResultDto MapToSearchResult(TmdbTvResult show)
-    {
-        return new MediaSearchResultDto(
-            SourceName,
-            show.Id.ToString(),
-            MediaType.Show,
-            show.Name ?? "Untitled",
-            show.PosterPath is not null ? $"{ImageBaseUrl}{show.PosterPath}" : null,
-            ParseDate(show.FirstAirDate)
-        );
-    }
-
-    private async Task<MediaItemDto?> GetShowAsync(string id, CancellationToken cancellationToken)
-    {
-        var url = $"tv/{id}?append_to_response=credits,keywords";
-
-        var response = await httpClient.GetAsync(url, cancellationToken);
-
-        if (response.StatusCode == HttpStatusCode.NotFound)
-            return null;
-
-        response.EnsureSuccessStatusCode();
-
-        var show = await response.Content
-            .ReadFromJsonAsync<TmdbTvDetail>(JsonOptions, cancellationToken);
-
-        return show is null ? null : MapToItem(show);
-    }
-
     public async Task<IReadOnlyList<SeasonDto>> GetSeasonsAsync(string showExternalId,
         CancellationToken cancellationToken = default)
     {
-        var response = await httpClient.GetAsync($"tv/{showExternalId}", cancellationToken);
-
-        if (response.StatusCode == HttpStatusCode.NotFound)
-            return [];
-
-        response.EnsureSuccessStatusCode();
-
-        var show = await response.Content
-            .ReadFromJsonAsync<TmdbTvDetail>(JsonOptions, cancellationToken);
+        var show = await GetOrNullAsync<TmdbTvDetail>($"tv/{showExternalId}", cancellationToken);
 
         if (show?.Seasons is null)
             return [];
@@ -190,7 +139,7 @@ public class TmdbProvider(HttpClient httpClient) : IMediaProvider
                 s.Name ?? $"Season {s.SeasonNumber}",
                 s.EpisodeCount,
                 ParseDate(s.AirDate),
-                s.PosterPath is not null ? $"{ImageBaseUrl}{s.PosterPath}" : null))
+                PosterUrl(s.PosterPath)))
             .ToList();
     }
 
@@ -200,7 +149,7 @@ public class TmdbProvider(HttpClient httpClient) : IMediaProvider
             SourceName,
             show.Id.ToString(),
             show.Name ?? "Untitled",
-            show.PosterPath is not null ? $"{ImageBaseUrl}{show.PosterPath}" : null,
+            PosterUrl(show.PosterPath),
             ParseDate(show.FirstAirDate),
             MediaType.Show,
             show.NumberOfEpisodes,
@@ -238,6 +187,11 @@ public class TmdbProvider(HttpClient httpClient) : IMediaProvider
         return creators.Concat(networks).DistinctBy(c => (c.Name, c.Role));
     }
 
+    private static string? PosterUrl(string? posterPath)
+    {
+        return posterPath is not null ? $"{ImageBaseUrl}{posterPath}" : null;
+    }
+
     private static DateOnly? ParseDate(string? date)
     {
         return DateOnly.TryParse(date, CultureInfo.InvariantCulture, out var parsed) ? parsed : null;
@@ -245,15 +199,12 @@ public class TmdbProvider(HttpClient httpClient) : IMediaProvider
 
     private sealed record TmdbResponse<T>(List<T>? Results);
 
-    private sealed record TmdbMovieResult(
+    // Movies carry title and release_date, shows name and first_air_date.
+    private sealed record TmdbSearchResult(
         int Id,
         string? Title,
-        string? ReleaseDate,
-        string? PosterPath);
-
-    private sealed record TmdbTvResult(
-        int Id,
         string? Name,
+        string? ReleaseDate,
         string? FirstAirDate,
         string? PosterPath);
 

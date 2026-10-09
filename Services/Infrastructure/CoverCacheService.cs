@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Logging;
 
 namespace MediaArchive.Services.Infrastructure;
@@ -12,9 +13,7 @@ public class CoverCacheService(
     public async Task<string?> TryCacheAsync(string? imageUrl, string? externalSource,
         string? externalId, CancellationToken ct = default)
     {
-        if (string.IsNullOrWhiteSpace(imageUrl) ||
-            string.IsNullOrWhiteSpace(externalSource) ||
-            string.IsNullOrWhiteSpace(externalId))
+        if (!CanCache(imageUrl, externalSource, externalId))
             return null;
 
         try
@@ -48,6 +47,14 @@ public class CoverCacheService(
             logger.LogWarning(ex, "Could not cache cover {ImageUrl}", imageUrl);
             return null;
         }
+    }
+
+    private static bool CanCache([NotNullWhen(true)] string? imageUrl,
+        [NotNullWhen(true)] string? externalSource, [NotNullWhen(true)] string? externalId)
+    {
+        return !string.IsNullOrWhiteSpace(imageUrl) &&
+               !string.IsNullOrWhiteSpace(externalSource) &&
+               !string.IsNullOrWhiteSpace(externalId);
     }
 
     private static string FileName(string externalSource, string externalId, string? mediaType)

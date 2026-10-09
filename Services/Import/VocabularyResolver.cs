@@ -8,9 +8,23 @@ namespace MediaArchive.Services.Import;
 
 public static class VocabularyResolver
 {
-    public static async Task ApplyWorkDetailsAsync(AppDbContext db, MediaItem mediaItem,
-        WorkDetails details, bool replace, CancellationToken ct = default)
+    public static Task AddWorkDetailsAsync(AppDbContext db, MediaItem mediaItem,
+        WorkDetails details, CancellationToken ct = default)
     {
+        return ApplyWorkDetailsAsync(new Target(db, mediaItem, Replace: false), details, ct);
+    }
+
+    public static Task ReplaceWorkDetailsAsync(AppDbContext db, MediaItem mediaItem,
+        WorkDetails details, CancellationToken ct = default)
+    {
+        return ApplyWorkDetailsAsync(new Target(db, mediaItem, Replace: true), details, ct);
+    }
+
+    private static async Task ApplyWorkDetailsAsync(Target target, WorkDetails details,
+        CancellationToken ct)
+    {
+        var (db, mediaItem, replace) = target;
+
         var universes = await ResolveNamedAsync(db, [details.Universe],
             name => new Universe { Name = name }, ct);
 
@@ -28,15 +42,16 @@ public static class VocabularyResolver
         mediaItem.Series = series;
         mediaItem.SeriesPosition = series.Id == Series.StandaloneId ? null : details.SeriesPosition;
 
-        await ApplyGenresAsync(db, mediaItem, details.Genres, replace, ct);
-        await ApplyTagsAsync(db, mediaItem, details.Tags, replace, ct);
+        await ApplyGenresAsync(target, details.Genres, ct);
+        await ApplyTagsAsync(target, details.Tags, ct);
     }
 
     public static string NormaliseTerm(string name) => name.Trim().ToLowerInvariant();
 
-    public static async Task ApplyGenresAsync(AppDbContext db, MediaItem mediaItem,
-        List<string> names, bool replace, CancellationToken ct = default)
+    private static async Task ApplyGenresAsync(Target target, List<string> names, CancellationToken ct)
     {
+        var (db, mediaItem, replace) = target;
+
         var genres = await ResolveNamedAsync(db,
             names.Select(n => string.IsNullOrWhiteSpace(n) ? n : NormaliseTerm(n)),
             name => new Genre { Name = name }, ct);
@@ -57,9 +72,10 @@ public static class VocabularyResolver
             mediaItem.Genres.Add(new MediaItemGenre { Genre = genre });
     }
 
-    public static async Task ApplyTagsAsync(AppDbContext db, MediaItem mediaItem,
-        List<TagInput> inputs, bool replace, CancellationToken ct = default)
+    private static async Task ApplyTagsAsync(Target target, List<TagInput> inputs, CancellationToken ct)
     {
+        var (db, mediaItem, replace) = target;
+
         var classification = inputs
             .Where(i => !string.IsNullOrWhiteSpace(i.Name))
             .GroupBy(i => i.Name.Trim(), StringComparer.OrdinalIgnoreCase)
@@ -94,11 +110,7 @@ public static class VocabularyResolver
     public static async Task ApplyCreditsAsync(AppDbContext db, MediaItem mediaItem,
         List<CreditDto> credits, CancellationToken ct = default)
     {
-        // (Person, Role) is the composite key, so a repeated pair would collide.
-        credits = credits
-            .Where(c => !string.IsNullOrWhiteSpace(c.Name))
-            .DistinctBy(c => (c.Name.Trim().ToLowerInvariant(), c.Role))
-            .ToList();
+        credits = DistinctCredits(credits);
 
         if (credits.Count == 0)
             return;
@@ -109,10 +121,23 @@ public static class VocabularyResolver
         if (people.Count == 0)
             return;
 
-        var byName = people.ToDictionary(p => p.Name, StringComparer.OrdinalIgnoreCase);
-
         await LoadIfPersistedAsync(db, mediaItem, m => m.Credits, ct);
 
+        LinkCredits(mediaItem, credits, people);
+    }
+
+    // (Person, Role) is the composite key, so a repeated pair would collide.
+    private static List<CreditDto> DistinctCredits(List<CreditDto> credits)
+    {
+        return credits
+            .Where(c => !string.IsNullOrWhiteSpace(c.Name))
+            .DistinctBy(c => (c.Name.Trim().ToLowerInvariant(), c.Role))
+            .ToList();
+    }
+
+    private static void LinkCredits(MediaItem mediaItem, List<CreditDto> credits, List<Person> people)
+    {
+        var byName = people.ToDictionary(p => p.Name, StringComparer.OrdinalIgnoreCase);
         var linked = mediaItem.Credits.Select(mc => (mc.PersonId, mc.Role)).ToHashSet();
 
         foreach (var credit in credits)
@@ -183,4 +208,6 @@ public static class VocabularyResolver
         if (mediaItem.Id != 0)
             await db.Entry(mediaItem).Collection(collection).LoadAsync(ct);
     }
+
+    private sealed record Target(AppDbContext Db, MediaItem Item, bool Replace);
 }
