@@ -5,13 +5,7 @@ struct PrimaryButtonStyle: ButtonStyle {
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(Fonts.display(10.5, bold: true))
-            .tracking(1.5)
-            .textCase(.uppercase)
-            .foregroundStyle(Palette.onAc)
-            .padding(.horizontal, 18)
-            .padding(.vertical, 12)
-            .frame(maxWidth: fullWidth ? .infinity : nil)
+            .buttonFace(Palette.onAc, fullWidth: fullWidth)
             .background(Palette.ac, in: RoundedRectangle(cornerRadius: 10))
             .opacity(configuration.isPressed ? 0.8 : 1)
     }
@@ -22,15 +16,21 @@ struct GhostButtonStyle: ButtonStyle {
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(Fonts.display(10.5, bold: true))
+            .buttonFace(Palette.muted, fullWidth: fullWidth)
+            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Palette.line, lineWidth: 1))
+            .opacity(configuration.isPressed ? 0.7 : 1)
+    }
+}
+
+private extension View {
+    func buttonFace(_ color: Color, fullWidth: Bool) -> some View {
+        font(Fonts.display(10.5, bold: true))
             .tracking(1.5)
             .textCase(.uppercase)
-            .foregroundStyle(Palette.muted)
+            .foregroundStyle(color)
             .padding(.horizontal, 18)
             .padding(.vertical, 12)
             .frame(maxWidth: fullWidth ? .infinity : nil)
-            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Palette.line, lineWidth: 1))
-            .opacity(configuration.isPressed ? 0.7 : 1)
     }
 }
 
