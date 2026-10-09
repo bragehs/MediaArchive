@@ -84,39 +84,36 @@ public class ProfileQueries(IDbContextFactory<AppDbContext> dbContextFactory)
     // An unconvertible length leaves the denominator too, or it would deflate every average.
     private static TimeSpent BuildTimeSpent(List<UserMediaItem> items)
     {
-        double actual = 0, estimated = 0;
-        int counted = 0, dropped = 0;
-        var buckets = new Dictionary<(MediaType Type, int Year), double>();
+        var timed = items.Select(u => (Item: u, Passes: TimedPasses(u).ToList())).ToList();
+        var passes = timed.SelectMany(t => t.Passes).ToList();
 
-        foreach (var item in items)
-        {
-            var media = item.MediaItem!;
-            var contributed = false;
-
-            foreach (var entry in item.Entries)
-            {
-                if (EffortMath.UnitsSpent(media, entry) is not { } units
-                    || EffortMath.ToMinutes(media, units) is not { } minutes)
-                    continue;
-
-                if (entry.Effort is null) estimated += minutes;
-                else actual += minutes;
-                contributed = true;
-
-                var key = (media.MediaType, PassYear(item, entry));
-                buckets[key] = buckets.GetValueOrDefault(key) + minutes;
-            }
-
-            if (contributed) counted++;
-            else if (item.Entries.Count > 0) dropped++;
-        }
-
-        return new TimeSpent(actual, estimated, counted, dropped,
-            buckets
-                .OrderBy(b => b.Key.Year).ThenBy(b => b.Key.Type)
-                .Select(b => new TimeBucket(b.Key.Type, b.Key.Year, b.Value))
+        return new TimeSpent(
+            passes.Where(p => p.IsMeasured).Sum(p => p.Minutes),
+            passes.Where(p => !p.IsMeasured).Sum(p => p.Minutes),
+            timed.Count(t => t.Passes.Count > 0),
+            timed.Count(t => t.Passes.Count == 0 && t.Item.Entries.Count > 0),
+            passes
+                .GroupBy(p => (p.Type, p.Year))
+                .OrderBy(g => g.Key.Year).ThenBy(g => g.Key.Type)
+                .Select(g => new TimeBucket(g.Key.Type, g.Key.Year, g.Sum(p => p.Minutes)))
                 .ToList());
     }
+
+    private static IEnumerable<PassTime> TimedPasses(UserMediaItem item) => item.Entries
+        .Select(e => TimeOf(item, e))
+        .OfType<PassTime>();
+
+    private static PassTime? TimeOf(UserMediaItem item, ConsumptionEntry entry)
+    {
+        var media = item.MediaItem!;
+        if (EffortMath.UnitsSpent(media, entry) is not { } units
+            || EffortMath.ToMinutes(media, units) is not { } minutes)
+            return null;
+
+        return new PassTime(media.MediaType, PassYear(item, entry), minutes, entry.Effort is not null);
+    }
+
+    private sealed record PassTime(MediaType Type, int Year, double Minutes, bool IsMeasured);
 
     // Whole, in the year it closed: spreading undated estimates would invent a pace.
     private static int PassYear(UserMediaItem item, ConsumptionEntry entry) =>
@@ -135,45 +132,42 @@ public class ProfileQueries(IDbContextFactory<AppDbContext> dbContextFactory)
     private static List<UniverseCard> BuildUniverses(List<UserMediaItem> items) => items
         .Where(u => u.MediaItem!.Universe is not null)
         .GroupBy(u => u.MediaItem!.Universe!.Name)
-        .Select(g =>
-        {
-            var rated = g.Where(u => u.Rating is not null).Select(u => u.Rating!.Value).ToList();
-
-            double gamingMin = 0, viewingMin = 0, readingPages = 0;
-            foreach (var u in g)
-            {
-                var media = u.MediaItem!;
-                var units = u.Entries.Sum(e => EffortMath.UnitsSpent(media, e) ?? 0);
-                var minutes = EffortMath.ToMinutes(media, units) ?? 0;
-
-                switch (media.MediaType)
-                {
-                    case MediaType.Game: gamingMin += minutes; break;
-                    case MediaType.Book: readingPages += units; break;
-                    default: viewingMin += minutes; break;
-                }
-            }
-
-            var effort = new List<UniverseEffort>();
-            if (gamingMin > 0) effort.Add(new(MediaBucket.Gaming, Math.Round(gamingMin / 60, 1), "h played"));
-            if (viewingMin > 0) effort.Add(new(MediaBucket.Viewing, Math.Round(viewingMin / 60, 1), "h watched"));
-            if (readingPages > 0) effort.Add(new(MediaBucket.Reading, Math.Round(readingPages), "pages read"));
-
-            var covers = g
-                .OrderBy(u => u.Entries.Count == 0)
-                .ThenBy(u => u.Entries.Select(e => e.StartDate).Min() ?? DateOnly.MaxValue)
-                .Select(u => new UniverseCover(u.Id, u.MediaItem!.Title,
-                    u.MediaItem.LocalImagePath ?? u.MediaItem.ImageUrl, u.Status))
-                .ToList();
-
-            return new UniverseCard(
-                g.Key,
-                g.Count(),
-                rated.Count > 0 ? rated.Average() : null,
-                effort,
-                covers);
-        })
+        .Select(g => new UniverseCard(
+            g.Key,
+            g.Count(),
+            g.Average(u => u.Rating),
+            UniverseEffortOf(g),
+            UniverseCovers(g)))
         .OrderByDescending(c => c.Works)
+        .ToList();
+
+    private static readonly (MediaBucket Bucket, string Unit)[] UniverseUnits =
+        [(MediaBucket.Gaming, "h played"), (MediaBucket.Viewing, "h watched"), (MediaBucket.Reading, "pages read")];
+
+    private static List<UniverseEffort> UniverseEffortOf(IEnumerable<UserMediaItem> works)
+    {
+        var spent = works
+            .Select(u => (Bucket: MediaBuckets.Of(u.MediaItem!.MediaType), Amount: AmountSpent(u)))
+            .ToList();
+
+        return UniverseUnits
+            .Select(b => (b.Bucket, b.Unit, Total: spent.Where(s => s.Bucket == b.Bucket).Sum(s => s.Amount)))
+            .Where(b => b.Total > 0)
+            .Select(b => new UniverseEffort(b.Bucket, MediaBuckets.Rounded(b.Bucket, b.Total), b.Unit))
+            .ToList();
+    }
+
+    private static double AmountSpent(UserMediaItem item)
+    {
+        var media = item.MediaItem!;
+        return MediaBuckets.Amount(media, item.Entries.Sum(e => EffortMath.UnitsSpent(media, e) ?? 0));
+    }
+
+    private static List<UniverseCover> UniverseCovers(IEnumerable<UserMediaItem> works) => works
+        .OrderBy(u => u.Entries.Count == 0)
+        .ThenBy(u => u.Entries.Select(e => e.StartDate).Min() ?? DateOnly.MaxValue)
+        .Select(u => new UniverseCover(u.Id, u.MediaItem!.Title,
+            u.MediaItem.LocalImagePath ?? u.MediaItem.ImageUrl, u.Status))
         .ToList();
 
     // Primary credit only, or one film trilogy floods the list with its screenwriters.
@@ -196,25 +190,19 @@ public class ProfileQueries(IDbContextFactory<AppDbContext> dbContextFactory)
         .ThenByDescending(c => c.AvgRating ?? 0)
         .ToList();
 
-    private static MonthRecord? BuildBusiestMonth(List<UserMediaItem> items)
+    private static MonthRecord? BuildBusiestMonth(List<UserMediaItem> items) => items
+        .SelectMany(u => u.Entries)
+        .SelectMany(LogDates)
+        .GroupBy(d => (d.Year, d.Month))
+        .Select(g => new MonthRecord(g.Key.Year, g.Key.Month, g.Count()))
+        .OrderByDescending(m => m.Logs)
+        .FirstOrDefault();
+
+    private static IEnumerable<DateOnly> LogDates(ConsumptionEntry entry)
     {
-        var counts = new Dictionary<(int Year, int Month), int>();
-        void Bump(DateOnly d) =>
-            counts[(d.Year, d.Month)] = counts.GetValueOrDefault((d.Year, d.Month)) + 1;
-
-        foreach (var entry in items.SelectMany(u => u.Entries))
-        {
-            if (entry.StartDate is { } start) Bump(start);
-            if (entry.EndDate is { } end) Bump(end);
-            foreach (var step in EffortMath.Walk(entry))
-                if (step.Note.Kind == NoteKind.Progress)
-                    Bump(DateOnly.FromDateTime(step.When));
-        }
-
-        return counts.Count == 0
-            ? null
-            : counts.OrderByDescending(kv => kv.Value)
-                .Select(kv => new MonthRecord(kv.Key.Year, kv.Key.Month, kv.Value))
-                .First();
+        if (entry.StartDate is { } start) yield return start;
+        if (entry.EndDate is { } end) yield return end;
+        foreach (var step in EffortMath.Walk(entry).Where(s => s.Note.Kind == NoteKind.Progress))
+            yield return DateOnly.FromDateTime(step.When);
     }
 }

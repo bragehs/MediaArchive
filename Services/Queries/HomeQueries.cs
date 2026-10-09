@@ -24,6 +24,22 @@ public record JustClosedItem(
 
 public enum MediaBucket { Gaming, Viewing, Reading }
 
+public static class MediaBuckets
+{
+    public static MediaBucket Of(MediaType type) => type switch
+    {
+        MediaType.Game => MediaBucket.Gaming,
+        MediaType.Book => MediaBucket.Reading,
+        _ => MediaBucket.Viewing
+    };
+
+    public static double Amount(MediaItem media, double units) =>
+        Of(media.MediaType) == MediaBucket.Reading ? units : EffortMath.ToMinutes(media, units) ?? 0;
+
+    public static double Rounded(MediaBucket bucket, double amount) =>
+        bucket == MediaBucket.Reading ? Math.Round(amount) : Math.Round(amount / 60, 1);
+}
+
 public record WeeklyBucketStat(MediaBucket Bucket, double Value, string Unit, int ItemsTouched);
 
 public record WeeklyActivity(DateOnly WeekStart, DateOnly WeekEnd,
@@ -93,13 +109,8 @@ public class HomeQueries(
     {
         await using var db = await dbContextFactory.CreateDbContextAsync(ct);
 
-        var today = EffortMath.Today;
-        var weekStart = today.AddDays(-(((int)today.DayOfWeek + 6) % 7));
-        var weekEnd = weekStart.AddDays(6);
-        var from = weekStart.ToDateTime(TimeOnly.MinValue);
-        var toExclusive = weekStart.AddDays(7).ToDateTime(TimeOnly.MinValue);
-        var fromUtc = from.AddHours(EffortMath.DayStartsAt).ToUniversalTime();
-        var toUtc = toExclusive.AddHours(EffortMath.DayStartsAt).ToUniversalTime();
+        var week = Week.Containing(EffortMath.Today);
+        var (fromUtc, toUtc) = (week.FromUtc, week.ToUtc);
 
         // Unfiltered Include: the effort walk needs each pass's full history or the deltas are wrong.
         var entries = await db.ConsumptionEntries
@@ -114,53 +125,62 @@ public class HomeQueries(
             .AsNoTracking()
             .ToListAsync(ct);
 
-        double gamingMinutes = 0, viewingMinutes = 0, readingPages = 0;
-        var gamingItems = new HashSet<int>();
-        var viewingItems = new HashSet<int>();
-        var readingItems = new HashSet<int>();
-        var activeDays = sittings.Select(s => EffortMath.LocalDay(s.StartedAt)).ToHashSet();
-
-        foreach (var entry in entries)
-        {
-            var daysTouched = entry.Notes
-                .Select(n => EffortMath.ActivityDate(entry, n))
-                .Where(when => when >= from && when < toExclusive)
-                .Select(DateOnly.FromDateTime)
-                .ToList();
-            if (daysTouched.Count == 0)
-                continue;
-            activeDays.UnionWith(daysTouched);
-
-            var media = entry.UserMediaItem!.MediaItem!;
-            var units = EffortMath.UnitsLogged(entry, from, toExclusive);
-            var minutes = EffortMath.ToMinutes(media, units) ?? 0;
-
-            switch (media.MediaType)
-            {
-                case MediaType.Game:
-                    gamingMinutes += minutes;
-                    gamingItems.Add(entry.UserMediaItemId);
-                    break;
-                case MediaType.Book:
-                    readingPages += units;
-                    readingItems.Add(entry.UserMediaItemId);
-                    break;
-                default:
-                    viewingMinutes += minutes;
-                    viewingItems.Add(entry.UserMediaItemId);
-                    break;
-            }
-        }
+        var touched = entries
+            .Select(e => (Entry: e, Days: DaysTouched(e, week)))
+            .Where(t => t.Days.Count > 0)
+            .ToList();
+        var activeDays = sittings
+            .Select(s => EffortMath.LocalDay(s.StartedAt))
+            .Concat(touched.SelectMany(t => t.Days))
+            .Distinct()
+            .Order()
+            .ToList();
+        var logs = touched.Select(t => WeekLog.Of(t.Entry, week)).ToList();
 
         var buckets = new List<WeeklyBucketStat>
         {
-            new(MediaBucket.Gaming, Math.Round(gamingMinutes / 60, 1), "h", gamingItems.Count),
-            new(MediaBucket.Viewing, Math.Round(viewingMinutes / 60, 1), "h", viewingItems.Count),
-            new(MediaBucket.Reading, Math.Round(readingPages), "pages", readingItems.Count)
+            BucketStat(logs, MediaBucket.Gaming, "h"),
+            BucketStat(logs, MediaBucket.Viewing, "h"),
+            BucketStat(logs, MediaBucket.Reading, "pages")
         };
 
-        return new WeeklyActivity(weekStart, weekEnd, buckets,
-            activeDays.Order().ToList(), sittings.Count, sittings.Sum(s => s.Minutes ?? 0));
+        return new WeeklyActivity(week.Start, week.End, buckets,
+            activeDays, sittings.Count, sittings.Sum(s => s.Minutes ?? 0));
     }
 
+    private static List<DateOnly> DaysTouched(ConsumptionEntry entry, Week week) => entry.Notes
+        .Select(n => EffortMath.ActivityDate(entry, n))
+        .Where(week.Contains)
+        .Select(DateOnly.FromDateTime)
+        .ToList();
+
+    private static WeeklyBucketStat BucketStat(List<WeekLog> logs, MediaBucket bucket, string unit)
+    {
+        var inBucket = logs.Where(l => l.Bucket == bucket).ToList();
+        return new WeeklyBucketStat(bucket, MediaBuckets.Rounded(bucket, inBucket.Sum(l => l.Amount)), unit,
+            inBucket.Select(l => l.UserMediaItemId).Distinct().Count());
+    }
+
+    private sealed record WeekLog(MediaBucket Bucket, int UserMediaItemId, double Amount)
+    {
+        public static WeekLog Of(ConsumptionEntry entry, Week week)
+        {
+            var media = entry.UserMediaItem!.MediaItem!;
+            var units = EffortMath.UnitsLogged(entry, week.From, week.ToExclusive);
+            return new WeekLog(MediaBuckets.Of(media.MediaType), entry.UserMediaItemId, MediaBuckets.Amount(media, units));
+        }
+    }
+
+    private sealed record Week(DateOnly Start)
+    {
+        public DateOnly End => Start.AddDays(6);
+        public DateTime From => Start.ToDateTime(TimeOnly.MinValue);
+        public DateTime ToExclusive => Start.AddDays(7).ToDateTime(TimeOnly.MinValue);
+        public DateTime FromUtc => From.AddHours(EffortMath.DayStartsAt).ToUniversalTime();
+        public DateTime ToUtc => ToExclusive.AddHours(EffortMath.DayStartsAt).ToUniversalTime();
+
+        public bool Contains(DateTime when) => when >= From && when < ToExclusive;
+
+        public static Week Containing(DateOnly day) => new(day.AddDays(-(((int)day.DayOfWeek + 6) % 7)));
+    }
 }
