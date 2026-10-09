@@ -55,60 +55,13 @@ public class TmdbProviderTests
         Assert.Equal(56, await EpisodeRuntimeFrom(json));
     }
 
-    [Fact]
-    public async Task GetByIdAsync_IgnoresTheLastAiredEpisode_WhenEveryRunTimeIsNonPositive()
+    [Theory]
+    [InlineData("""{ "id": 95396, "name": "Severance", "episode_run_time": [0], "last_episode_to_air": { "runtime": 76 } }""")]
+    [InlineData("""{ "id": 95396, "name": "Severance", "last_episode_to_air": { "runtime": 76 } }""")]
+    [InlineData("""{ "id": 95396, "name": "Severance", "episode_run_time": [] }""")]
+    [InlineData("""{ "id": 95396, "name": "Severance", "episode_run_time": [0, 0] }""")]
+    public async Task GetByIdAsync_LeavesEpisodeRuntimeNull_WithoutAPositiveEpisodeRunTime(string json)
     {
-        const string json = """
-                            {
-                              "id": 95396,
-                              "name": "Severance",
-                              "episode_run_time": [0],
-                              "last_episode_to_air": { "runtime": 76 }
-                            }
-                            """;
-
-        Assert.Null(await EpisodeRuntimeFrom(json));
-    }
-
-    [Fact]
-    public async Task GetByIdAsync_IgnoresTheLastAiredEpisode_WhenEpisodeRunTimeIsAbsent()
-    {
-        const string json = """
-                            {
-                              "id": 95396,
-                              "name": "Severance",
-                              "last_episode_to_air": { "runtime": 76 }
-                            }
-                            """;
-
-        Assert.Null(await EpisodeRuntimeFrom(json));
-    }
-
-    [Fact]
-    public async Task GetByIdAsync_LeavesEpisodeRuntimeNull_WhenNeitherSourceHasOne()
-    {
-        const string json = """
-                            {
-                              "id": 95396,
-                              "name": "Severance",
-                              "episode_run_time": []
-                            }
-                            """;
-
-        Assert.Null(await EpisodeRuntimeFrom(json));
-    }
-
-    [Fact]
-    public async Task GetByIdAsync_NeverYieldsZero_WhenEveryRunTimeIsZero()
-    {
-        const string json = """
-                            {
-                              "id": 95396,
-                              "name": "Severance",
-                              "episode_run_time": [0, 0]
-                            }
-                            """;
-
         Assert.Null(await EpisodeRuntimeFrom(json));
     }
 

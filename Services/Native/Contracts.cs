@@ -50,9 +50,6 @@ public record StartSessionArgs(int EntryId, DateTime? StartedAt);
 
 public record AddItemArgs(MediaItemDto Item, WorkDetails Details);
 
-public record LogCompletedArgs(MediaItemDto Item, WorkDetails Details, PassStart Start,
-    PassFinish Finish);
-
 public record UpdateDetailsArgs(int UserMediaItemId, WorkDetails Details);
 
 public record SetRuntimeArgs(int UserMediaItemId, int Value);

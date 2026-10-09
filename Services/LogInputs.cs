@@ -1,4 +1,5 @@
 using MediaArchive.Models;
+using MediaArchive.Services.Providers;
 
 namespace MediaArchive.Services;
 
@@ -38,3 +39,6 @@ public record SessionEnd(
     int SessionId,
     DateTime EndedAt,
     int PausedMinutes = 0);
+
+public record LogCompletedArgs(MediaItemDto Item, WorkDetails Details, PassStart Start,
+    PassFinish Finish);

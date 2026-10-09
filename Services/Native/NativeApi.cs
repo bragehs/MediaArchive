@@ -47,15 +47,15 @@ public sealed class NativeApi(IServiceScopeFactory scopes, string coversRoot)
     // LocalImagePath still stores the WebView-era covers://c/<file> form.
     private static void ResolveCoverUrls(JsonTypeInfo info, string coversRoot)
     {
-        foreach (var property in info.Properties)
+        foreach (var property in info.Properties.Where(IsImageUrl))
         {
-            if (property.Name != "imageUrl" || property.PropertyType != typeof(string) || property.Get is null)
-                continue;
-
-            var read = property.Get;
+            var read = property.Get!;
             property.Get = target => read(target) is string url && url.StartsWith(CoverCacheService.UrlBase + "/")
                 ? new Uri(Path.Combine(coversRoot, url[(CoverCacheService.UrlBase.Length + 1)..])).AbsoluteUri
                 : read(target);
         }
     }
+
+    private static bool IsImageUrl(JsonPropertyInfo property) =>
+        property.Name == "imageUrl" && property.PropertyType == typeof(string) && property.Get is not null;
 }
