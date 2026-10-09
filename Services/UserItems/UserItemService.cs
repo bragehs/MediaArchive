@@ -16,8 +16,7 @@ public class UserItemService(IDbContextFactory<AppDbContext> dbContextFactory)
             .Include(u => u.MediaItem)
             .FirstAsync(u => u.Id == userMediaItemId, ct);
 
-        await VocabularyResolver.ApplyWorkDetailsAsync(db, userItem.MediaItem!, details,
-            replace: true, ct);
+        await VocabularyResolver.ReplaceWorkDetailsAsync(db, userItem.MediaItem!, details, ct);
 
         if (details.Discovery is { } discovery)
             userItem.Discovery = discovery;

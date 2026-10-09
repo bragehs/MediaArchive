@@ -41,7 +41,7 @@ public class MediaImportService(
             book.AudioHours = audioHours;
 
         // Additive so a re-import can't drop hand-added vocabulary.
-        await VocabularyResolver.ApplyWorkDetailsAsync(db, mediaItem, details, replace: false, ct);
+        await VocabularyResolver.AddWorkDetailsAsync(db, mediaItem, details, ct);
         await VocabularyResolver.ApplyCreditsAsync(db, mediaItem, item.Credits, ct);
 
         var userItem = await ResolveUserMediaItemAsync(db, mediaItem, ct);
