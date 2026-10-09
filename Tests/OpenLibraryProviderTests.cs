@@ -24,6 +24,26 @@ public class OpenLibraryProviderTests
         return await File.ReadAllTextAsync(path);
     }
 
+    private static async Task<MediaItemDto> GetWorkAsync(string searchJson, string workJson, string id = "OL893415W")
+    {
+        var item = await ProviderReturning(searchJson, workJson, out _).GetByIdAsync(id, MediaType.Book);
+
+        Assert.NotNull(item);
+        return item;
+    }
+
+    private static async Task<MediaItemDto> GetDuneAsync() => await GetWorkAsync(
+        await LoadFixtureAsync("open-library-dune.json"),
+        await LoadFixtureAsync("open-library-dune-work.json"));
+
+    private const string UnindexedWorkJson = """
+                                             {
+                                               "title": "An Unindexed Work",
+                                               "covers": [-1, 12345],
+                                               "subjects": ["Fiction", "award:hugo_award=1966"]
+                                             }
+                                             """;
+
     [Fact]
     public async Task SearchAsync_MapsAllDocs_FromCapturedResponse()
     {
@@ -48,10 +68,9 @@ public class OpenLibraryProviderTests
 
         var dune = (await provider.SearchAsync("dune", MediaType.Book))[0];
 
-        Assert.Equal("OL893415W", dune.ExternalId);
-        Assert.Equal("Dune", dune.Title);
-        Assert.Equal(1965, dune.ReleaseYear);
-        Assert.Equal("https://covers.openlibrary.org/b/id/11481354-M.jpg", dune.ImageUrl);
+        Assert.Equal(
+            ("OL893415W", "Dune", 1965, "https://covers.openlibrary.org/b/id/11481354-M.jpg"),
+            (dune.ExternalId, dune.Title, dune.ReleaseYear, dune.ImageUrl));
     }
 
     [Fact]
@@ -113,19 +132,18 @@ public class OpenLibraryProviderTests
     [Fact]
     public async Task GetByIdAsync_CombinesSearchRowAndWorkRecord()
     {
-        var searchJson = await LoadFixtureAsync("open-library-dune.json");
-        var workJson = await LoadFixtureAsync("open-library-dune-work.json");
-        var provider = ProviderReturning(searchJson, workJson, out _);
+        var item = await GetDuneAsync();
 
-        var item = await provider.GetByIdAsync("OL893415W", MediaType.Book);
+        Assert.Equal(
+            ("OpenLibrary", "OL893415W", "Dune", 1965, 592, "https://covers.openlibrary.org/b/id/11481354-L.jpg"),
+            (item.ExternalSource, item.ExternalId, item.Title, item.ReleaseYear, item.Length, item.ImageUrl));
+    }
 
-        Assert.NotNull(item);
-        Assert.Equal("OpenLibrary", item.ExternalSource);
-        Assert.Equal("OL893415W", item.ExternalId);
-        Assert.Equal("Dune", item.Title);
-        Assert.Equal(1965, item.ReleaseYear);
-        Assert.Equal(592, item.Length);
-        Assert.Equal("https://covers.openlibrary.org/b/id/11481354-L.jpg", item.ImageUrl);
+    [Fact]
+    public async Task GetByIdAsync_TakesTheDescriptionFromTheWorkRecord()
+    {
+        var item = await GetDuneAsync();
+
         Assert.NotNull(item.Description);
         Assert.Contains("Arrakis", item.Description);
     }
@@ -133,13 +151,8 @@ public class OpenLibraryProviderTests
     [Fact]
     public async Task GetByIdAsync_MapsAuthorsAsCredits()
     {
-        var searchJson = await LoadFixtureAsync("open-library-dune.json");
-        var workJson = await LoadFixtureAsync("open-library-dune-work.json");
-        var provider = ProviderReturning(searchJson, workJson, out _);
+        var item = await GetDuneAsync();
 
-        var item = await provider.GetByIdAsync("OL893415W", MediaType.Book);
-
-        Assert.NotNull(item);
         Assert.Contains(item.Credits, c => c is { Name: "Frank Herbert", Role: CreditRole.Author });
         Assert.All(item.Credits, c => Assert.Equal(CreditRole.Author, c.Role));
         Assert.Equal("Frank Herbert", item.Creator);
@@ -148,32 +161,29 @@ public class OpenLibraryProviderTests
     [Fact]
     public async Task GetByIdAsync_DropsMachineTagsFromSubjects()
     {
-        var searchJson = await LoadFixtureAsync("open-library-dune.json");
-        var workJson = await LoadFixtureAsync("open-library-dune-work.json");
-        var provider = ProviderReturning(searchJson, workJson, out _);
+        var item = await GetDuneAsync();
 
-        var item = await provider.GetByIdAsync("OL893415W", MediaType.Book);
-
-        Assert.NotNull(item);
         Assert.Contains("Science fiction", item.Genres);
         Assert.All(item.Genres, g =>
         {
             Assert.DoesNotContain(':', g!);
             Assert.DoesNotContain('=', g!);
         });
+    }
+
+    [Fact]
+    public async Task GetByIdAsync_KeepsAtMostEightGenres()
+    {
+        var item = await GetDuneAsync();
+
         Assert.True(item.Genres.Count <= 8);
     }
 
     [Fact]
     public async Task GetByIdAsync_NormalisesRatingToFivePointScale()
     {
-        var searchJson = await LoadFixtureAsync("open-library-dune.json");
-        var workJson = await LoadFixtureAsync("open-library-dune-work.json");
-        var provider = ProviderReturning(searchJson, workJson, out _);
+        var item = await GetDuneAsync();
 
-        var item = await provider.GetByIdAsync("OL893415W", MediaType.Book);
-
-        Assert.NotNull(item);
         Assert.NotNull(item.ExternalRating);
         Assert.InRange(item.ExternalRating.Value, 0, RatingScale.Max);
         Assert.NotNull(item.ExternalRatingCount);
@@ -213,11 +223,9 @@ public class OpenLibraryProviderTests
                                   "description": { "type": "/type/text", "value": "A desert planet." }
                                 }
                                 """;
-        var provider = ProviderReturning("""{ "docs": [] }""", workJson, out _);
 
-        var item = await provider.GetByIdAsync("OL893415W", MediaType.Book);
+        var item = await GetWorkAsync("""{ "docs": [] }""", workJson);
 
-        Assert.NotNull(item);
         Assert.Equal("A desert planet.", item.Description);
     }
 
@@ -230,33 +238,28 @@ public class OpenLibraryProviderTests
                                   "description": "A [desert planet](https://example.com/arrakis).\r\n\r\n----------\r\n\r\n[source][1]\n\n[1]: https://example.com"
                                 }
                                 """;
-        var provider = ProviderReturning("""{ "docs": [] }""", workJson, out _);
 
-        var item = await provider.GetByIdAsync("OL893415W", MediaType.Book);
+        var item = await GetWorkAsync("""{ "docs": [] }""", workJson);
 
-        Assert.NotNull(item);
         Assert.Equal("A desert planet.", item.Description);
     }
 
     [Fact]
     public async Task GetByIdAsync_FallsBackToTheWorkRecord_WhenNotInTheSearchIndex()
     {
-        const string workJson = """
-                                {
-                                  "title": "An Unindexed Work",
-                                  "covers": [-1, 12345],
-                                  "subjects": ["Fiction", "award:hugo_award=1966"]
-                                }
-                                """;
-        var provider = ProviderReturning("""{ "docs": [] }""", workJson, out _);
+        var item = await GetWorkAsync("""{ "docs": [] }""", UnindexedWorkJson, "OL999W");
 
-        var item = await provider.GetByIdAsync("OL999W", MediaType.Book);
-
-        Assert.NotNull(item);
         Assert.Equal("An Unindexed Work", item.Title);
         // -1 is Open Library's placeholder for a deleted cover.
         Assert.Equal("https://covers.openlibrary.org/b/id/12345-L.jpg", item.ImageUrl);
         Assert.Equal(["Fiction"], item.Genres);
+    }
+
+    [Fact]
+    public async Task GetByIdAsync_HasNoCreditsOrRating_WhenNotInTheSearchIndex()
+    {
+        var item = await GetWorkAsync("""{ "docs": [] }""", UnindexedWorkJson, "OL999W");
+
         Assert.Empty(item.Credits);
         Assert.Null(item.ExternalRating);
     }
