@@ -2,14 +2,15 @@ using MediaArchive.Models;
 
 namespace MediaArchive.Services.Providers;
 
-public record MediaSearchResultDto(
-    string ExternalSource,
-    string ExternalId,
-    MediaType MediaType,
-    string Title,
-    string? ImageUrl,
-    DateOnly? ReleaseDate)
+public record MediaSearchResultDto
 {
+    public required string ExternalSource { get; init; }
+    public required string ExternalId { get; init; }
+    public required MediaType MediaType { get; init; }
+    public required string Title { get; init; }
+    public string? ImageUrl { get; init; }
+    public DateOnly? ReleaseDate { get; init; }
+
     public int? ReleaseYear => ReleaseDate?.Year;
 }
 

@@ -93,13 +93,15 @@ public class IgdbProvider(HttpClient httpClient, IgdbAuthenticator authenticator
 
     private static MediaSearchResultDto MapToSearchResult(IgdbGame game)
     {
-        return new MediaSearchResultDto(
-            SourceName,
-            game.Id.ToString(),
-            MediaType.Game,
-            game.Name ?? "Untitled",
-            CoverUrl(game.Cover?.ImageId, "t_cover_big"),
-            ParseDate(game.FirstReleaseDate));
+        return new MediaSearchResultDto
+        {
+            ExternalSource = SourceName,
+            ExternalId = game.Id.ToString(),
+            MediaType = MediaType.Game,
+            Title = game.Name ?? "Untitled",
+            ImageUrl = CoverUrl(game.Cover?.ImageId, "t_cover_big"),
+            ReleaseDate = ParseDate(game.FirstReleaseDate)
+        };
     }
 
     private static MediaItemDto MapToItem(IgdbGame game, int? hoursToBeat)

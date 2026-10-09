@@ -1,6 +1,5 @@
 using System.Net;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using MediaArchive.Models;
 
@@ -97,13 +96,15 @@ public partial class OpenLibraryProvider(HttpClient httpClient) : IMediaProvider
 
     private static MediaSearchResultDto MapToSearchResult(OpenLibraryDoc doc)
     {
-        return new MediaSearchResultDto(
-            SourceName,
-            NormaliseWorkId(doc.Key),
-            MediaType.Book,
-            doc.Title ?? "Untitled",
-            CoverUrl(doc.CoverI, 'M'),
-            ParseYear(doc.FirstPublishYear));
+        return new MediaSearchResultDto
+        {
+            ExternalSource = SourceName,
+            ExternalId = NormaliseWorkId(doc.Key),
+            MediaType = MediaType.Book,
+            Title = doc.Title ?? "Untitled",
+            ImageUrl = CoverUrl(doc.CoverI, 'M'),
+            ReleaseDate = ParseYear(doc.FirstPublishYear)
+        };
     }
 
     private static MediaItemDto MapToItem(string workId, OpenLibraryDoc? doc, OpenLibraryWork? work)
@@ -118,7 +119,7 @@ public partial class OpenLibraryProvider(HttpClient httpClient) : IMediaProvider
             ParseYear(doc?.FirstPublishYear),
             MediaType.Book,
             doc?.NumberOfPagesMedian,
-            CleanDescription(work?.Description),
+            CleanDescription(DescriptionText(work?.Description)),
             [.. authors.Select(a => new CreditDto(a, CreditRole.Author))],
             [.. CleanSubjects(doc?.Subject ?? work?.Subjects)],
             RatingScale.FromFive(doc?.RatingsAverage),
@@ -153,6 +154,17 @@ public partial class OpenLibraryProvider(HttpClient httpClient) : IMediaProvider
             .Where(s => !s.Contains(':') && !s.Contains('='))
             .DistinctBy(s => s.ToLowerInvariant())
             .Take(MaxGenres);
+    }
+
+    private static string? DescriptionText(JsonElement? description)
+    {
+        return description switch
+        {
+            { ValueKind: JsonValueKind.String } text => text.GetString(),
+            { ValueKind: JsonValueKind.Object } typed when typed.TryGetProperty("value", out var value) =>
+                value.GetString(),
+            _ => null
+        };
     }
 
     private static string? CleanDescription(string? description)
@@ -226,32 +238,5 @@ public partial class OpenLibraryProvider(HttpClient httpClient) : IMediaProvider
         string? Title,
         List<int>? Covers,
         List<string>? Subjects,
-        [property: JsonConverter(typeof(OpenLibraryTextConverter))]
-        string? Description);
-
-    private sealed class OpenLibraryTextConverter : JsonConverter<string?>
-    {
-        public override string? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
-        {
-            if (reader.TokenType == JsonTokenType.String)
-                return reader.GetString();
-
-            if (reader.TokenType != JsonTokenType.StartObject)
-            {
-                reader.Skip();
-                return null;
-            }
-
-            using var document = JsonDocument.ParseValue(ref reader);
-
-            return document.RootElement.TryGetProperty("value", out var value)
-                ? value.GetString()
-                : null;
-        }
-
-        public override void Write(Utf8JsonWriter writer, string? value, JsonSerializerOptions options)
-        {
-            writer.WriteStringValue(value);
-        }
-    }
+        JsonElement? Description);
 }
