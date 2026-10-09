@@ -1,7 +1,5 @@
 import SwiftUI
 
-// The work → the form, each its own screen, the header chevron popping one
-// level. The search field itself is the Search tab's system field.
 struct AddFlowView: View {
     @Bindable var store: AddStore
     @Environment(\.lexicon) private var lexicon
@@ -106,7 +104,6 @@ struct AddFlowView: View {
     }
 }
 
-// A search hit or a season: small cover, title, meta, an action pill.
 private struct ResultRow: View {
     let cover: String?
     let type: MediaType
@@ -118,7 +115,6 @@ private struct ResultRow: View {
     var body: some View {
         Button(action: onTap) {
             HStack(spacing: 12) {
-                // Search is text-only by design: the tile shows art only when the provider has it.
                 CoverImage(url: cover, title: "", fallbackSize: 0)
                     .frame(width: 38, height: 57)
                     .clipShape(RoundedRectangle(cornerRadius: 6))
@@ -141,7 +137,6 @@ private struct ResultRow: View {
     }
 }
 
-// The picked work: cover leads, then a primary ADD →, then blurb and facts.
 private struct WorkView: View {
     @Bindable var store: AddStore
     let detail: MediaItemDto
@@ -214,7 +209,6 @@ private struct WorkView: View {
         .frame(minWidth: 90, alignment: .leading)
     }
 
-    // Providers can return dozens of keywords; show a handful, keep the rest a tap away.
     private func vocabFact(_ values: [String], all: Binding<Bool>, label: String) -> some View {
         VStack(alignment: .leading, spacing: 7) {
             HStack(alignment: .firstTextBaseline, spacing: 6) {
@@ -237,7 +231,6 @@ private struct WorkView: View {
     }
 }
 
-// The form: the work's own metadata, and — behind a single link — the backfill pass.
 private struct CaptureForm: View {
     @Bindable var store: AddStore
     let detail: MediaItemDto

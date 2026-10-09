@@ -21,7 +21,7 @@ enum Palette {
     static let show = Color(red: 0x8a / 255, green: 0x7f / 255, blue: 0x6a / 255)
     // colors:end
 
-    // hairlines are ink at low alpha, not palette entries
+    // Outside the generated block: hairlines are ink at low alpha, not palette entries.
     static let line = Color(red: 242 / 255, green: 239 / 255, blue: 230 / 255).opacity(0.18)
     static let line2 = Color(red: 242 / 255, green: 239 / 255, blue: 230 / 255).opacity(0.09)
     static let well = Color.black.opacity(0.22)
@@ -35,7 +35,6 @@ enum Palette {
         }
     }
 
-    // The cover tile behind missing or loading art.
     static let coverFallback = LinearGradient(
         colors: [panel, sink], startPoint: .topLeading, endPoint: .bottomTrailing)
 }

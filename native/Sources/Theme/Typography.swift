@@ -1,7 +1,6 @@
 import SwiftUI
 
-// Cinzel Decorative for titles, Cinzel for display and body, EB Garamond for
-// running text — the four files ship in the app bundle (UIAppFonts).
+// The font files must be listed under UIAppFonts in the app bundle.
 enum Fonts {
     static func title(_ size: CGFloat) -> Font {
         .custom("CinzelDecorative-Bold", size: size)
@@ -21,7 +20,6 @@ enum Fonts {
     }
 }
 
-// Uppercase display text with wide tracking: the `.label` / `.fl` / `.mk` family.
 struct Eyebrow: View {
     let text: String
     var size: CGFloat = 9.5
@@ -46,7 +44,6 @@ struct Eyebrow: View {
     }
 }
 
-// The italic serif aside used for loading, empty and footnote copy.
 struct Aside: View {
     let text: String
     var size: CGFloat = 13
@@ -65,7 +62,6 @@ struct Aside: View {
     }
 }
 
-// The sub-page back link: "‹ Parent / Trail", the trail in accent.
 struct Crumb: View {
     let parent: String
     let trail: String
@@ -91,7 +87,6 @@ struct Crumb: View {
     }
 }
 
-// The `.msec` / `.isec` / `.psec` rule: kicker left, note right, hairline under.
 struct SectionHead: View {
     let kick: String
     var right: String? = nil

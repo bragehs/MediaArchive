@@ -1,6 +1,5 @@
 import SwiftUI
 
-// A description clamped to three lines, with "show more" only when there is more.
 struct Blurb: View {
     let text: String
 

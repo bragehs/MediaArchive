@@ -1,7 +1,5 @@
 import SwiftUI
 
-// The wall: every work you have been through, as posters. The genre map is a
-// screen behind it rather than the tab itself.
 struct LibraryView: View {
     @Bindable private var store = LibraryStore.shared
     @Environment(\.lexicon) private var lexicon
@@ -124,7 +122,6 @@ struct LibraryView: View {
     private func works(_ count: Int) -> String { "\(count) \(plural(count, "work"))" }
 }
 
-// The framed control the header's buttons share.
 struct FrameChip<Content: View>: View {
     @ViewBuilder let content: Content
 

@@ -5,8 +5,6 @@ using UIKit;
 
 namespace MediaArchive.Mobile;
 
-// The three things C# asks of the Swift framework (MANativeApp), reached
-// through the ObjC runtime the way WidgetSnapshotPublisher reaches MAWidgetLink.
 public static class NativeHost
 {
     [DllImport(Constants.ObjectiveCLibrary, EntryPoint = "objc_msgSend")]

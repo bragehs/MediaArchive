@@ -9,7 +9,6 @@ final class ItemStore {
     let userMediaItemId: Int
     var page: Loadable<ItemPage> = .loading
 
-    // Classification, edited in place and compared against the loaded detail.
     var genres: [String] = []
     var tags: [String] = []
     var series: [String] = []
@@ -24,7 +23,6 @@ final class ItemStore {
     var passNote = ""
     var passRating = 0
 
-    // The pass whose dates are open for editing, and the dates as typed.
     var editingPass: Int?
     var editStart: DateOnly?
     var editEnd: DateOnly?
@@ -34,7 +32,7 @@ final class ItemStore {
     var saving = false
     var error: String?
 
-    // Facet/AppliesTo of the item's existing tags, so re-saving keeps them.
+    // Kept so re-saving an existing tag doesn't clear its facet.
     private var knownTags: [String: TagInput] = [:]
 
     init(userMediaItemId: Int) {
@@ -43,7 +41,6 @@ final class ItemStore {
 
     var detail: ItemDetail? { page.value?.detail }
 
-    // The one running session app-wide, and whether it is this item's.
     var live: LiveSession? { page.value?.live }
 
     var sessionHere: Bool {
@@ -130,7 +127,6 @@ final class ItemStore {
         }
     }
 
-    // A pass consumed before it was logged is opened and closed in one go.
     func savePass() async {
         let finished = form == .finished
         await mutate {
@@ -172,8 +168,7 @@ final class ItemStore {
         }
     }
 
-    // The row is written before the activity is requested, so a refused
-    // activity still leaves a session on record.
+    // The row is written before the activity is requested, so a refused activity still leaves a session on record.
     func startSession() async {
         guard let open = detail?.openPass else { return }
         await mutate {

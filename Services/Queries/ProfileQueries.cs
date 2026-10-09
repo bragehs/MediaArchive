@@ -10,8 +10,7 @@ public record FameItem(int UserMediaItemId, string Title, string? ImageUrl,
 public record UniverseCover(int UserMediaItemId, string Title, string? ImageUrl,
     MediaStatus Status);
 
-// Effort in the same buckets Home reports: hours played, hours watched, pages
-// read — universes mix media, and a single unit would silently drop the rest.
+// Per bucket, not one unit: universes mix media.
 public record UniverseEffort(MediaBucket Bucket, double Value, string Unit);
 
 public record UniverseCard(string Name, int Works, double? AvgRating,
@@ -22,12 +21,10 @@ public record CreatorLine(string Name, int Works, double? AvgRating,
 
 public record MonthRecord(int Year, int Month, int Logs);
 
-// One medium's minutes in one year. Filled by the same walk as the totals, so
-// the mix and the totals cannot drift apart.
+// Filled by the same walk as the totals, so the mix and the totals cannot drift apart.
 public record TimeBucket(MediaType MediaType, int Year, double Minutes);
 
-// Measured and derived minutes stay apart so a largely estimated figure renders
-// as "≈352 h" rather than passing itself off as counted.
+// Measured and derived minutes stay apart so an estimated figure renders as ≈.
 public record TimeSpent(double ActualMinutes, double EstimatedMinutes,
     int Items, int WithoutLength, IReadOnlyList<TimeBucket> Buckets);
 
@@ -46,11 +43,9 @@ public record ProfileSnapshot(
 
 public class ProfileQueries(IDbContextFactory<AppDbContext> dbContextFactory)
 {
-    private const int FameFloor = 10;     // full marks only; favourites join regardless
+    private const int FameFloor = 10;
 
-    // One materialise, then every aggregate in memory: the archive is a single
-    // local user's few hundred rows, and each section below is a different walk
-    // over the same graph.
+    // One materialise, then every aggregate in memory: a single user's few hundred rows.
     public async Task<ProfileSnapshot> GetSnapshotAsync(CancellationToken ct = default)
     {
         await using var db = await dbContextFactory.CreateDbContextAsync(ct);
@@ -86,9 +81,7 @@ public class ProfileQueries(IDbContextFactory<AppDbContext> dbContextFactory)
             BusiestMonth: BuildBusiestMonth(items));
     }
 
-    // Minutes is the one unit all four types convert to. An item whose length
-    // won't convert leaves the total AND the denominator: counted as zero it
-    // would quietly deflate every average built on this.
+    // An unconvertible length leaves the denominator too, or it would deflate every average.
     private static TimeSpent BuildTimeSpent(List<UserMediaItem> items)
     {
         double actual = 0, estimated = 0;
@@ -125,14 +118,10 @@ public class ProfileQueries(IDbContextFactory<AppDbContext> dbContextFactory)
                 .ToList());
     }
 
-    // A pass lands in the year it closed, whole. Estimated minutes carry no dates
-    // to spread across, and spreading them would invent a pace the archive never
-    // recorded — the fiction IsLive keeps out of the records.
+    // Whole, in the year it closed: spreading undated estimates would invent a pace.
     private static int PassYear(UserMediaItem item, ConsumptionEntry entry) =>
         (entry.EndDate ?? entry.StartDate ?? item.AddedDate).Year;
 
-    // The shelf is deliberately exclusive: favourites and full marks, nothing
-    // else — and favourites lead it.
     private static List<FameItem> BuildHallOfFame(List<UserMediaItem> items) => items
         .Where(u => u.IsFavorite || u.Rating >= FameFloor)
         .OrderByDescending(u => u.IsFavorite)
@@ -170,7 +159,6 @@ public class ProfileQueries(IDbContextFactory<AppDbContext> dbContextFactory)
             if (viewingMin > 0) effort.Add(new(MediaBucket.Viewing, Math.Round(viewingMin / 60, 1), "h watched"));
             if (readingPages > 0) effort.Add(new(MediaBucket.Reading, Math.Round(readingPages), "pages read"));
 
-            // Your order: first touch first; the merely-interested trail the rail.
             var covers = g
                 .OrderBy(u => u.Entries.Count == 0)
                 .ThenBy(u => u.Entries.Select(e => e.StartDate).Min() ?? DateOnly.MaxValue)
@@ -188,8 +176,7 @@ public class ProfileQueries(IDbContextFactory<AppDbContext> dbContextFactory)
         .OrderByDescending(c => c.Works)
         .ToList();
 
-    // Only each medium's primary credit counts — otherwise one film trilogy
-    // floods the list with its three screenwriters.
+    // Primary credit only, or one film trilogy floods the list with its screenwriters.
     private static List<CreatorLine> BuildCanon(List<UserMediaItem> items) => items
         .SelectMany(u => u.MediaItem!.Credits
             .Where(c => c.Person is not null
@@ -209,8 +196,6 @@ public class ProfileQueries(IDbContextFactory<AppDbContext> dbContextFactory)
         .ThenByDescending(c => c.AvgRating ?? 0)
         .ToList();
 
-    // A "log" here matches the activity calendar's event grammar: a start, a finish, and
-    // every progress note each count once, on their own dates.
     private static MonthRecord? BuildBusiestMonth(List<UserMediaItem> items)
     {
         var counts = new Dictionary<(int Year, int Month), int>();

@@ -1,6 +1,5 @@
 import SwiftUI
 
-// Boots the lexicon, then hands over to the shell. Until then, the brand on the ground.
 struct RootView: View {
     @State private var lexicon: Loadable<Lexicon> = .loading
 

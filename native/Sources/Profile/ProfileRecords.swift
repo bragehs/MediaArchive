@@ -1,7 +1,5 @@
 import SwiftUI
 
-// One pane per medium: its totals in its own unit, how it reached you, its
-// progression, and the extremes that only make sense for that medium.
 struct RecordsPane: View {
     let snapshot: ProfileSnapshot
     let store: ProfileStore
@@ -56,7 +54,6 @@ struct RecordsPane: View {
         }
     }
 
-    // Print against audiobook, console against PC — the same shape read four ways.
     @ViewBuilder
     private func reach(_ panel: TypePanel) -> some View {
         if panel.contexts.count > 1 {
@@ -73,8 +70,6 @@ struct RecordsPane: View {
         }
     }
 
-    // The medium's own accent, stepping down; an unrecorded pass is grey rather
-    // than absent, because it is a gap to fill.
     private func slices(_ panel: TypePanel) -> [BarSlice] {
         panel.contexts.enumerated().map { index, share in
             BarSlice(id: share.context?.rawValue ?? "unrecorded",
@@ -85,7 +80,6 @@ struct RecordsPane: View {
         }
     }
 
-    // The one shape that belongs to this medium and no other.
     @ViewBuilder
     private func signature(_ panel: TypePanel) -> some View {
         // Under three reads there is no distribution, and the median is one of them.
@@ -124,8 +118,7 @@ struct RecordsPane: View {
                             + "game. Over the estimate means you took the long way round.")
             }
             .padding(.bottom, 10)
-            // One scale across hours and estimates, or the marker would sit
-            // somewhere its own number doesn't justify.
+            // One scale across hours and estimates, or the marker would sit somewhere its number doesn't justify.
             let peak = Double(panel.estimates.flatMap { [$0.hours, $0.estimate] }.max() ?? 1)
             VStack(spacing: 0) {
                 ForEach(panel.estimates, id: \.userMediaItemId) { row in

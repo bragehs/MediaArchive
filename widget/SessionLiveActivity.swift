@@ -1,8 +1,3 @@
-// The Live Activity for a timed session: a countdown against a known runtime
-// (a film, one episode) or a stopwatch otherwise. Display plus one button: the
-// widgetURL opens the app to log, and Pause runs an intent in the app. Nothing
-// here writes a row.
-
 import ActivityKit
 import SwiftUI
 import WidgetKit
@@ -84,7 +79,6 @@ private struct LockScreenSession: View {
     private var subtitle: (text: String, color: Color) { sessionSubtitle(context) }
 }
 
-// The stale date is an hour before the system takes the timer away.
 private func sessionSubtitle(_ context: ActivityViewContext<SessionAttributes>) -> (text: String, color: Color) {
     let kind = context.attributes.kind.uppercased()
     if context.isStale { return ("\(kind) · 1H LEFT · LOG IT", Palette.ac2) }
@@ -105,8 +99,6 @@ private struct PauseButton: View {
     }
 }
 
-// Ticks with zero process time: the system renders the interval from the anchor,
-// and holds it at pauseTime while the session is paused.
 private struct SessionClock: View {
     let context: ActivityViewContext<SessionAttributes>
     let size: CGFloat
@@ -138,8 +130,7 @@ private struct SessionClock: View {
     }
 }
 
-// The island's clock: a fixed width, or the timer text takes all it is offered and
-// pushes the two sides apart. Past an hour the stopwatch scales down instead.
+// A fixed width, or the timer text takes all it is offered and pushes the two sides apart.
 private struct CompactClock: View {
     let context: ActivityViewContext<SessionAttributes>
     let size: CGFloat
@@ -166,7 +157,6 @@ private struct CompactClock: View {
     }
 }
 
-// Only a known target earns a bar; a stopwatch has no denominator.
 private struct SessionBar: View {
     let context: ActivityViewContext<SessionAttributes>
 
@@ -210,7 +200,6 @@ private struct SessionCover: View {
     }
 }
 
-// The app's own icon, for the slot where a cover would be too small to read.
 private struct AppMark: View {
     let size: CGFloat
 
@@ -235,12 +224,11 @@ private func target(_ context: ActivityViewContext<SessionAttributes>) -> Date? 
     context.attributes.targetMinutes.map { context.state.anchor.addingTimeInterval(TimeInterval($0 * 60)) }
 }
 
-// The same grammar the home-screen widget uses, so the tap lands in the log sheet.
+// Same URL grammar as the home-screen widget, which MauiProgram.TryMapDeepLink parses.
 private func logURL(_ context: ActivityViewContext<SessionAttributes>) -> URL {
     URL(string: "mediaarchive://log/\(context.attributes.userMediaItemId)")!
 }
 
-// MediaType raw values; the accents are the app's, generated into this target's Palette.
 private func accent(_ kind: String) -> Color {
     switch kind {
     case "Book": Palette.book

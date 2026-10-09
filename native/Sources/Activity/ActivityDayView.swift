@@ -1,7 +1,5 @@
 import SwiftUI
 
-// One day: milestones with a cover and their note, the quieter ticks below,
-// each session's minutes beside the log it produced or on its own line.
 struct ActivityDayView: View {
     let day: ActivityDay
 
@@ -46,7 +44,6 @@ struct ActivityDayView: View {
         }
     }
 
-    // Drops come after everything the day did, even a silent log.
     private var events: [ActivityEvent] { day.events.filter { $0.kind != .dropped } }
     private var drops: [ActivityEvent] { day.events.filter { $0.kind == .dropped } }
 

@@ -1,8 +1,6 @@
 import Foundation
 import Observation
 
-// The universal add: search a provider, pick the work, describe it, save it
-// unstarted — or, on the backfill path, as one finished pass.
 @MainActor
 @Observable
 final class AddStore {
@@ -38,8 +36,8 @@ final class AddStore {
     var startDate: DateOnly? = .today
     var endDate: DateOnly? = .today
     var effort: Int?
-    var audioHours: Double?       // audiobook total length, entered once
-    var hoursListened: Double?    // audiobook effort, entered in hours
+    var audioHours: Double?
+    var hoursListened: Double?
     var context: ConsumptionContext?
     var rating = 0
     var note = ""
@@ -50,8 +48,6 @@ final class AddStore {
     var savedMessage: String?
     var savedItemId: Int?
 
-    // Hours only convert back to pages when both lengths are known, so the
-    // pages input stands in when they aren't — same rule as the log sheet.
     var isAudiobook: Bool {
         guard let detail, detail.mediaType == .book, (detail.length ?? 0) > 0 else { return false }
         return context == .audiobook && (audioHours ?? 0) > 0
@@ -177,7 +173,6 @@ final class AddStore {
         return parts.joined(separator: " · ")
     }
 
-    // Back pops one step: capture → the work, the work → the results.
     func back() {
         if capturing { capturing = false } else { reset() }
     }
@@ -226,7 +221,6 @@ final class AddStore {
         }
     }
 
-    // The field was cleared: the page goes back to the backlog.
     func clearResults() {
         results = []
         searched = false

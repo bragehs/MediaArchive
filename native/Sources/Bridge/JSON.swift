@@ -1,7 +1,6 @@
 import Foundation
 
-// System.Text.Json writes camelCase and ISO-8601 timestamps with seven
-// fractional digits and, for SQLite-read values, no zone. Both ends here.
+// System.Text.Json writes seven fractional digits and, for SQLite-read values, no zone.
 enum JSON {
     static let decoder: JSONDecoder = {
         let decoder = JSONDecoder()

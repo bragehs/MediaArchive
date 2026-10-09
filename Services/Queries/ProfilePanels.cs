@@ -10,28 +10,19 @@ public record WeekBucket(DateOnly WeekStart, double Value);
 
 public record YearBucket(int Year, double Value);
 
-// How a medium reached you: print against audiobook, console against PC. A null
-// Context is its own share — unrecorded is a gap to fill, not an absence.
+// A null Context is its own share: unrecorded is a gap to fill, not an absence.
 public record ContextShare(ConsumptionContext? Context, int Passes);
 
-// Books only: pages over the span, against your own median. Recalled means the
-// two dates it divides by were remembered afterwards rather than logged as they
-// happened — the same arithmetic, softer inputs.
 public record PaceRow(int UserMediaItemId, string Title, double PagesPerDay, bool Recalled);
 
-// Games only: the hours you put in against the community's time to beat it.
 public record EstimateRow(int UserMediaItemId, string Title, int Hours, int Estimate);
 
-// One toggle pane per media type: an effort-per-week progression in the type's
-// native unit, the shape only that medium has, and its own extremes.
 public record TypePanel(MediaType MediaType, string Unit, IReadOnlyList<PanelStat> Stats,
     IReadOnlyList<WeekBucket> Weekly, IReadOnlyList<YearBucket> Yearly,
     IReadOnlyList<ContextShare> Contexts, IReadOnlyList<PaceRow> Pace, double? PaceMedian,
     IReadOnlyList<EstimateRow> Estimates, IReadOnlyList<TypeRecord> Records);
 
-// The per-medium half of the profile: one pane each, in that medium's own unit.
-// Split from ProfileQueries because the two ask different questions of the same
-// rows — the snapshot aggregates the whole archive, this walks it a type at a time.
+// Split from ProfileQueries: the snapshot aggregates the whole archive, this walks it one type at a time.
 internal static class ProfilePanels
 {
     public static List<TypePanel> Build(List<UserMediaItem> items, DateOnly today) =>
@@ -44,15 +35,7 @@ internal static class ProfilePanels
             .Where(p => p.Records.Count > 0 || p.Weekly.Any(w => w.Value > 0))
             .ToList();
 
-    // Whether a pass's dates were recorded as it happened rather than remembered
-    // afterwards: still open, ended on or after the item was added, or carrying a
-    // real progress note. Single-sitting passes get two weeks of grace on the add
-    // date — with start == end there is no span to misremember.
-    //
-    // This marks, it no longer filters. A rate over a recalled span is soft, not
-    // false, and an archive that is mostly reconstructed has a history worth
-    // drawing: PaceRow carries the flag through to the UI instead. The one
-    // survivor is the binge record below, which has no chart to caveat it in.
+    // Marks rather than filters: a rate over a recalled span is soft, not false.
     private static bool IsLive(UserMediaItem item, ConsumptionEntry entry) =>
         entry.EndDate is null
         || entry.EndDate >= item.AddedDate
@@ -81,8 +64,6 @@ internal static class ProfilePanels
             records);
     }
 
-    // Every finished read, recalled ones marked rather than dropped: the archive is
-    // mostly reconstructed, and filtering left one row out of seven.
     private static List<PaceRow> BuildPace(
         List<(UserMediaItem Item, ConsumptionEntry Entry)> passes) => ClosedPasses(passes)
         .Where(p => p.Entry.Outcome == PassOutcome.Completed
@@ -93,8 +74,7 @@ internal static class ProfilePanels
         .OrderByDescending(p => p.PagesPerDay)
         .ToList();
 
-    // No IsLive here: this divides nothing by a span. Hours against the community
-    // estimate is two totals, and a remembered total is a fact backfill keeps.
+    // No IsLive: two totals divide by no span, and a remembered total is still a fact.
     private static List<EstimateRow> BuildEstimates(
         List<(UserMediaItem Item, ConsumptionEntry Entry)> passes) => ClosedPasses(passes)
         .Where(p => p.Entry.Outcome == PassOutcome.Completed
@@ -121,7 +101,6 @@ internal static class ProfilePanels
         .ThenByDescending(c => c.Passes)
         .ToList();
 
-    // The headline totals above the chart, all from live passes only.
     private static List<PanelStat> BuildStats(
         List<(UserMediaItem Item, ConsumptionEntry Entry)> passes, MediaType type)
     {
@@ -144,10 +123,7 @@ internal static class ProfilePanels
         return stats;
     }
 
-    // Effort between two dated points is spread evenly across the days between
-    // them — piecewise-linear, not a spike on the note's day. Where progress was
-    // logged often the curve is sharp; a pass known only by its endpoints
-    // degrades to its average pace instead of a cliff on the finish week.
+    // Spread linearly between dated points, so a pass known only by its endpoints shows its pace, not a spike.
     private static IEnumerable<(DateOnly Day, double Amount)> DailyEffort(
         List<(UserMediaItem Item, ConsumptionEntry Entry)> passes, DateOnly today)
     {
@@ -169,7 +145,6 @@ internal static class ProfilePanels
         }
     }
 
-    // The current year, week by week.
     private static List<WeekBucket> BuildWeekly(
         List<(UserMediaItem Item, ConsumptionEntry Entry)> passes, DateOnly today)
     {
@@ -189,8 +164,7 @@ internal static class ProfilePanels
             .ToList();
     }
 
-    // The whole archive, year by year — gaps included, so a quiet decade stays
-    // visibly quiet instead of being edited out.
+    // Empty years included, so a quiet decade stays visibly quiet.
     private static List<YearBucket> BuildYearly(
         List<(UserMediaItem Item, ConsumptionEntry Entry)> passes, DateOnly today)
     {
@@ -211,9 +185,6 @@ internal static class ProfilePanels
             .ToList();
     }
 
-    // The dated cumulative-effort points of one pass: its start (at the resumed
-    // baseline), every note that carries effort, and — for passes that recorded
-    // no notes, like a film logged in one sitting — the closing total itself.
     private static List<(DateOnly Day, double Value)> EffortPoints(ConsumptionEntry entry, DateOnly today)
     {
         var points = new List<(DateOnly, double)>();

@@ -1,8 +1,6 @@
 namespace MediaArchive.Services.Infrastructure;
 
-// Holds native deep links (widget taps) for the UI. iOS can hand one over
-// before the Swift root exists, so a route that arrives with no subscriber
-// is held until the host claims it.
+// Holds a route until claimed: iOS can deliver a link before the Swift root exists.
 public sealed class DeepLinkService
 {
     private readonly object _gate = new();

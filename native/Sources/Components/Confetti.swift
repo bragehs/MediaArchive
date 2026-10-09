@@ -1,7 +1,5 @@
 import SwiftUI
 
-// A one-shot burst over whatever presents it; removes itself when the last
-// piece has faded. Ported from confetti.js.
 struct ConfettiOverlay: View {
     @Binding var isPresented: Bool
 
@@ -31,7 +29,7 @@ struct ConfettiOverlay: View {
                     for piece in pieces {
                         let life = min(frame, piece.max)
                         if frame > piece.max { continue }
-                        // Integrate analytically: constant drag on x, gravity on y.
+                        // Closed-form rather than stepped per frame: constant drag on x, gravity on y.
                         let t = life
                         let x = piece.x + piece.vx * (1 - pow(0.99, t)) / 0.01
                         let y = piece.y + piece.vy * t + 0.14 * t * t

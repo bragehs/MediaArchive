@@ -1,8 +1,6 @@
 import Foundation
 import Observation
 
-// The five slots of the system tab bar; Search carries the search role, so the
-// system draws it apart from the others as its own round button.
 enum AppTab: String, CaseIterable, Hashable {
     case now, explore, library, profile, search
 
@@ -28,8 +26,6 @@ enum Route: Hashable {
     case creators
 }
 
-// Which tab is up and what each tab's stack holds. Deep links land here, and
-// a route that arrives before the shell exists waits for it.
 @MainActor
 @Observable
 final class Router {
@@ -51,7 +47,7 @@ final class Router {
         paths[selected, default: []].append(route)
     }
 
-    // "/item/{id}?log=true" — the grammar MauiProgram.TryMapDeepLink produces.
+    // Parses the grammar MauiProgram.TryMapDeepLink produces.
     func open(_ route: String) {
         guard ready else { pending = route; return }
         guard let components = URLComponents(string: route) else { return }

@@ -7,7 +7,6 @@ final class LogProgressStore {
 
     let entryId: Int
     let mediaType: MediaType
-    // Present when this pass has a running session: the sheet then closes it with the note.
     let session: LiveSession?
     var entry: Loadable<EntryEffort> = .loading
     var mode: Mode = .progress
@@ -35,7 +34,6 @@ final class LogProgressStore {
 
     var pausedMinutes: Int { session.map { PauseLog.pausedMinutes(sessionId: $0.sessionId) } ?? 0 }
 
-    // Minutes the sitting actually ran: wall clock less the breaks. A suggestion, never the effort.
     var elapsedMinutes: Int? {
         session.map { max(0, Int(Date().timeIntervalSince($0.startedAt) / 60) - pausedMinutes) }
     }
@@ -50,8 +48,7 @@ final class LogProgressStore {
 
     var needsRuntime: Bool { entry.value.map { !$0.runtimeKnown } ?? false }
 
-    // Audible shows the remaining time, so that is what gets typed — the stored
-    // effort stays cumulative pages, converted at this boundary and no deeper.
+    // Typed as time left because that is what Audible shows; stored effort stays cumulative pages.
     var previousHoursLeft: Double? {
         guard let entry = entry.value, let effort = entry.effort,
               let hours = entry.audioHours, hours > 0,
@@ -83,8 +80,6 @@ final class LogProgressStore {
         }
     }
 
-    // What the sitting measured fills the form; C# decided what was grounded enough to
-    // suggest, and everything here stays editable.
     private func prefill(_ entry: EntryEffort) {
         guard let session, let elapsed = elapsedMinutes else { return }
         if let effort = entry.suggestedEffort {
@@ -93,19 +88,16 @@ final class LogProgressStore {
         }
         if let left = entry.suggestedHoursLeft {
             progressHoursLeft = left
-            // The finish form takes hours listened, the other side of the same figure.
             if let total = entry.audioHours { finishHours = max(0, ((total - left) * 10).rounded() / 10) }
         }
         if let measured = entry.suggestedRuntime {
             runtime = measured
         }
-        // A film that ran its length is finished, not in progress; a show's target is one episode.
         if mediaType == .movie, let target = session.targetMinutes, elapsed * 10 >= target * 9 {
             mode = .finish
         }
     }
 
-    // Ask the number you know — episodes — and the sitting has measured the episode length.
     func deriveRuntimeIfMeasured() {
         guard needsRuntime, runtime == nil, let elapsed = elapsedMinutes, elapsed > 0,
               let entry = entry.value, let effort = progressEffort else { return }
@@ -113,13 +105,11 @@ final class LogProgressStore {
         if episodes > 0 { runtime = elapsed / episodes }
     }
 
-    // One line under the field that was filled: where the number came from.
     var sessionHint: String? {
         guard let elapsed = elapsedMinutes else { return nil }
         return "Estimated from this sitting's \(elapsed) min" + (pausedMinutes > 0 ? " (\(pausedMinutes) paused)" : "")
     }
 
-    // A sitting that produced nothing worth a note: the row still keeps its minutes.
     func endWithoutLogging() async -> Bool {
         guard let session else { return false }
         saving = true
@@ -139,7 +129,6 @@ final class LogProgressStore {
         pagesFromHours(hours, entry.value?.audioHours, entry.value?.pageCount)
     }
 
-    // Returns whether a pass was completed, so the caller can celebrate.
     func submit() async -> Bool? {
         guard let entry = entry.value else { return nil }
         saving = true
@@ -151,7 +140,6 @@ final class LogProgressStore {
                 try await api.setRuntime(SetRuntimeArgs(userMediaItemId: entry.userMediaItemId, value: runtime))
             }
 
-            // Closed and linked in the same save as the note it produced.
             let end = session.map { SessionEnd(sessionId: $0.sessionId, endedAt: Date(), pausedMinutes: pausedMinutes) }
             let finished: Bool
             switch mode {
@@ -183,7 +171,6 @@ final class LogProgressStore {
     }
 }
 
-// Progress or finish on an open pass. Presented as a sheet from Home and Item.
 struct LogProgressSheet: View {
     let title: String
     let mediaType: MediaType
@@ -308,7 +295,6 @@ struct LogProgressSheet: View {
         }
     }
 
-    // The sitting's estimate first, the last logged figure after it; nothing when there is neither.
     @ViewBuilder
     private func hint(_ previous: String?) -> some View {
         let parts = [store.sessionHint, previous.map { store.sessionHint == nil ? $0.prefix(1).uppercased() + $0.dropFirst() : $0 }]

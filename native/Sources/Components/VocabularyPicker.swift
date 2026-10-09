@@ -1,7 +1,6 @@
 import SwiftUI
 
-// Pick-existing-or-create over a controlled vocabulary. A typeahead, not a list
-// to browse — the whole vocabulary is noise until you type.
+// A typeahead, not a list to browse: the whole vocabulary is noise until you type.
 struct VocabularyPicker: View {
     @Binding var selected: [String]
     let suggestions: [String]
@@ -48,7 +47,6 @@ struct VocabularyPicker: View {
                 .submitLabel(.done)
                 .onSubmit {
                     let query = draft.trimmingCharacters(in: .whitespaces)
-                    // Prefer an exact known match over creating a near-duplicate.
                     let exact = matches.first { $0.caseInsensitiveCompare(query) == .orderedSame }
                     commit(exact ?? query)
                 }
@@ -89,7 +87,6 @@ struct VocabularyPicker: View {
         else { return }
 
         var next = selected
-        // Max = 1 makes it single-valued: a new pick replaces the old.
         if let max, next.count >= max {
             next.removeFirst(next.count - max + 1)
         }

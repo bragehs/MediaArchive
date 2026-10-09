@@ -1,7 +1,5 @@
 import SwiftUI
 
-// The one figure that crosses all four media: minutes, rendered with a leading
-// `≈` whenever any of it was derived from Length rather than logged.
 struct TimeSpentHero: View {
     let snapshot: ProfileSnapshot
 
@@ -105,8 +103,7 @@ struct TimeSpentHero: View {
             .sorted { $0.minutes > $1.minutes }
     }
 
-    // Only years you actually logged something in. Carrying the empty ones between
-    // them turned a decade of nothing into most of the chart.
+    // Only years with logs: carrying the empty ones turned a decade of nothing into most of the chart.
     private var columns: [YearColumn] {
         Dictionary(grouping: spent.buckets, by: \.year)
             .map { year, buckets in

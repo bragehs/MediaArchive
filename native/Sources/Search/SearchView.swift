@@ -1,8 +1,5 @@
 import SwiftUI
 
-// The search tab: the system field rises out of the tab bar with the type as its
-// scope; a submitted search lists results, and a picked result hands over to
-// the add flow.
 struct SearchView: View {
     @State private var add = AddStore()
     @FocusState private var focused: Bool
@@ -17,8 +14,7 @@ struct SearchView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                // The type is picked up here, in view above the keyboard: the system's
-                // search scopes hang off the navigation bar, which this shell hides.
+                // Picked here because the system's search scopes hang off the navigation bar, which the shell hides.
                 if add.selected == nil {
                     SegmentedPills(options: MediaType.allCases, selection: scope) { lexicon.label($0) }
                         .padding(.top, 4)

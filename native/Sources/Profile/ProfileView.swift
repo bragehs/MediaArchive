@@ -22,8 +22,6 @@ final class ProfileStore {
     }
 }
 
-// The taste dashboard: time spent across every medium, the hall of fame, a way
-// into universes and creators, and one records pane per medium.
 struct ProfileView: View {
     @State private var store = ProfileStore()
 
@@ -83,7 +81,6 @@ struct ProfileView: View {
     }
 }
 
-// A whole section collapsed to one line: what it holds, a peek, and a way in.
 private struct PortalRow: View {
     let kick: String
     let detail: String
@@ -113,7 +110,6 @@ private struct PortalRow: View {
     }
 }
 
-// The best of everything logged, gilded: marigold is the app's gold.
 private struct HallOfFame: View {
     let items: [FameItem]
 

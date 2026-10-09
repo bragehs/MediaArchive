@@ -1,8 +1,6 @@
 import SwiftUI
 import UIKit
 
-// What C# reaches through the ObjC runtime: build the root, deliver a reply,
-// hand over a deep link. Nothing else in the framework is visible to it.
 @objc(MANativeApp)
 public final class MANativeApp: NSObject {
     @objc(makeRootWithBackend:)

@@ -1,6 +1,4 @@
-// WidgetKit is Swift-only, so the .NET app can't call it directly. This class
-// exposes the one call it needs through the ObjC runtime; WidgetSnapshotPublisher
-// invokes it via objc_msgSend after each snapshot.
+// WidgetKit is Swift-only, so the .NET app reaches it through this class via the ObjC runtime.
 
 import Foundation
 import WidgetKit

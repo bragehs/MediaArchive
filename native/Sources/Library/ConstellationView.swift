@@ -1,7 +1,5 @@
 import SwiftUI
 
-// The map: the archive as genre territories. It picks a genre and hands you
-// back to the wall — the list of works in a genre is the wall's job.
 // Nothing animates, so there is no frame loop to pause.
 struct ConstellationView: View {
     private let store = LibraryStore.shared
@@ -87,7 +85,6 @@ struct ConstellationView: View {
             store.filter(byGenre: genre)
             dismiss()
         case .cover(let index):
-            // One tap rings this work's copies in every other genre, the next opens it.
             if selected == index {
                 openItem(map.items[index].userMediaItemId)
             } else {
@@ -212,7 +209,6 @@ struct ConstellationView: View {
         context.drawLayer { layer in
             layer.clip(to: Path(roundedRect: rect, cornerRadius: 2))
             if let url = item.imageUrl, let image = ImageCache.shared.cached(url) {
-                // Crop to fill, like CSS background-size: cover.
                 let scale = max(rect.width / image.size.width, rect.height / image.size.height)
                 let drawn = CGSize(width: image.size.width * scale, height: image.size.height * scale)
                 layer.draw(layer.resolve(Image(uiImage: image)),

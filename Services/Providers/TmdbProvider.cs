@@ -108,7 +108,6 @@ public class TmdbProvider(HttpClient httpClient) : IMediaProvider
         };
     }
 
-
     private static MediaSearchResultDto MapToSearchResult(TmdbMovieResult movie)
     {
         return new MediaSearchResultDto(
@@ -215,8 +214,7 @@ public class TmdbProvider(HttpClient httpClient) : IMediaProvider
         );
     }
 
-    // One episode's length is not the series average, so an empty array stays null
-    // and the runtime is asked for instead.
+    // Null over a guess: one episode's length is not the series average.
     private static int? ShowEpisodeRuntime(TmdbTvDetail show)
     {
         var runtimes = show.EpisodeRunTime?.Where(r => r > 0).ToList() ?? [];

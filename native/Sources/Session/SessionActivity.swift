@@ -1,11 +1,9 @@
 import ActivityKit
 import Foundation
 
-// The app's side of the Live Activity: requested after C# has written the
-// Session row, ended when the sitting resolves. Never updated to tick — the
-// system renders the timer from the anchor date; only the pause intent updates it.
+// Never updated to tick: the system renders the timer from the anchor date.
 enum SessionActivity {
-    // An hour before the activity's ~8h ceiling the view turns into a prompt to log.
+    // An hour before iOS's ~8 h Live Activity ceiling.
     private static let warnAfter: TimeInterval = 7 * 60 * 60
 
     static func start(_ session: LiveSession) {
@@ -18,7 +16,6 @@ enum SessionActivity {
             kind: session.mediaType.rawValue,
             cover: session.cover,
             targetMinutes: session.targetMinutes)
-        // A re-requested activity picks up the breaks already taken, paused or not.
         let pausedAt = PauseLog.pausedAt(sessionId: session.sessionId)
         let shift = PauseLog.pausedSeconds(sessionId: session.sessionId, until: pausedAt ?? Date())
         let state = SessionAttributes.ContentState(anchor: session.startedAt.addingTimeInterval(shift), pausedAt: pausedAt)

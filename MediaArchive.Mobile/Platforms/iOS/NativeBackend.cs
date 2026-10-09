@@ -3,8 +3,6 @@ using MediaArchive.Services.Native;
 
 namespace MediaArchive.Mobile;
 
-// The C# object Swift talks to. One exported selector, three strings in;
-// the reply goes back through MANativeApp.complete with the request id.
 [Register("MANativeBackend")]
 public sealed class NativeBackend(NativeApi api) : NSObject
 {

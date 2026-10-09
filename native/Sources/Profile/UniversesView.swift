@@ -1,8 +1,6 @@
 import SwiftUI
 
-// Every world you hold a piece of, with what it cost you. Reads the profile
-// snapshot rather than a route of its own — the aggregate is already page-shaped
-// and the archive is a few hundred rows.
+// Reads the profile snapshot rather than a route of its own: the aggregate is already page-shaped.
 struct UniversesView: View {
     @State private var snapshot: Loadable<ProfileSnapshot> = .loading
     @Environment(\.dismiss) private var dismiss

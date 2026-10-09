@@ -8,9 +8,6 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace MediaArchive.Services.Native;
 
-// One route per screen or action, named like a small HTTP API. SwiftName is
-// the method tools/SwiftGen emits on the Swift Api; Args/Result are the
-// records it generates structs for.
 public sealed record Route(
     string Name,
     string SwiftName,
@@ -114,7 +111,6 @@ public static class NativeRoutes
         Post<FinishPassArgs>("pass/finish", "finishPass",
             (sp, a) => sp.GetRequiredService<LoggingService>().FinishPassAsync(a.EntryId, a.Finish, a.Session)),
 
-        // Returns the page-shaped session, which is exactly what the Live Activity is built from.
         Post<StartSessionArgs, LiveSession>("session/start", "startSession", async (sp, a) =>
         {
             await sp.GetRequiredService<LoggingService>().StartSessionAsync(a.EntryId, a.StartedAt);

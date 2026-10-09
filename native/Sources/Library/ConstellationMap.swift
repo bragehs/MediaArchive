@@ -1,10 +1,7 @@
 import CoreGraphics
 import Foundation
 
-// One territory per genre: a hub orb, its label just outside it, and that
-// genre's covers packed in rings around both, each spoked back to the orb.
-// Positions are allocated, never negotiated — territories are disjoint
-// circles, so nothing can collide until you drag one somewhere yourself.
+// Positions are allocated, never negotiated: territories are disjoint circles, so nothing collides.
 struct ConstellationMap {
     static let hues: [(Double, Double, Double)] = [
         (200, 84, 150), (92, 196, 224), (214, 167, 74), (139, 190, 90), (236, 140, 88),
@@ -13,7 +10,6 @@ struct ConstellationMap {
     ]
 
     static let coverWidth = 22.0, coverHeight = 33.0, gap = 4.0
-    // Below this on-screen width a cover is a tile of genre colour, above it the art.
     static let artWidth = 11.0
 
     struct Cover {
@@ -59,20 +55,16 @@ struct ConstellationMap {
         let labelSize = min(max(9, 8 + sqrt(Double(count)) * 2.2), 20)
         let labelHalf = Double(genre.count) * labelSize * 0.32
 
-        // The label goes in the gap between the orb and the first ring, so the
-        // ring has to clear its width as well as its height — a long genre name
-        // otherwise reaches under the covers sitting below-left and below-right.
+        // The first ring clears the label's width too, or a long genre name reaches under the covers.
         var covers: [Cover] = []
         var ring = max(hubRadius + labelSize * 2.2 + Self.coverHeight / 2,
                        labelHalf + Self.coverWidth / 2 + 8)
 
         while covers.count < count {
-            // The tall side clears every direction: two tiles a chord apart are
-            // furthest-worst on the diagonal, where h/√2 still exceeds the width.
+            // Sized by the tall side: on the diagonal h/√2 still exceeds the width.
             let capacity = max(1, Int((2 * .pi * ring / (Self.coverHeight + Self.gap)).rounded(.down)))
             let take = min(capacity, count - covers.count)
-            // From the top, so a territory holding one or two works reads as
-            // balanced above its label rather than lopsided to one side.
+            // From the top, so a territory of one or two works reads as balanced above its label.
             let offset = Double(covers.count) * 0.7 - .pi / 2
             for slot in 0..<take {
                 let angle = Double(slot) / Double(take) * 2 * .pi + offset
@@ -89,8 +81,6 @@ struct ConstellationMap {
                          radius: packed + 4, covers: covers)
     }
 
-    // Biggest first onto a golden-angle spiral, the step scaled to what is being
-    // placed, each candidate cleared against everything already down.
     private mutating func place() {
         territories.sort { $0.radius > $1.radius }
         for index in territories.indices where index > 0 {
@@ -108,7 +98,6 @@ struct ConstellationMap {
                     break
                 }
             }
-            // The fallback clears everything already down rather than stacking at the origin.
             if !found {
                 let reach = territories[..<index].map { hypot($0.x, $0.y) + $0.radius }.max() ?? 0
                 territories[index].x = reach + radius + 8
@@ -130,7 +119,6 @@ struct ConstellationMap {
         case cover(Int)
     }
 
-    // Which orb a press landed on, so a drag can carry the whole territory.
     func hub(world point: CGPoint) -> Int? {
         territories.firstIndex { hypot(point.x - $0.x, point.y - $0.y) <= $0.hubRadius + 6 }
     }
@@ -156,8 +144,7 @@ struct ConstellationMap {
     }
 }
 
-// Where the map sits under the viewport. The map never moves, so this is the
-// only thing a gesture changes.
+// The map never moves, so this is the only thing a gesture changes.
 struct MapCamera {
     var x = 0.0, y = 0.0, z = 1.0
 

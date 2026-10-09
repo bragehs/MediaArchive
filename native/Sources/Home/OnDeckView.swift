@@ -31,7 +31,6 @@ final class OnDeckStore {
         (items.value ?? []).filter { matches($0) && fits($0, type: type) && fits($0, genre: genre) }.sorted(by: ordered)
     }
 
-    // Each dropdown counts against the other filters, never against itself.
     func count(_ type: MediaType) -> Int {
         (items.value ?? []).count { matches($0) && fits($0, type: type) && fits($0, genre: genre) }
     }
@@ -58,7 +57,7 @@ final class OnDeckStore {
 
     private func fits(_ item: OnDeckItem, genre: String?) -> Bool { genre.map(item.genres.contains) ?? true }
 
-    // Shortest first needs a length; items without one go last rather than first.
+    // Items without a length go last rather than first.
     private func ordered(_ a: OnDeckItem, _ b: OnDeckItem) -> Bool {
         switch sort {
         case .oldest: a.addedDate < b.addedDate
@@ -70,8 +69,6 @@ final class OnDeckStore {
     }
 }
 
-// Everything lined up, one row each with what choosing needs; Now shows one rail of it.
-// Not the Library: nothing here has been rated or been through.
 struct OnDeckView: View {
     @State private var store = OnDeckStore()
     @Environment(\.lexicon) private var lexicon

@@ -6,8 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace MediaArchive.Services.Native;
 
-// The one door the Swift UI knocks on: a route name and an args payload in,
-// JSON out. Each call gets its own DI scope, as a request on a server would.
+// Each call gets its own DI scope, as a request on a server would.
 public sealed class NativeApi(IServiceScopeFactory scopes, string coversRoot)
 {
     private readonly JsonSerializerOptions _json = CreateOptions(coversRoot);
@@ -45,8 +44,7 @@ public sealed class NativeApi(IServiceScopeFactory scopes, string coversRoot)
         return options;
     }
 
-    // LocalImagePath holds the old WebView pseudo-URL (covers://c/<file>);
-    // the native side wants a file URL it can load directly.
+    // LocalImagePath still stores the WebView-era covers://c/<file> form.
     private static void ResolveCoverUrls(JsonTypeInfo info, string coversRoot)
     {
         foreach (var property in info.Properties)

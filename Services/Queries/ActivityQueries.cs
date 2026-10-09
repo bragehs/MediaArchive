@@ -5,7 +5,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace MediaArchive.Services.Queries;
 
-// Sat is a session that resolved into no note; one that did lends its minutes to that note's event.
 public enum ActivityKind { Started, Resumed, Progress, Finished, Dropped, Sat }
 
 public record ActivityEvent(
@@ -28,7 +27,6 @@ public record ActivityEvent(
     public bool IsSilent => !IsMilestone && string.IsNullOrWhiteSpace(Note);
 }
 
-// One item's silent logs and sessions on one day, folded into one line.
 public record ActivityRun(
     int UserMediaItemId,
     string Title,
@@ -38,8 +36,7 @@ public record ActivityRun(
     double EffortDelta,
     int MinutesSat);
 
-// The calendar cell is decided here: the loudest event's cover and kind. The
-// cover is `ImageUrl` because that is the one name the bridge resolves to a file.
+// Named ImageUrl because that is the property name the bridge resolves to a file.
 public record ActivityDay(
     DateOnly Date,
     string? ImageUrl,
@@ -57,8 +54,7 @@ public record ActivityCalendar(IReadOnlyList<ActivityMonth> Months);
 
 public class ActivityQueries(IDbContextFactory<AppDbContext> dbContextFactory)
 {
-    // Every month from the first pass to today, oldest first, empty months included
-    // so the calendar scrolls without gaps.
+    // Empty months included so the calendar scrolls without gaps.
     public async Task<ActivityCalendar> GetCalendarAsync(CancellationToken ct = default)
     {
         var events = await EventsAsync(ct);
@@ -125,8 +121,7 @@ public class ActivityQueries(IDbContextFactory<AppDbContext> dbContextFactory)
             .AsNoTracking()
             .ToListAsync(ct);
 
-        // Passes linked by ResumesEntryId form one reading, so count chains,
-        // not entries — resuming a dropped book is not a reread.
+        // Counts resume chains, not entries: resuming a dropped book is not a reread.
         var rereads = entries
             .GroupBy(e => e.UserMediaItemId)
             .SelectMany(g =>
@@ -162,8 +157,7 @@ public class ActivityQueries(IDbContextFactory<AppDbContext> dbContextFactory)
         int? MinutesFor(EntryNote? note) =>
             note is null ? null : sessions.FirstOrDefault(s => s.EntryNoteId == note.Id)?.Minutes;
 
-        // Milestones come from the pass's dates, not its notes — only finish
-        // notes are guaranteed to exist.
+        // From the pass's dates, not its notes — only finish notes are guaranteed to exist.
         if (entry.StartDate is { } start)
             yield return At(
                 entry.ResumesEntryId is null ? ActivityKind.Started : ActivityKind.Resumed,
@@ -194,7 +188,6 @@ public class ActivityQueries(IDbContextFactory<AppDbContext> dbContextFactory)
         .OrderBy(n => n.CreatedAt)
         .FirstOrDefault();
 
-    // A drop is the quiet event: anything else done that day takes the cover.
     private static int KindRank(ActivityKind kind) => kind switch
     {
         ActivityKind.Finished => 0,

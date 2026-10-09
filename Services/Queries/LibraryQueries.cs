@@ -52,7 +52,6 @@ public class LibraryQueries(IDbContextFactory<AppDbContext> dbContextFactory)
             .ToList();
     }
 
-    // What you have been through: Interested is Explore's backlog, InProgress is Home's.
     private static IQueryable<UserMediaItem> ArchiveWithGraph(AppDbContext db) =>
         WithGraph(db).Where(u => u.Status == MediaStatus.Completed || u.Status == MediaStatus.Dropped);
 

@@ -2,7 +2,7 @@ namespace MediaArchive.Models;
 
 public class Series : INamed
 {
-    // Every item belongs to a series; anything that isn't part of one gets this row.
+    // A sentinel row rather than a nullable key: every item belongs to a series.
     public const int StandaloneId = 1;
     public const string StandaloneName = "Standalone";
 

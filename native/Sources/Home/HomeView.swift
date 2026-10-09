@@ -1,7 +1,5 @@
 import SwiftUI
 
-// The open interval: this week's effort, what's open ranked by progress, the
-// on-deck rail, and the last thing closed.
 struct HomeView: View {
     @State private var store = HomeStore()
     @State private var confetti = false
@@ -83,7 +81,6 @@ struct HomeView: View {
             if page.onDeck.isEmpty {
                 Aside("Nothing lined up.").padding(.vertical, 10)
             } else {
-                // One rail, never more; the rest is a screen away.
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 11) {
                         ForEach(page.onDeck.prefix(onDeckCap)) { card in
@@ -149,7 +146,6 @@ private struct WeekStrip: View {
         }
     }
 
-    // One dot per day of the week, lit when anything was logged or sat with.
     private var days: some View {
         HStack(alignment: .center, spacing: 0) {
             HStack(spacing: 9) {
@@ -171,7 +167,6 @@ private struct WeekStrip: View {
         .padding(.vertical, 9)
     }
 
-    // Leads with the days so the dots and the words agree.
     private var line: String {
         var parts = ["\(week.activeDays.count) \(plural(week.activeDays.count, "day"))"]
         if week.sittings > 0 {
