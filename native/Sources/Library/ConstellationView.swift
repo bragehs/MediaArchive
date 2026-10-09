@@ -141,6 +141,11 @@ struct ConstellationView: View {
             }
     }
 
+    private var showsArt: Bool { ConstellationMap.coverWidth * store.camera.z >= ConstellationMap.artWidth }
+
+    // Strokes are drawn in world space, so they need dividing back to hairlines.
+    private var hairline: Double { 1 / store.camera.z }
+
     private func draw(_ context: inout GraphicsContext, size: CGSize) {
         context.fill(Path(CGRect(origin: .zero, size: size)), with: .color(Self.ground))
 
@@ -149,63 +154,69 @@ struct ConstellationView: View {
         world.translateBy(x: origin.x, y: origin.y)
         world.scaleBy(x: store.camera.z, y: store.camera.z)
 
-        let art = ConstellationMap.coverWidth * store.camera.z >= ConstellationMap.artWidth
-        // Strokes are drawn in world space, so they need dividing back to hairlines.
-        let hairline = 1 / store.camera.z
         let visible = CGRect(x: -origin.x / store.camera.z, y: -origin.y / store.camera.z,
                              width: size.width / store.camera.z, height: size.height / store.camera.z)
             .insetBy(dx: -ConstellationMap.coverHeight, dy: -ConstellationMap.coverHeight)
-        for territory in map.territories {
+        for territory in map.territories where visible.intersects(territory.bounds) {
             let colour = Color(red: territory.hue.0 / 255, green: territory.hue.1 / 255, blue: territory.hue.2 / 255)
-            guard visible.intersects(CGRect(x: territory.x - territory.radius, y: territory.y - territory.radius,
-                                            width: territory.radius * 2, height: territory.radius * 2)) else { continue }
-
-            for cover in territory.covers {
-                var spoke = world
-                spoke.opacity = selected == nil || selected == cover.itemIndex ? 0.4 : 0.1
-                var path = Path()
-                path.move(to: CGPoint(x: territory.x, y: territory.y))
-                path.addLine(to: CGPoint(x: territory.x + cover.x, y: territory.y + cover.y))
-                spoke.stroke(path, with: .color(colour), lineWidth: hairline)
-            }
-
-            let hub = CGRect(x: territory.x - territory.hubRadius, y: territory.y - territory.hubRadius,
-                             width: territory.hubRadius * 2, height: territory.hubRadius * 2)
-            world.fill(Path(ellipseIn: hub), with: .radialGradient(
-                Gradient(colors: [colour.opacity(0.95), colour.opacity(0.55)]),
-                center: CGPoint(x: territory.x, y: territory.y),
-                startRadius: 0, endRadius: territory.hubRadius))
-
-            for cover in territory.covers {
-                let rect = CGRect(x: territory.x + cover.x - ConstellationMap.coverWidth / 2,
-                                  y: territory.y + cover.y - ConstellationMap.coverHeight / 2,
-                                  width: ConstellationMap.coverWidth, height: ConstellationMap.coverHeight)
-                guard visible.intersects(rect) else { continue }
-                let lit = selected == nil || selected == cover.itemIndex
-                var tile = world
-                tile.opacity = lit ? 1 : 0.28
-                if art {
-                    drawArt(&tile, rect: rect, item: map.items[cover.itemIndex], hue: colour, hairline: hairline)
-                } else {
-                    tile.fill(Path(roundedRect: rect, cornerRadius: 2), with: .color(colour.opacity(0.85)))
-                }
-                if selected == cover.itemIndex {
-                    tile.stroke(Path(roundedRect: rect, cornerRadius: 2), with: .color(Palette.ink), lineWidth: hairline * 2)
-                }
-            }
-
-            var label = world
-            label.opacity = selected == nil ? 1 : 0.4
-            // Over the spokes, so the hairlines do not run through the lettering.
-            label.addFilter(.shadow(color: Self.ground, radius: 2.5 / store.camera.z))
-            label.draw(Text(territory.genre.capitalized)
-                .font(Fonts.title(territory.labelSize))
-                .foregroundStyle(Palette.ink),
-                       at: CGPoint(x: territory.x, y: territory.y + territory.labelY))
+            drawSpokes(territory, colour: colour, in: world)
+            drawHub(territory, colour: colour, in: world)
+            drawCovers(territory, colour: colour, in: world, visible: visible)
+            drawLabel(territory, in: world)
         }
     }
 
-    private func drawArt(_ context: inout GraphicsContext, rect: CGRect, item: LibraryItem, hue: Color, hairline: Double) {
+    private func drawSpokes(_ territory: ConstellationMap.Territory, colour: Color, in world: GraphicsContext) {
+        for cover in territory.covers {
+            var spoke = world
+            spoke.opacity = selected == nil || selected == cover.itemIndex ? 0.4 : 0.1
+            var path = Path()
+            path.move(to: CGPoint(x: territory.x, y: territory.y))
+            path.addLine(to: CGPoint(x: territory.x + cover.x, y: territory.y + cover.y))
+            spoke.stroke(path, with: .color(colour), lineWidth: hairline)
+        }
+    }
+
+    private func drawHub(_ territory: ConstellationMap.Territory, colour: Color, in world: GraphicsContext) {
+        let hub = CGRect(x: territory.x - territory.hubRadius, y: territory.y - territory.hubRadius,
+                         width: territory.hubRadius * 2, height: territory.hubRadius * 2)
+        world.fill(Path(ellipseIn: hub), with: .radialGradient(
+            Gradient(colors: [colour.opacity(0.95), colour.opacity(0.55)]),
+            center: CGPoint(x: territory.x, y: territory.y),
+            startRadius: 0, endRadius: territory.hubRadius))
+    }
+
+    private func drawCovers(_ territory: ConstellationMap.Territory, colour: Color, in world: GraphicsContext, visible: CGRect) {
+        for cover in territory.covers {
+            let rect = CGRect(x: territory.x + cover.x - ConstellationMap.coverWidth / 2,
+                              y: territory.y + cover.y - ConstellationMap.coverHeight / 2,
+                              width: ConstellationMap.coverWidth, height: ConstellationMap.coverHeight)
+            guard visible.intersects(rect) else { continue }
+            var tile = world
+            tile.opacity = selected == nil || selected == cover.itemIndex ? 1 : 0.28
+            drawTile(&tile, rect: rect, item: map.items[cover.itemIndex], hue: colour)
+            if selected == cover.itemIndex {
+                tile.stroke(Path(roundedRect: rect, cornerRadius: 2), with: .color(Palette.ink), lineWidth: hairline * 2)
+            }
+        }
+    }
+
+    private func drawLabel(_ territory: ConstellationMap.Territory, in world: GraphicsContext) {
+        var label = world
+        label.opacity = selected == nil ? 1 : 0.4
+        // Over the spokes, so the hairlines do not run through the lettering.
+        label.addFilter(.shadow(color: Self.ground, radius: 2.5 / store.camera.z))
+        label.draw(Text(territory.genre.capitalized)
+            .font(Fonts.title(territory.labelSize))
+            .foregroundStyle(Palette.ink),
+                   at: CGPoint(x: territory.x, y: territory.y + territory.labelY))
+    }
+
+    private func drawTile(_ context: inout GraphicsContext, rect: CGRect, item: LibraryItem, hue: Color) {
+        guard showsArt else {
+            context.fill(Path(roundedRect: rect, cornerRadius: 2), with: .color(hue.opacity(0.85)))
+            return
+        }
         context.drawLayer { layer in
             layer.clip(to: Path(roundedRect: rect, cornerRadius: 2))
             if let url = item.imageUrl, let image = ImageCache.shared.cached(url) {
@@ -220,6 +231,10 @@ struct ConstellationView: View {
         }
         context.stroke(Path(roundedRect: rect, cornerRadius: 2), with: .color(hue.opacity(0.8)), lineWidth: hairline)
     }
+}
+
+private extension ConstellationMap.Territory {
+    var bounds: CGRect { CGRect(x: x - radius, y: y - radius, width: radius * 2, height: radius * 2) }
 }
 
 private struct HudChip: View {
