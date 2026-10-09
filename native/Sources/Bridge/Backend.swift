@@ -16,9 +16,6 @@ enum BackendError: LocalizedError {
 
 struct NoArgs: Encodable {}
 
-// The Swift end of the boundary. Every request is three NSStrings into one
-// exported C# selector; the reply comes back through MANativeApp.complete with
-// the request id, so callers see plain async/await and never the bridge.
 final class Backend: @unchecked Sendable {
     static let shared = Backend()
 

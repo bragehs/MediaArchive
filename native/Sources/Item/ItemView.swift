@@ -1,7 +1,5 @@
 import SwiftUI
 
-// One item's record: hero and facts, then three tabs — the pass controls with
-// the whole description, the pass history, and the classification editor.
 struct ItemView: View {
     private enum Section: Hashable { case overview, passes, classification }
 
@@ -36,8 +34,6 @@ struct ItemView: View {
         .scrollDismissesKeyboard(.interactively)
         .task {
             await store.load()
-            // Set by widget deep links: open the dialog as soon as the item
-            // loads, provided a pass is actually open right now.
             if openLog, !armedLog, store.detail?.openPass != nil {
                 armedLog = true
                 store.logging = true
@@ -396,7 +392,6 @@ private struct PassRow: View {
         .overlay(alignment: .bottom) { HairlineRule(color: Palette.line2) }
     }
 
-    // Only the dates: opening and closing a pass are logging acts, not edits.
     private var dateForm: some View {
         VStack(alignment: .leading, spacing: 0) {
             FieldLabel("Start date").padding(.top, 10)
@@ -416,7 +411,6 @@ private struct PassRow: View {
         }
     }
 
-    // Logs and sessions are two counts; the minutes are measured, the effort is not.
     private var stats: String {
         var parts = ["\(pass.notes.count) \(plural(pass.notes.count, "log"))"]
         if !pass.sessions.isEmpty {

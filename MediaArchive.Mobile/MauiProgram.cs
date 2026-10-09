@@ -24,8 +24,6 @@ public static class MauiProgram
         var builder = MauiApp.CreateBuilder();
         builder.UseMauiApp<App>();
 
-        // Widget taps arrive as mediaarchive:// URLs (scheme registered in
-        // Info.plist); translate them to app routes and let the Swift UI navigate.
         builder.ConfigureLifecycleEvents(events =>
             events.AddiOS(ios => ios.OpenUrl((_, url, _) =>
             {
@@ -37,8 +35,7 @@ public static class MauiProgram
                 return true;
             })));
 
-        // appsettings.json ships as a MauiAsset (not auto-loaded like on the web),
-        // so read it out of the app package and feed it to configuration.
+        // MAUI doesn't auto-load appsettings.json, so it is read out of the app package.
         using (var configStream = FileSystem.OpenAppPackageFileAsync("appsettings.json").GetAwaiter().GetResult())
             builder.Configuration.AddJsonStream(configStream);
 
@@ -77,8 +74,7 @@ public static class MauiProgram
         });
         builder.Services.AddTransient<IMediaProvider>(sp => sp.GetRequiredService<IgdbProvider>());
 
-        // 30s: cover caching runs in the background and OpenLibrary redirects
-        // through slow archive.org mirrors.
+        // 30s because OpenLibrary covers redirect through slow archive.org mirrors.
         builder.Services.AddHttpClient("covers", client =>
         {
             client.Timeout = TimeSpan.FromSeconds(30);
@@ -101,16 +97,12 @@ public static class MauiProgram
 
         builder.Services.AddSingleton<DeepLinkService>();
 
-        // The native boundary: NativeApi resolves the scoped services above per
-        // call, NativeBackend is the NSObject Swift reaches, MainPage hosts the root.
         builder.Services.AddSingleton(sp => new NativeApi(
             sp.GetRequiredService<IServiceScopeFactory>(),
             Path.Combine(FileSystem.AppDataDirectory, "covers")));
         builder.Services.AddSingleton<NativeBackend>();
         builder.Services.AddTransient<MainPage>();
-        // Singletons (unlike the scoped queries above): both are stateless over
-        // the context factory, and App — created once, outside any scope —
-        // holds the publisher for the window lifecycle hooks.
+        // Singletons, unlike the queries above: App holds the publisher outside any scope.
         builder.Services.AddSingleton<WidgetQueries>();
         builder.Services.AddSingleton<WidgetSnapshotPublisher>();
 
@@ -128,9 +120,7 @@ public static class MauiProgram
         return app;
     }
 
-    // mediaarchive://log/{userMediaItemId} → the item page with the log dialog
-    // open. The open pass is resolved on the page, not here — an entry id baked
-    // into a stale widget snapshot could point at an already-closed pass.
+    // The open pass is resolved on the page: an entry id in a stale widget snapshot may already be closed.
     private static string? TryMapDeepLink(NSUrl url) =>
         url.Host == "log" && int.TryParse(url.Path?.TrimStart('/'), out var id)
             ? $"/item/{id}?log=true"

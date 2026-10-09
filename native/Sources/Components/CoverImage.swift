@@ -1,8 +1,7 @@
 import SwiftUI
 import UIKit
 
-// Decoded covers, keyed by URL, shared by every surface — an item filed under
-// three genres is one texture. file:// (the cache) and https:// (not yet cached).
+// Shared by every surface, so an item filed under three genres is one texture.
 final class ImageCache: @unchecked Sendable {
     static let shared = ImageCache()
 
@@ -43,8 +42,6 @@ final class ImageCache: @unchecked Sendable {
     }
 }
 
-// Real art when there is any, the typographic tile when there isn't. The
-// parent sets the frame; this fills and clips.
 struct CoverImage: View {
     let url: String?
     let title: String
@@ -89,7 +86,6 @@ struct CoverImage: View {
     }
 }
 
-// The bordered 2:3 tile every rail and grid uses.
 struct CoverTile: View {
     let url: String?
     let title: String
@@ -99,8 +95,6 @@ struct CoverTile: View {
     var fallbackSize: CGFloat = 8.5
 
     var body: some View {
-        // A fixed width fixes the height too; otherwise the ratio derives the
-        // height from whatever width the container proposes (a grid cell).
         CoverImage(url: url, title: title, fallbackPadding: fallbackPadding, fallbackSize: fallbackSize)
             .frame(width: width, height: width.map { $0 * 1.5 })
             .aspectRatio(width == nil ? 2 / 3 : nil, contentMode: .fit)
@@ -109,7 +103,6 @@ struct CoverTile: View {
     }
 }
 
-// The status mark a cover carries when it is not simply finished.
 struct StatusGlyph: View {
     let status: MediaStatus
     @Environment(\.lexicon) private var lexicon

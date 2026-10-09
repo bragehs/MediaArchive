@@ -4,26 +4,19 @@ using MediaArchive.Services.Providers;
 
 namespace MediaArchive.Tests;
 
-// Hits the REAL Open Library API. Excluded from the normal run:
-//   dotnet test                                        -> runs everything
-//   dotnet test --filter Category!=Integration         -> skips these
-//   dotnet test --filter Category=Integration          -> only these
 [Trait("Category", "Integration")]
 public class OpenLibraryProviderIntegrationTests
 {
     [Fact]
     public async Task SearchAsync_ReturnsMappedResults_ForKnownBook()
     {
-        // A real provider over a real HttpClient — no fakes, no canned JSON.
         using var http = CreateClient();
         var provider = new OpenLibraryProvider(http);
 
         var results = await WithRetry(() =>
             provider.SearchAsync("dune frank herbert", MediaType.Book));
 
-        // Open Library's relevance ordering isn't guaranteed, so assert on the
-        // shape of the data and that *some* result looks like the book we
-        // searched for, rather than pinning an exact row.
+        // Relevance ordering isn't guaranteed, so this asserts on shape rather than an exact row.
         Assert.NotEmpty(results);
 
         Assert.All(results, r =>
@@ -32,7 +25,6 @@ public class OpenLibraryProviderIntegrationTests
             Assert.Equal(MediaType.Book, r.MediaType);
             Assert.False(string.IsNullOrWhiteSpace(r.ExternalId));
             Assert.False(string.IsNullOrWhiteSpace(r.Title));
-            // Ids leave the provider bare, never as "/works/OL...".
             Assert.DoesNotContain('/', r.ExternalId);
         });
 
@@ -42,9 +34,6 @@ public class OpenLibraryProviderIntegrationTests
         Assert.All(results, r => Assert.True(r.ImageUrl is null || r.ImageUrl.StartsWith("https://")));
     }
 
-    // The provider is the boundary where provider quirks die: Open Library
-    // descriptions carry markdown links and editor footers, and the fields the
-    // detail view needs are split across two endpoints.
     [Fact]
     public async Task GetByIdAsync_FillsTheDetailFields_FromBothEndpoints()
     {
@@ -60,7 +49,6 @@ public class OpenLibraryProviderIntegrationTests
         Assert.Equal(first.ExternalId, item.ExternalId);
         Assert.False(string.IsNullOrWhiteSpace(item.Title));
 
-        // From the work record:
         Assert.False(string.IsNullOrWhiteSpace(item.Description));
         Assert.DoesNotContain("](", item.Description);
         Assert.DoesNotContain("<br", item.Description, StringComparison.OrdinalIgnoreCase);
@@ -69,7 +57,6 @@ public class OpenLibraryProviderIntegrationTests
         Assert.DoesNotContain("&nbsp;", item.Description);
         Assert.DoesNotContain('\u00A0', item.Description);
 
-        // From the search index:
         Assert.NotEmpty(item.Credits);
         Assert.All(item.Credits, c => Assert.Equal(CreditRole.Author, c.Role));
         Assert.True(item.Length is null or > 0);
@@ -96,8 +83,7 @@ public class OpenLibraryProviderIntegrationTests
         Assert.Null(item);
     }
 
-    // Open Library takes no key; it identifies clients by User-Agent instead,
-    // and throttles requests that don't send a contactable one.
+    // Open Library throttles clients that don't send a contactable User-Agent.
     private static HttpClient CreateClient()
     {
         var http = new HttpClient();
@@ -105,9 +91,7 @@ public class OpenLibraryProviderIntegrationTests
         return http;
     }
 
-    // Open Library returns transient 503 / 429 fairly often. Retry a few times
-    // with backoff so the test measures OUR code, not Open Library's momentary
-    // weather.
+    // Retried because Open Library returns transient 503/429s; the test measures our code, not their uptime.
     private static async Task<T> WithRetry<T>(Func<Task<T>> action, int attempts = 4)
     {
         for (var attempt = 1; ; attempt++)
@@ -120,7 +104,7 @@ public class OpenLibraryProviderIntegrationTests
                 attempt < attempts &&
                 e.StatusCode is HttpStatusCode.ServiceUnavailable or HttpStatusCode.TooManyRequests)
             {
-                await Task.Delay(TimeSpan.FromSeconds(attempt)); // 1s, 2s, 3s...
+                await Task.Delay(TimeSpan.FromSeconds(attempt));
             }
         }
     }

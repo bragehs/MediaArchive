@@ -114,7 +114,6 @@ public class EffortMathTests
         var book = new Book { Title = "The Hero of Ages", PageCount = 760, AudioHours = 22.5 };
         var entry = new ConsumptionEntry { Context = ConsumptionContext.Audiobook, Effort = 152 };
 
-        // 152 of 760 pages is 4.5 h in, 18 h left; another 90 minutes leaves 16.5.
         Assert.Equal(16.5, EffortMath.Suggest(book, entry, 90).HoursLeft);
     }
 

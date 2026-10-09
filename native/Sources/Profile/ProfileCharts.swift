@@ -6,8 +6,6 @@ struct BarSlice: Identifiable {
     let value: Double
 }
 
-// One bar cut into proportional segments: the archive's minutes by medium, or a
-// medium's passes by the context they reached you through.
 struct SplitBar: View {
     let slices: [BarSlice]
     var height: CGFloat = 9
@@ -27,7 +25,6 @@ struct SplitBar: View {
     }
 }
 
-// One bar per bucket, normalised to the tallest; an optional label under each.
 struct BarChart: View {
     let values: [Double]
     let labels: [String?]
@@ -68,7 +65,6 @@ struct YearColumn: Identifiable {
     var total: Double { slices.reduce(0) { $0 + $1.minutes } }
 }
 
-// The archive's minutes on a time axis, stacked by medium — how the mix shifted.
 struct YearMix: View {
     let columns: [YearColumn]
 
@@ -85,8 +81,7 @@ struct YearMix: View {
                                 .frame(height: max(1, 56 * slice.minutes / peak))
                         }
                     }
-                    // Capped, then centred in an even cell: with the empty years
-                    // dropped a handful of columns would otherwise stretch into slabs.
+                    // Capped: with empty years dropped, a handful of columns would otherwise stretch into slabs.
                     .frame(maxWidth: 46)
                     .clipShape(UnevenRoundedRectangle(topLeadingRadius: 2, topTrailingRadius: 2))
                     .frame(maxWidth: .infinity)
@@ -97,8 +92,7 @@ struct YearMix: View {
 
             HStack(spacing: 3) {
                 ForEach(Array(columns.enumerated()), id: \.element.id) { index, column in
-                    // Anchored to the newest year, not the oldest: the last column is
-                    // the one being read, and it has to be the one that is labelled.
+                    // Anchored to the newest year: the last column is the one being read.
                     Text((columns.count - 1 - index) % step == 0
                          ? String(String(column.year).suffix(2)) : "")
                         .font(Fonts.display(8))
@@ -110,8 +104,6 @@ struct YearMix: View {
     }
 }
 
-// One item, one bar: a value against the row set's peak, with an optional
-// reference tick — your median, or this item's own estimate.
 struct ItemBarRow: View {
     let title: String
     let fraction: Double
@@ -160,7 +152,6 @@ struct ItemBarRow: View {
     private func clamped(_ value: Double) -> Double { min(max(value, 0), 1) }
 }
 
-// A chart's explanation, out of the way until asked for.
 struct InfoDot: View {
     let text: String
 
@@ -179,8 +170,7 @@ struct InfoDot: View {
             Text(text)
                 .font(Fonts.serif(12.5, italic: true))
                 .foregroundStyle(Palette.muted)
-                // A fixed width plus vertical fixedSize, or the popover clips the
-                // copy to one line's worth instead of growing to fit it.
+                // Without vertical fixedSize the popover clips the copy to one line.
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(14)
                 .frame(width: 236)

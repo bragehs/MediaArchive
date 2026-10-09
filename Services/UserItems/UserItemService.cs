@@ -25,7 +25,6 @@ public class UserItemService(IDbContextFactory<AppDbContext> dbContextFactory)
         await db.SaveChangesAsync(ct);
     }
 
-    // Which column that is differs by type, exactly as MediaItemMapper does it.
     public async Task SetRuntimeAsync(int userMediaItemId, int value, CancellationToken ct = default)
     {
         await using var db = await dbContextFactory.CreateDbContextAsync(ct);

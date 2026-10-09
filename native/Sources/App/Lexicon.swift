@@ -1,6 +1,5 @@
 import Foundation
 
-// Label lookups over the table C# serves once at launch (UiHelpers is the source).
 extension Lexicon {
     func type(_ type: MediaType) -> TypeEntry {
         types.first { $0.value == type } ?? TypeEntry(value: type, label: type.rawValue, unit: "",

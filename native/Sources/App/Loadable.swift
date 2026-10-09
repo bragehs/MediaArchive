@@ -1,6 +1,5 @@
 import Foundation
 
-// The state every page owner exposes to its view.
 enum Loadable<Value> {
     case loading
     case loaded(Value)
@@ -21,13 +20,11 @@ func plural(_ count: Int, _ one: String, _ many: String? = nil) -> String {
     count == 1 ? one : (many ?? one + "s")
 }
 
-// "0.#" — one decimal, dropped when it is zero.
 func trimmed(_ value: Double) -> String {
     let rounded = (value * 10).rounded() / 10
     return rounded == rounded.rounded() ? String(Int(rounded)) : String(format: "%.1f", rounded)
 }
 
-// "#,0" — grouped, no decimals.
 func grouped(_ value: Double) -> String {
     let formatter = NumberFormatter()
     formatter.numberStyle = .decimal
@@ -36,19 +33,16 @@ func grouped(_ value: Double) -> String {
     return formatter.string(from: NSNumber(value: value)) ?? String(Int(value))
 }
 
-// "42 min" under an hour, "2.5 h" past it.
 func duration(_ minutes: Int) -> String {
     minutes < 60 ? "\(minutes) min" : "\(trimmed(Double(minutes) / 60)) h"
 }
 
-// Ratings live on /10 in the model; the app speaks stars.
 func stars(_ tenScale: Double) -> String { trimmed(tenScale / 2) }
 
 func ago(_ days: Int) -> String {
     days <= 0 ? "today" : days == 1 ? "yesterday" : "\(days) days ago"
 }
 
-// "3 weeks ago", "8 months ago": coarser the further back, for things that wait.
 func age(_ days: Int) -> String {
     switch days {
     case ..<14: ago(days)
@@ -58,7 +52,7 @@ func age(_ days: Int) -> String {
     }
 }
 
-// Mirrors Book.PagesFromHours: hours only convert when both lengths are known.
+// Mirror of Book.PagesFromHours: the audiobook forms convert before they send.
 func pagesFromHours(_ hours: Double?, _ audioHours: Double?, _ pageCount: Int?) -> Int? {
     guard let hours, let audioHours, audioHours > 0, let pageCount, pageCount > 0 else { return nil }
     return Int((hours / audioHours * Double(pageCount)).rounded())

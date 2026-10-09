@@ -161,10 +161,10 @@ context lifetime, tracking, nullability, error and empty states.
   easy to read, pull it apart as part of the work — not as a someday issue. Flag it
   first if the refactor is bigger than the change that triggered it.
 - **The code explains itself.** Clear names and small methods instead of narration.
-- **Comments only where they carry information the code can't** — a non-obvious
-  why, a workaround, a sharp edge. **Never more than one line.** No comments that
-  restate the next statement, no section banners, no XML doc blocks on obvious
-  members.
+- **Comments record tradeoffs, never what the code does.** One stays only if it says
+  why this and not the obvious alternative, a workaround, or a sharp edge the code
+  can't show — and then it is **one line**. No type or file headers, no history, no
+  section banners, no XML doc blocks.
 - Match the surrounding style; `Tests/` covers providers and caching — extend it
   when you touch that logic.
 

@@ -1,9 +1,7 @@
 import ActivityKit
 import AppIntents
 
-// The one button on the Live Activity. LiveActivityIntent makes the system run it
-// in the app process — the extension cannot see the activity — which is why the
-// head copies the framework's Metadata.appintents into the app bundle.
+// Runs in the app process, which is why the head copies the framework's Metadata.appintents into the bundle.
 struct PauseIntent: LiveActivityIntent {
     static var title: LocalizedStringResource = "Pause or resume the session"
 
@@ -25,7 +23,7 @@ struct PauseIntent: LiveActivityIntent {
                 PauseLog.pause(sessionId: sessionId, at: now)
                 next = .init(anchor: state.anchor, pausedAt: now)
             }
-            // The stale date is the ceiling warning, measured from the request; updates keep it.
+            // The stale date is measured from the original request, so updates pass it through.
             await activity.update(ActivityContent(state: next, staleDate: activity.content.staleDate))
         }
         return .result()

@@ -1,7 +1,5 @@
 import SwiftUI
 
-// The canon, ranked by how much of them you've taken in. Each medium counts only
-// its primary credit, so one film trilogy can't flood the list with writers.
 struct CreatorsView: View {
     @State private var snapshot: Loadable<ProfileSnapshot> = .loading
     @Environment(\.dismiss) private var dismiss
@@ -54,8 +52,6 @@ private struct CreatorRow: View {
             VStack(alignment: .leading, spacing: 5) {
                 Text(creator.name).font(Fonts.title(13.5)).foregroundStyle(Palette.ink).lineLimit(1)
                 HStack(spacing: 7) {
-                    // Width against the most-read creator, so the list has a shape
-                    // before you read a single number.
                     Capsule()
                         .fill(Palette.ac.opacity(0.75))
                         .frame(width: max(3, 54 * CGFloat(creator.works) / CGFloat(max(1, peak))), height: 4)

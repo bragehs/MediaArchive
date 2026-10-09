@@ -31,8 +31,7 @@ public class LoggingService(
         return entry.Id;
     }
 
-    // A new interval starting at the dropped pass's effort — the source pass
-    // keeps its verdict and the dormant gap stays visible.
+    // A new pass rather than reopening the dropped one, so its verdict and the dormant gap stay visible.
     public async Task<int> ResumePassAsync(int entryId, PassStart start,
         CancellationToken ct = default)
     {
@@ -98,7 +97,6 @@ public class LoggingService(
         await db.SaveChangesAsync(ct);
     }
 
-    // With a session, the sitting is closed and linked to the new note in the same save.
     public async Task AddNoteAsync(int entryId, NoteInput note, SessionEnd? session = null,
         CancellationToken ct = default)
     {
@@ -147,8 +145,7 @@ public class LoggingService(
         entry.Outcome = outcome;
         entry.RatingAtTime = finish.Rating;
 
-        // Every pass ends with a Finish note, said or not: it carries the final
-        // effort into the walk and is what a closing session links to.
+        // Written even when empty: it carries the final effort and is what a closing session links to.
         var finishNote = new EntryNote
         {
             Kind = NoteKind.Finish,
@@ -168,7 +165,7 @@ public class LoggingService(
         await db.SaveChangesAsync(ct);
     }
 
-    // One sitting at a time, anywhere: refused here so no screen can request a second activity.
+    // Enforced here rather than in the UI, so no screen can start a second activity.
     public async Task<int> StartSessionAsync(int entryId, DateTime? startedAt = null,
         CancellationToken ct = default)
     {
@@ -190,7 +187,6 @@ public class LoggingService(
         return session.Id;
     }
 
-    // The sitting produced nothing to log: the sheet was dismissed, or a stale one discarded.
     public async Task EndSessionAsync(SessionEnd end, CancellationToken ct = default)
     {
         await using var db = await dbContextFactory.CreateDbContextAsync(ct);

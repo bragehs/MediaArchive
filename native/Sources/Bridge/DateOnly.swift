@@ -1,7 +1,6 @@
 import Foundation
 
-// C#'s DateOnly on the wire is "yyyy-MM-dd"; keeping it a calendar date here
-// (not a Date at some midnight) is what lets inputs round-trip unchanged.
+// A calendar date, not a Date at some midnight, so inputs round-trip unchanged.
 struct DateOnly: Codable, Hashable, Sendable, Comparable {
     var year: Int
     var month: Int
@@ -24,7 +23,7 @@ struct DateOnly: Codable, Hashable, Sendable, Comparable {
         self.init(year: parts[0], month: parts[1], day: parts[2])
     }
 
-    // Mirror of EffortMath.DayStartsAt: an evening does not end at midnight.
+    // Mirror of EffortMath.DayStartsAt.
     private static let dayStartsAt: TimeInterval = 4 * 3600
 
     static var today: DateOnly { DateOnly(Date().addingTimeInterval(-dayStartsAt)) }

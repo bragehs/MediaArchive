@@ -26,7 +26,6 @@ public enum MediaBucket { Gaming, Viewing, Reading }
 
 public record WeeklyBucketStat(MediaBucket Bucket, double Value, string Unit, int ItemsTouched);
 
-// Effort per bucket from logs; days touched and time sat from logs and sittings.
 public record WeeklyActivity(DateOnly WeekStart, DateOnly WeekEnd,
     IReadOnlyList<WeeklyBucketStat> Buckets,
     IReadOnlyList<DateOnly> ActiveDays, int Sittings, int MinutesSat);
@@ -102,8 +101,7 @@ public class HomeQueries(
         var fromUtc = from.AddHours(EffortMath.DayStartsAt).ToUniversalTime();
         var toUtc = toExclusive.AddHours(EffortMath.DayStartsAt).ToUniversalTime();
 
-        // The effort walk needs each pass's full note history as its baseline —
-        // filtering the Include to this week would corrupt the deltas.
+        // Unfiltered Include: the effort walk needs each pass's full history or the deltas are wrong.
         var entries = await db.ConsumptionEntries
             .Where(e => e.Notes.Any(n => n.CreatedAt >= fromUtc && n.CreatedAt < toUtc))
             .Include(e => e.Notes)

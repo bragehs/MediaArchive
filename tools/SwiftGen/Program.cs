@@ -4,11 +4,6 @@ using System.Text;
 using System.Text.Json;
 using MediaArchive.Services.Native;
 
-// Emits the Swift side of the native boundary from the C# route table: one
-// Codable struct per record, one String-backed enum per enum, and the typed Api.
-//
-//   dotnet run --project tools/SwiftGen -- native/Sources/Generated/Contracts.swift [--check]
-
 var output = args.FirstOrDefault(a => !a.StartsWith("--"))
              ?? throw new ArgumentException("usage: SwiftGen <output.swift> [--check]");
 var check = args.Contains("--check");
@@ -149,9 +144,7 @@ sealed class Generator
         return optional ? inner + "?" : inner;
     }
 
-    // Result types arrive as bare Types: reference nullability is lost, so a
-    // route that can return null reads as non-optional and the bridge treats a
-    // literal null reply as an error instead.
+    // Result types arrive as bare Types with reference nullability lost, so a route that can return null reads as non-optional.
     private string SwiftType(Type type)
     {
         if (Nullable.GetUnderlyingType(type) is { } underlying)

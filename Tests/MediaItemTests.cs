@@ -28,7 +28,6 @@ public class MediaItemTests
         Assert.Null(new Show { Title = "s", EpisodeCount = stored }.Length);
     }
 
-    // A TMDb runtime of 0 must not cost the film zero minutes in the totals.
     [Fact]
     public void EstimatedMinutes_IsNull_ForAZeroRuntimeFilm()
     {

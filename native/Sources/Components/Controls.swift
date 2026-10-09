@@ -1,6 +1,5 @@
 import SwiftUI
 
-// The `.btn` — accent block, uppercase display text.
 struct PrimaryButtonStyle: ButtonStyle {
     var fullWidth = false
 
@@ -18,7 +17,6 @@ struct PrimaryButtonStyle: ButtonStyle {
     }
 }
 
-// The `.btn.ghost` — outlined, muted.
 struct GhostButtonStyle: ButtonStyle {
     var fullWidth = false
 
@@ -36,7 +34,6 @@ struct GhostButtonStyle: ButtonStyle {
     }
 }
 
-// The underlined hint link (`.hintbtn` / `.sopen`).
 struct HintButtonStyle: ButtonStyle {
     var color: Color = Palette.muted
 
@@ -50,13 +47,11 @@ struct HintButtonStyle: ButtonStyle {
 }
 
 extension View {
-    // Faded and inert while a form can't be submitted.
     func disabledLook(_ disabled: Bool) -> some View {
         self.disabled(disabled).opacity(disabled ? 0.4 : 1)
     }
 }
 
-// The pill segmented control (`.xseg` / `.eseg`).
 struct SegmentedPills<Option: Hashable>: View {
     let options: [Option]
     @Binding var selection: Option
@@ -82,7 +77,6 @@ struct SegmentedPills<Option: Hashable>: View {
     }
 }
 
-// The welded segment bar (`.segs` / `.seg`).
 struct SegmentBar<Option: Hashable>: View {
     let options: [Option]
     @Binding var selection: Option
@@ -136,7 +130,6 @@ struct Notice: View {
     }
 }
 
-// `.fl` / `.il2`: the small uppercase field label, with its optional/required tail.
 struct FieldLabel: View {
     let text: String
     var optional = false
@@ -163,7 +156,6 @@ struct FieldLabel: View {
 }
 
 extension View {
-    // The `.in` / `.iin` text control frame.
     func field() -> some View {
         self
             .font(Fonts.display(13))
@@ -191,7 +183,7 @@ struct TextArea: View {
     }
 }
 
-// A whole number or nothing — the empty field is null, never zero.
+// The empty field is null, never zero.
 struct NumberField: View {
     @Binding var value: Int?
     var placeholder = ""
@@ -242,7 +234,6 @@ struct DateField: View {
     }
 }
 
-// A `<select>`: the current choice in a field frame, options in a menu.
 struct MenuField<Option: Hashable>: View {
     @Binding var selection: Option?
     let options: [Option]
@@ -267,8 +258,6 @@ struct MenuField<Option: Hashable>: View {
     }
 }
 
-// A framed dropdown that narrows a list: reads "All types" until narrowed, then
-// the choice in the accent. Every option carries its count.
 struct FilterMenu<Option: Hashable>: View {
     let all: String
     @Binding var selection: Option?
@@ -307,7 +296,6 @@ struct FilterMenu<Option: Hashable>: View {
     }
 }
 
-// Wraps its children onto as many rows as they need.
 struct FlowLayout: Layout {
     var spacing: CGFloat = 6
 
@@ -357,7 +345,6 @@ struct FlowLayout: Layout {
     }
 }
 
-// The `.vp-chip`: accent pill with an × to remove.
 struct Chip: View {
     let text: String
     var onRemove: (() -> Void)? = nil

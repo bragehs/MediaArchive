@@ -9,7 +9,6 @@ final class ActivityStore {
     var day: ActivityDay?
     var zoom: Zoom = .week
     var weekStart = DateOnly.today.monday
-    // Which way the last step went, so the next week slides in from that side.
     var direction = 1
 
     func load() async {
@@ -50,14 +49,11 @@ extension DateOnly {
     }
 }
 
-// Opens on this week, every item of every day side by side; Month zooms out to
-// the grid, and a week tapped there zooms back in. A day opens as a sheet.
 struct ActivityView: View {
     @State private var store = ActivityStore()
     @Environment(\.dismiss) private var dismiss
 
-    // Zooming out shrinks both views, zooming in grows them: the week lives below
-    // full size, the month above it, so the two always move the same way.
+    // The week lives below full size and the month above it, so both views always zoom the same way.
     var body: some View {
         ZStack {
             switch store.zoom {
@@ -143,7 +139,6 @@ struct ActivityView: View {
     }
 }
 
-// The week's dates with arrows either side, and what the week added up to.
 private struct WeekHeader: View {
     let store: ActivityStore
 
@@ -193,7 +188,6 @@ private struct WeekHeader: View {
     }
 }
 
-// One day: its date on the left, every item it touched as its own cover on the right.
 private struct WeekDayRow: View {
     let date: DateOnly
     let day: ActivityDay?
@@ -236,7 +230,6 @@ private struct WeekDayRow: View {
     private var today: Bool { date == .today }
 }
 
-// One item on one day, at its loudest: a finish beats a log beats a session, and a drop comes last.
 struct DayItem: Identifiable {
     let id: Int
     let title: String
@@ -286,8 +279,7 @@ private struct MonthGrid: View {
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 6), count: 7)
     private let letters = ["M", "T", "W", "T", "F", "S", "S"]
 
-    // One identity space for the whole grid: letters, blanks and days numbered
-    // separately collide, and a lazy grid drops the duplicates.
+    // One identity space: letters, blanks and days numbered separately collide, and a lazy grid drops duplicates.
     private enum Cell: Hashable { case letter(Int), blank(Int), day(Int) }
 
     private var cells: [Cell] {
@@ -407,7 +399,6 @@ private struct DayNumber: View {
     }
 }
 
-// The small badge on a cover: ✓ finished, ○ started, ▸ resumed, ✕ dropped, ▐▐ logged.
 struct KindGlyph: View {
     let kind: ActivityKind
 

@@ -1,7 +1,3 @@
-// In-progress widget. Renders the snapshot the app writes into the shared
-// App Group container; it never touches the database or the network.
-// Tapping a row deep-links into the app's log dialog for that item.
-
 import WidgetKit
 import SwiftUI
 
@@ -30,12 +26,12 @@ enum Palette {
 }
 
 struct SnapshotItem: Decodable, Identifiable {
-    let id: Int            // UserMediaItemId — the app's routing key
+    let id: Int
     let title: String
-    let kind: String       // "Book" | "Game" | "Film" | "Show"
+    let kind: String
     let progressLabel: String
-    let percent: Double?   // nil when the work has no known length
-    let cover: String?     // filename under widget/covers/ in the container
+    let percent: Double?
+    let cover: String?
 }
 
 struct Snapshot: Decodable {
@@ -60,7 +56,6 @@ func coverImage(_ name: String?) -> UIImage? {
 }
 
 extension SnapshotItem {
-    // Matches the app's per-type accents (wwwroot/app.css --book/--game/--movie/--show).
     var accent: Color {
         switch kind {
         case "Book": return Palette.book
@@ -97,8 +92,7 @@ struct Provider: TimelineProvider {
         completion(InProgressEntry(date: .now, items: items))
     }
 
-    // .never: the app pushes a reload whenever it writes a new snapshot,
-    // and nothing can change while the app isn't running.
+    // .never: the app pushes a reload whenever it writes a new snapshot.
     func getTimeline(in context: Context, completion: @escaping (Timeline<InProgressEntry>) -> Void) {
         completion(Timeline(entries: [InProgressEntry(date: .now, items: loadItems())], policy: .never))
     }
@@ -158,8 +152,6 @@ struct InProgressView: View {
                     .font(.caption)
                     .foregroundStyle(.white.opacity(0.45))
             } else {
-                // One centered shelf of up to 4 covers; a small "+N" marks
-                // anything the row can't fit (least recent first to go).
                 HStack(alignment: .center, spacing: 10) {
                     ForEach(entry.items.prefix(4)) { item in
                         ItemCell(item: item)

@@ -3,9 +3,6 @@ using MediaArchive.Services.Providers;
 
 namespace MediaArchive.Tests;
 
-// Fast, offline, deterministic. Feeds a captured TMDb response through the
-// provider's REAL parsing/mapping via a fake handler, in the same shape as
-// OpenLibraryProviderTests.
 public class TmdbProviderTests
 {
     private static TmdbProvider ProviderReturning(string json)
@@ -45,7 +42,6 @@ public class TmdbProviderTests
         Assert.Equal("Severance", item.Title);
         Assert.Equal(MediaType.Show, item.MediaType);
         Assert.Equal(2022, item.ReleaseYear);
-        // Length is the episode count; the runtime rides along separately.
         Assert.Equal(19, item.Length);
         Assert.Contains(item.Credits, c => c is { Name: "Dan Erickson", Role: CreditRole.Director });
         Assert.Contains(item.Credits, c => c is { Name: "Apple TV+", Role: CreditRole.Studio });
@@ -56,11 +52,9 @@ public class TmdbProviderTests
     {
         var json = await LoadFixtureAsync("tmdb-tv-severance.json");
 
-        // [90, 45, 45, 45] — the first entry alone would cost the whole show at pilot length.
         Assert.Equal(56, await EpisodeRuntimeFrom(json));
     }
 
-    // One episode's length is not the series average, so it is never borrowed.
     [Fact]
     public async Task GetByIdAsync_IgnoresTheLastAiredEpisode_WhenEveryRunTimeIsNonPositive()
     {

@@ -4,8 +4,7 @@ public sealed class TmdbOptions
 {
     public const string SectionName = "Tmdb";
 
-    // The v4 "API Read Access Token" from the TMDB dashboard, sent as a bearer
-    // token. Not the v3 API key, which goes in the query string instead.
+    // The v4 Read Access Token, sent as a bearer token — not the v3 API key.
     public string? ReadAccessToken { get; set; }
 }
 

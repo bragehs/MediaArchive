@@ -9,9 +9,6 @@ using UIKit;
 
 namespace MediaArchive.Mobile;
 
-// Feeds the home-screen widget: writes a JSON snapshot of in-progress items
-// plus downscaled covers into the shared App Group container, then asks
-// WidgetKit to re-render. The widget process never touches the database.
 public sealed class WidgetSnapshotPublisher(
     WidgetQueries queries,
     ILogger<WidgetSnapshotPublisher> logger)
@@ -37,7 +34,6 @@ public sealed class WidgetSnapshotPublisher(
 
             var items = await queries.GetInProgressAsync();
 
-            // Only the first 4 render as covers; the rest just feed the "+N" count.
             foreach (var item in items.Take(4))
                 if (item.Cover is { } cover)
                     CopyCoverDownscaled(cover, coversDir);
@@ -54,9 +50,7 @@ public sealed class WidgetSnapshotPublisher(
         }
     }
 
-    // WidgetKit is Swift-only (no .NET binding), so the reload goes through the
-    // embedded WidgetLink.framework: an @objc shim class reached via the ObjC
-    // runtime. Class lookup returning zero means the framework isn't embedded.
+    // WidgetKit has no .NET binding, so the reload goes through WidgetLink.framework via the ObjC runtime.
     [DllImport(Constants.ObjectiveCLibrary, EntryPoint = "objc_msgSend")]
     private static extern void ObjcMsgSendVoid(IntPtr receiver, IntPtr selector);
 
@@ -67,10 +61,7 @@ public sealed class WidgetSnapshotPublisher(
             ObjcMsgSendVoid(cls, Selector.GetHandle("reloadAll"));
     }
 
-    // Widget extensions run under a tight memory budget, so they get a small
-    // JPEG instead of the full cached cover. Rewritten on every publish — it's
-    // at most 8 tiny images, and it keeps old copies from surviving a resize
-    // of the widget's cover art.
+    // Downscaled for the widget's tight memory budget, and rewritten every publish so a resize leaves no stale copy.
     private static void CopyCoverDownscaled(string fileName, string coversDir)
     {
         var source = Path.Combine(FileSystem.AppDataDirectory, "covers", fileName);
@@ -82,7 +73,7 @@ public sealed class WidgetSnapshotPublisher(
         if (image is null)
             return;
 
-        const double targetHeight = 252; // 3× the 84pt cover
+        const double targetHeight = 252;
         var scale = targetHeight / image.Size.Height;
         if (scale >= 1)
         {

@@ -96,7 +96,6 @@ public static class UiHelpers
         _ => "episodes"
     };
 
-    // The one number a type needs before its length is known in minutes.
     public static string RuntimeLabel(MediaType t) => t switch
     {
         MediaType.Book => "Pages",

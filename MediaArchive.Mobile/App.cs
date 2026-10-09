@@ -6,9 +6,7 @@ public sealed class App(MainPage mainPage, WidgetSnapshotPublisher widgetPublish
     {
         var window = new Window(mainPage) { Title = "MediaArchive" };
 
-        // Refresh the widget when the app opens (changes from outside a session)
-        // and when it backgrounds (whatever was just logged). PublishAsync guards
-        // itself, so fire-and-forget is safe here.
+        // Fire-and-forget is safe: PublishAsync catches its own failures.
         window.Created += (_, _) => _ = widgetPublisher.PublishAsync();
         window.Stopped += (_, _) => _ = widgetPublisher.PublishAsync();
 

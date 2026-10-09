@@ -1,6 +1,5 @@
 import SwiftUI
 
-// Reserved for discovery once there is something to discover; search is its own tab.
 struct ExploreView: View {
     var body: some View {
         ScrollView {

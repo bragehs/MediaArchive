@@ -5,20 +5,18 @@ using Microsoft.EntityFrameworkCore;
 
 namespace MediaArchive.Services.Queries;
 
-// One row of the home-screen widget's snapshot. Serialized to JSON as-is, so
-// the property names are part of the contract with the Swift side.
+// Serialized as-is and decoded by a hand-written struct in the widget: renaming a property breaks it.
 public record WidgetRow(
-    int Id,             // UserMediaItemId — what /item/{id} routes on
+    int Id,
     string Title,
     string Kind,
     string ProgressLabel,
     double? Percent,
-    string? Cover);     // bare cover filename; null when only a remote URL exists
+    string? Cover);
 
 public class WidgetQueries(IDbContextFactory<AppDbContext> dbContextFactory)
 {
-    // Same "open now" definition as HomeQueries.GetOpenNowAsync, but ordered by
-    // recency: the widget drops the least recently touched items when full.
+    // Ordered by recency, not progress: the widget drops the least recently touched when full.
     public async Task<List<WidgetRow>> GetInProgressAsync(int take = 8, CancellationToken ct = default)
     {
         await using var db = await dbContextFactory.CreateDbContextAsync(ct);
@@ -56,8 +54,7 @@ public class WidgetQueries(IDbContextFactory<AppDbContext> dbContextFactory)
             .ToList();
     }
 
-    // LocalImagePath stores a WebView pseudo-URL (covers://c/<file>); the widget
-    // wants the filename it can resolve inside the shared container.
+    // LocalImagePath still stores the WebView-era covers://c/<file> form.
     private static string? CoverFileName(string? localImagePath) =>
         localImagePath is not null && localImagePath.StartsWith(CoverCacheService.UrlBase + "/")
             ? localImagePath[(CoverCacheService.UrlBase.Length + 1)..]

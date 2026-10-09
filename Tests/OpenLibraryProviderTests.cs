@@ -3,9 +3,6 @@ using MediaArchive.Services.Providers;
 
 namespace MediaArchive.Tests;
 
-// Fast, offline, deterministic. Feeds a captured Open Library response through
-// the provider's REAL parsing/mapping via a fake handler. No [Trait] tag, so it
-// runs on every `dotnet test`.
 public class OpenLibraryProviderTests
 {
     private static OpenLibraryProvider ProviderReturning(string json, out FakeHttpMessageHandler handler)
@@ -14,7 +11,6 @@ public class OpenLibraryProviderTests
         return new OpenLibraryProvider(new HttpClient(handler));
     }
 
-    // GetByIdAsync fans out to two endpoints, so route by URL fragment.
     private static OpenLibraryProvider ProviderReturning(
         string searchJson, string workJson, out FakeHttpMessageHandler handler)
     {
@@ -52,7 +48,6 @@ public class OpenLibraryProviderTests
 
         var dune = (await provider.SearchAsync("dune", MediaType.Book))[0];
 
-        // The API key is "/works/OL893415W"; the app stores the bare work id.
         Assert.Equal("OL893415W", dune.ExternalId);
         Assert.Equal("Dune", dune.Title);
         Assert.Equal(1965, dune.ReleaseYear);
@@ -76,7 +71,6 @@ public class OpenLibraryProviderTests
         var json = await LoadFixtureAsync("open-library-dune.json");
         var provider = ProviderReturning(json, out _);
 
-        // Third doc has no cover_i and no first_publish_year.
         var sparse = (await provider.SearchAsync("dune", MediaType.Book))[2];
 
         Assert.Null(sparse.ReleaseYear);
@@ -100,7 +94,6 @@ public class OpenLibraryProviderTests
 
         await provider.SearchAsync("ender's game", MediaType.Book);
 
-        // The space and apostrophe must be percent-encoded in the outgoing URL.
         Assert.Contains("ender%27s%20game", handler.LastRequestUri!.Query);
     }
 
@@ -131,11 +124,8 @@ public class OpenLibraryProviderTests
         Assert.Equal("OL893415W", item.ExternalId);
         Assert.Equal("Dune", item.Title);
         Assert.Equal(1965, item.ReleaseYear);
-        // number_of_pages_median from the search row.
         Assert.Equal(592, item.Length);
-        // Detail view asks for the large cover.
         Assert.Equal("https://covers.openlibrary.org/b/id/11481354-L.jpg", item.ImageUrl);
-        // description only exists on the work record.
         Assert.NotNull(item.Description);
         Assert.Contains("Arrakis", item.Description);
     }
@@ -166,7 +156,6 @@ public class OpenLibraryProviderTests
 
         Assert.NotNull(item);
         Assert.Contains("Science fiction", item.Genres);
-        // "award:hugo_award=1966" and friends are indexing artefacts, not genres.
         Assert.All(item.Genres, g =>
         {
             Assert.DoesNotContain(':', g!);
@@ -201,7 +190,6 @@ public class OpenLibraryProviderTests
 
         Assert.NotNull(item);
         Assert.Equal("OL893415W", item.ExternalId);
-        // The work request must not end up as /works//works/OL893415W.json
         Assert.Contains(handler.RequestUris, u => u.AbsolutePath == "/works/OL893415W.json");
     }
 
@@ -211,7 +199,6 @@ public class OpenLibraryProviderTests
         var handler = new FakeHttpMessageHandler([("search.json", """{ "docs": [] }""")]);
         var provider = new OpenLibraryProvider(new HttpClient(handler));
 
-        // No "/works/" route registered, so the work request 404s.
         var item = await provider.GetByIdAsync("OL0000000W", MediaType.Book);
 
         Assert.Null(item);

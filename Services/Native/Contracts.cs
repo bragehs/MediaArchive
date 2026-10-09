@@ -5,11 +5,6 @@ using MediaArchive.Services.Queries;
 
 namespace MediaArchive.Services.Native;
 
-// Everything one screen needs, in one call. The property names are the
-// contract with the generated Swift structs — tools/SwiftGen regenerates them.
-
-// Live is the one running session app-wide, so a screen can offer start or end
-// without a second call; null when nothing is running.
 public record HomePage(
     WeeklyActivity Weekly,
     List<OpenNowItem> OpenNow,
@@ -33,8 +28,6 @@ public record DiscoveryEntry(DiscoverySource Value, string Label);
 
 public record KindEntry(ActivityKind Value, string Label);
 
-// The UI vocabulary, served once at launch so the label tables and the
-// which-context-fits-which-type rule live in UiHelpers only.
 public record Lexicon(
     List<TypeEntry> Types,
     List<StatusEntry> Statuses,
@@ -51,7 +44,6 @@ public record SearchArgs(string Query, MediaType MediaType);
 
 public record ExternalArgs(string ExternalId, MediaType MediaType);
 
-// ElapsedMinutes is sent when the sheet opens from a session, and buys the Suggested* fields.
 public record EntryArgs(int EntryId, int? ElapsedMinutes = null);
 
 public record StartSessionArgs(int EntryId, DateTime? StartedAt);

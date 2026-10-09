@@ -11,7 +11,6 @@ final class HomeStore {
 
     var live: LiveSession? { page.value?.live }
 
-    // A sitting older than the activity's ceiling is asked about, not kept quietly.
     var stale: LiveSession?
     private let staleAfter: TimeInterval = 8 * 60 * 60
 
@@ -20,7 +19,6 @@ final class HomeStore {
         return page.value?.openNow.first { $0.openEntryId == stale.entryId }
     }
 
-    // Nil when another item's session is running: one at a time, and the row says nothing.
     func sessionLabel(_ item: OpenNowItem) -> String? {
         guard let live else { return "Start session" }
         return live.entryId == item.openEntryId ? "End session" : nil
@@ -31,7 +29,6 @@ final class HomeStore {
         error = nil
         defer { saving = false }
         do {
-            // Ending is logging: the sheet opens in session mode and closes the row with the note.
             if let live, live.entryId == item.openEntryId {
                 logTarget = item
                 return
@@ -45,8 +42,7 @@ final class HomeStore {
         }
     }
 
-    // Silent when something is already showing, so coming back from an item
-    // refreshes without a loading flash.
+    // Silent when something is already showing, so coming back refreshes without a loading flash.
     func load() async {
         if page.value == nil { page = .loading }
         do {
@@ -57,8 +53,6 @@ final class HomeStore {
         }
     }
 
-    // The row outlives the activity: a relaunch mid-sitting gets its timer back,
-    // and a sitting past the ceiling surfaces as a question on this screen.
     private func reconcile() {
         guard let live else { stale = nil; return }
         if live.startedAt.timeIntervalSinceNow < -staleAfter {
@@ -71,7 +65,6 @@ final class HomeStore {
         }
     }
 
-    // Let a stale sitting go without logging it; its minutes stay on record.
     func discardStale() async {
         guard let stale else { return }
         saving = true

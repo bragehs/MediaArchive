@@ -1,7 +1,5 @@
 import SwiftUI
 
-// Half-star scale, 0–10 with 10 = five stars. An accent layer clipped over a
-// dim one, ten invisible hit zones on top — one per half step.
 struct StarRating: View {
     @Binding var value: Int
     var size: CGFloat = 20
@@ -47,7 +45,6 @@ struct StarRating: View {
     }
 }
 
-// Read-only stars with a fractional fill, for lists.
 struct StarsInline: View {
     let tenScale: Int
     var size: CGFloat = 12

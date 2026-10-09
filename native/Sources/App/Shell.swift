@@ -1,7 +1,5 @@
 import SwiftUI
 
-// Fixed app bar and one NavigationStack per tab over the system's glass tab bar.
-// The navigation bars stay hidden so the theme carries the top chrome.
 struct Shell: View {
     @Bindable private var router = Router.shared
 
@@ -57,7 +55,6 @@ struct Shell: View {
 }
 
 extension View {
-    // Every page: hidden system bar, the ground colour, no system back button.
     func screen() -> some View {
         self
             .toolbar(.hidden, for: .navigationBar)
@@ -65,8 +62,7 @@ extension View {
             .background(Palette.bg.ignoresSafeArea())
     }
 
-    // The viewport gutter, applied to the scroll content rather than the scroll
-    // view, so the indicator stays at the screen edge and over nothing.
+    // On the scroll content, not the scroll view, so the indicator stays at the screen edge.
     func page() -> some View {
         self
             .contentMargins(.horizontal, 16, for: .scrollContent)
@@ -109,7 +105,6 @@ private struct AppBar: View {
 }
 
 extension View {
-    // The glass bar shrinks to a pill as content scrolls; older systems keep the plain bar.
     @ViewBuilder
     func minimizingTabBar() -> some View {
         if #available(iOS 26, *) {
@@ -120,8 +115,7 @@ extension View {
     }
 }
 
-// The system's indicator is as long as the page is short; this one is a small
-// pill in the gutter that follows the scroll and fades a moment after it stops.
+// Custom because the system indicator grows as long as the page is short.
 private struct ThinScroller: ViewModifier {
     private let height: CGFloat = 56
     private let inset: CGFloat = 6

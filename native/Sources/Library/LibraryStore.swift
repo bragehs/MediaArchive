@@ -1,8 +1,7 @@
 import Foundation
 import Observation
 
-// One payload, two screens. Shared rather than owned by the wall because
-// Shell builds the map's destination, and a pop must keep the filter.
+// Shared rather than owned by the wall: Shell builds the map's destination, and a pop must keep the filter.
 @MainActor
 @Observable
 final class LibraryStore {
@@ -21,7 +20,6 @@ final class LibraryStore {
         }
     }
 
-    // The map is completed-only: it is the archive of things actually consumed.
     var map = ConstellationMap()
     var camera = MapCamera()
     var fitted = false
@@ -31,7 +29,6 @@ final class LibraryStore {
     var error: String?
 
     var query = ""
-    // nil while nothing is typed; the search reaches every status, the wall does not.
     var hits: [LibraryItem]?
 
     var type: MediaType?
@@ -39,7 +36,7 @@ final class LibraryStore {
     var hideDropped = false
     var genre: String?
 
-    // Detects unchanged data so a revisit keeps the laid-out map and its camera.
+    // So a revisit with unchanged data keeps the laid-out map and its camera.
     private var signature: [String] = []
 
     func load() async {
@@ -63,7 +60,6 @@ final class LibraryStore {
         (hits ?? items).filter { passes($0, type: type, genre: genre) }.sorted(by: ordered)
     }
 
-    // Year rules only make sense while the order is chronological.
     func groups(of rows: [LibraryItem]) -> [(year: Int, items: [LibraryItem])]? {
         guard sort == .recent else { return nil }
         var out: [(year: Int, items: [LibraryItem])] = []
@@ -74,7 +70,6 @@ final class LibraryStore {
         return out
     }
 
-    // Each dropdown counts against the other filters, never against itself.
     func count(_ type: MediaType) -> Int {
         (hits ?? items).count { passes($0, type: type, genre: genre) }
     }
@@ -111,7 +106,6 @@ final class LibraryStore {
         }
     }
 
-    // Titles, credits and genre names all go to the archive search.
     func search() async {
         let text = query.trimmingCharacters(in: .whitespaces)
         guard !text.isEmpty else { clearSearch(); return }

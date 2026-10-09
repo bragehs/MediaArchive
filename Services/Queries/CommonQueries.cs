@@ -7,7 +7,6 @@ namespace MediaArchive.Services.Queries;
 
 public record CoverCard(int UserMediaItemId, string Title, string? ImageUrl);
 
-// What choosing the next thing needs: how long it is, how long it has waited, why it was added.
 public record OnDeckItem(
     int UserMediaItemId,
     string Title,
@@ -25,15 +24,11 @@ public record OpenPassSummary(int EntryId, DateOnly? StartDate, int? Effort, dou
 
 public record ResumablePass(int EntryId, DateOnly? EndDate, int? Effort);
 
-// Audio hours and pages are the conversion's two numbers, not facts about the pass.
-// RuntimeKnown is false when the item's own length won't reach minutes at all.
-// The Suggested* fields are filled only when elapsed minutes were sent: what that
-// sitting implies, in the unit the sheet takes, null where the conversion isn't grounded.
 public record EntryEffort(int UserMediaItemId, int? Effort, bool Audiobook,
     double? AudioHours, int? PageCount, bool RuntimeKnown,
     int? SuggestedEffort, double? SuggestedHoursLeft, int? SuggestedRuntime);
 
-// Cover is the bare file name, the key the widget publisher uses under the App Group.
+// Cover is the bare file name: the widget looks it up in the App Group.
 public record LiveSession(int SessionId, int EntryId, int UserMediaItemId, string Title,
     MediaType MediaType, string? Cover, DateTime StartedAt, int? TargetMinutes);
 
@@ -46,8 +41,6 @@ public record ItemDetail(
     string? Description,
     DateOnly? ReleaseDate,
     int? Length,
-    // The number SetRuntimeAsync writes: minutes per episode for a show, the
-    // length in its own unit for everything else.
     int? Runtime,
     double? ExternalRating,
     int? ExternalRatingCount,
@@ -67,7 +60,6 @@ public record ItemDetail(
 
 public record PassNote(DateTime CreatedAt, NoteKind Kind, int? EffortAtTime, string? Text);
 
-// Logged is whether the sitting resolved into a note; its minutes are net of pauses.
 public record PassSession(DateOnly Day, int Minutes, int PausedMinutes, bool Logged);
 
 public record PassSummary(
@@ -153,7 +145,6 @@ public class CommonQueries(IDbContextFactory<AppDbContext> dbContextFactory)
             : new OpenPassSummary(open.Id, open.StartDate, open.Effort,
                 EffortMath.ProgressPercent(open.Effort, media.Length));
 
-        // Resuming is only offered while nothing is open.
         var resumable = open is not null
             ? null
             : item.Entries
@@ -200,7 +191,7 @@ public class CommonQueries(IDbContextFactory<AppDbContext> dbContextFactory)
     {
         await using var db = await dbContextFactory.CreateDbContextAsync(ct);
 
-        // One row, and EstimatedMinutes is [NotMapped], so materialise and read it here.
+        // EstimatedMinutes is [NotMapped], so the one row is materialised first.
         var entry = await db.ConsumptionEntries
             .Include(e => e.UserMediaItem!).ThenInclude(u => u.MediaItem)
             .AsNoTracking()
@@ -227,8 +218,6 @@ public class CommonQueries(IDbContextFactory<AppDbContext> dbContextFactory)
             suggestion.Runtime);
     }
 
-    // At most one, by LoggingService's rule; the row is the record, whether or not
-    // its Live Activity is still on the Lock Screen.
     public async Task<LiveSession?> GetLiveSessionAsync(CancellationToken ct = default)
     {
         await using var db = await dbContextFactory.CreateDbContextAsync(ct);

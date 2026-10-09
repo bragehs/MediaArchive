@@ -3,9 +3,7 @@ using UIKit;
 
 namespace MediaArchive.Mobile;
 
-// The one MAUI page: it hosts the Swift root controller as a child of its own
-// view controller, so sheets, safe areas and navigation run through UIKit's
-// normal parent chain while MAUI keeps owning the window.
+// Hosted as a child view controller so sheets and safe areas run through UIKit's normal parent chain.
 public sealed class MainPage : ContentPage
 {
     private readonly NativeBackend _backend;
