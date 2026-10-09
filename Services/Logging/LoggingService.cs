@@ -1,6 +1,7 @@
 using MediaArchive.Data;
 using MediaArchive.Models;
 using MediaArchive.Services.Import;
+using MediaArchive.Services.Native;
 using MediaArchive.Services.Providers;
 using MediaArchive.Services.Queries;
 using Microsoft.EntityFrameworkCore;
@@ -121,7 +122,10 @@ public class LoggingService(
         entry.Notes.Add(progress);
 
         if (session is not null)
-            await CloseSessionAsync(db, entryId, session, progress, ct);
+        {
+            var closed = await CloseSessionAsync(db, entryId, session, ct);
+            closed.EntryNote = progress;
+        }
 
         await db.SaveChangesAsync(ct);
     }
@@ -155,7 +159,10 @@ public class LoggingService(
         entry.Notes.Add(finishNote);
 
         if (session is not null)
-            await CloseSessionAsync(db, entryId, session, finishNote, ct);
+        {
+            var closed = await CloseSessionAsync(db, entryId, session, ct);
+            closed.EntryNote = finishNote;
+        }
 
         userItem.Status = outcome is PassOutcome.Completed
             ? MediaStatus.Completed
@@ -191,13 +198,13 @@ public class LoggingService(
     {
         await using var db = await dbContextFactory.CreateDbContextAsync(ct);
 
-        await CloseSessionAsync(db, null, end, null, ct);
+        await CloseSessionAsync(db, null, end, ct);
 
         await db.SaveChangesAsync(ct);
     }
 
-    private static async Task CloseSessionAsync(AppDbContext db, int? entryId, SessionEnd end,
-        EntryNote? note, CancellationToken ct)
+    private static async Task<Session> CloseSessionAsync(AppDbContext db, int? entryId, SessionEnd end,
+        CancellationToken ct)
     {
         var session = await db.Sessions.FirstAsync(s => s.Id == end.SessionId, ct);
 
@@ -208,15 +215,14 @@ public class LoggingService(
 
         session.EndedAt = end.EndedAt;
         session.PausedMinutes = Math.Max(0, end.PausedMinutes);
-        session.EntryNote = note;
+        return session;
     }
 
-    public async Task<int> LogCompletedAsync(MediaItemDto item, WorkDetails details,
-        PassStart start, PassFinish finish, CancellationToken ct = default)
+    public async Task<int> LogCompletedAsync(LogCompletedArgs log, CancellationToken ct = default)
     {
-        var userMediaItemId = await importService.AddItemAsync(item, details, ct);
-        var entryId = await StartPassAsync(userMediaItemId, start, true, ct);
-        await FinishPassAsync(entryId, finish, ct: ct);
+        var userMediaItemId = await importService.AddItemAsync(log.Item, log.Details, ct);
+        var entryId = await StartPassAsync(userMediaItemId, log.Start, true, ct);
+        await FinishPassAsync(entryId, log.Finish, ct: ct);
 
         return userMediaItemId;
     }

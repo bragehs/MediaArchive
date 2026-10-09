@@ -80,8 +80,7 @@ public static class NativeRoutes
             new Created(await sp.GetRequiredService<MediaImportService>().AddItemAsync(a.Item, a.Details))),
 
         Post<LogCompletedArgs, Created>("item/logCompleted", "logCompleted", async (sp, a) =>
-            new Created(await sp.GetRequiredService<LoggingService>()
-                .LogCompletedAsync(a.Item, a.Details, a.Start, a.Finish))),
+            new Created(await sp.GetRequiredService<LoggingService>().LogCompletedAsync(a))),
 
         Post<UpdateDetailsArgs>("item/details", "updateDetails",
             (sp, a) => sp.GetRequiredService<UserItemService>().UpdateDetailsAsync(a.UserMediaItemId, a.Details)),
