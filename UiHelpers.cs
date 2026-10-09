@@ -5,14 +5,15 @@ namespace MediaArchive;
 
 public static class UiHelpers
 {
-    public static string StatusGlyph(MediaStatus s) => s switch
+    private static readonly Dictionary<MediaStatus, string> StatusGlyphs = new()
     {
-        MediaStatus.Completed => "✓",
-        MediaStatus.InProgress => "▐▐",
-        MediaStatus.Interested => "○",
-        MediaStatus.Dropped => "✕",
-        _ => "•"
+        [MediaStatus.Completed] = "✓",
+        [MediaStatus.InProgress] = "▐▐",
+        [MediaStatus.Interested] = "○",
+        [MediaStatus.Dropped] = "✕",
     };
+
+    public static string StatusGlyph(MediaStatus s) => StatusGlyphs.GetValueOrDefault(s, "•");
 
     public static string StatusLabel(MediaStatus s) => s switch
     {
@@ -32,37 +33,39 @@ public static class UiHelpers
         _ => t.ToString()
     };
 
-    public static string DiscoveryLabel(DiscoverySource d) => d switch
+    private static readonly Dictionary<DiscoverySource, string> DiscoveryLabels = new()
     {
-        DiscoverySource.Friend => "Friend recommended",
-        DiscoverySource.Family => "Family recommended",
-        DiscoverySource.OnlineCommunity => "Online community",
-        DiscoverySource.SocialMedia => "Social media",
-        DiscoverySource.Algorithm => "Algorithm / store rec",
-        DiscoverySource.CriticReview => "Critic or review",
-        DiscoverySource.AwardOrList => "Award or list",
-        DiscoverySource.Browsing => "Browsing",
-        DiscoverySource.Franchise => "Followed the franchise",
-        DiscoverySource.Adaptation => "Via an adaptation",
-        _ => "Other"
+        [DiscoverySource.Friend] = "Friend recommended",
+        [DiscoverySource.Family] = "Family recommended",
+        [DiscoverySource.OnlineCommunity] = "Online community",
+        [DiscoverySource.SocialMedia] = "Social media",
+        [DiscoverySource.Algorithm] = "Algorithm / store rec",
+        [DiscoverySource.CriticReview] = "Critic or review",
+        [DiscoverySource.AwardOrList] = "Award or list",
+        [DiscoverySource.Browsing] = "Browsing",
+        [DiscoverySource.Franchise] = "Followed the franchise",
+        [DiscoverySource.Adaptation] = "Via an adaptation",
     };
 
-    public static string ContextLabel(ConsumptionContext c) => c switch
+    public static string DiscoveryLabel(DiscoverySource d) => DiscoveryLabels.GetValueOrDefault(d, "Other");
+
+    private static readonly Dictionary<ConsumptionContext, string> ContextLabels = new()
     {
-        ConsumptionContext.Print => "Print",
-        ConsumptionContext.Ebook => "E-book",
-        ConsumptionContext.Audiobook => "Audiobook",
-        ConsumptionContext.Cinema => "Cinema",
-        ConsumptionContext.Streaming => "Streaming",
-        ConsumptionContext.PhysicalMedia => "Disc / physical",
-        ConsumptionContext.Broadcast => "Broadcast TV",
-        ConsumptionContext.Pc => "PC",
-        ConsumptionContext.Console => "Console",
-        ConsumptionContext.Handheld => "Handheld",
-        ConsumptionContext.Mobile => "Mobile",
-        ConsumptionContext.Vr => "VR",
-        _ => "Other"
+        [ConsumptionContext.Print] = "Print",
+        [ConsumptionContext.Ebook] = "E-book",
+        [ConsumptionContext.Audiobook] = "Audiobook",
+        [ConsumptionContext.Cinema] = "Cinema",
+        [ConsumptionContext.Streaming] = "Streaming",
+        [ConsumptionContext.PhysicalMedia] = "Disc / physical",
+        [ConsumptionContext.Broadcast] = "Broadcast TV",
+        [ConsumptionContext.Pc] = "PC",
+        [ConsumptionContext.Console] = "Console",
+        [ConsumptionContext.Handheld] = "Handheld",
+        [ConsumptionContext.Mobile] = "Mobile",
+        [ConsumptionContext.Vr] = "VR",
     };
+
+    public static string ContextLabel(ConsumptionContext c) => ContextLabels.GetValueOrDefault(c, "Other");
 
     public static ConsumptionContext[] ContextsFor(MediaType t) => t switch
     {
@@ -104,15 +107,16 @@ public static class UiHelpers
         _ => "Minutes per episode"
     };
 
-    public static string KindLabel(ActivityKind kind) => kind switch
+    private static readonly Dictionary<ActivityKind, string> KindLabels = new()
     {
-        ActivityKind.Finished => "Finished",
-        ActivityKind.Dropped => "Dropped",
-        ActivityKind.Started => "Started",
-        ActivityKind.Resumed => "Resumed",
-        ActivityKind.Sat => "Session",
-        _ => "Logged"
+        [ActivityKind.Finished] = "Finished",
+        [ActivityKind.Dropped] = "Dropped",
+        [ActivityKind.Started] = "Started",
+        [ActivityKind.Resumed] = "Resumed",
+        [ActivityKind.Sat] = "Session",
     };
+
+    public static string KindLabel(ActivityKind kind) => KindLabels.GetValueOrDefault(kind, "Logged");
 
     public static string Plural(int n, string one) => n == 1 ? one : one + "s";
 
