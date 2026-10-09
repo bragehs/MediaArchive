@@ -7,22 +7,23 @@ namespace MediaArchive.Services.Queries;
 
 public enum ActivityKind { Started, Resumed, Progress, Finished, Dropped, Sat }
 
-public record ActivityEvent(
-    int UserMediaItemId,
-    string Title,
-    MediaType MediaType,
-    string? ImageUrl,
-    ActivityKind Kind,
-    DateOnly Date,
-    string? Note,
-    int? Rating,
-    ConsumptionContext? Context,
-    double? EffortDelta,
-    double? EffortAtTime,
-    int? Length,
-    bool IsReread,
-    int? Minutes)
+public record ActivityEvent
 {
+    public required int UserMediaItemId { get; init; }
+    public required string Title { get; init; }
+    public required MediaType MediaType { get; init; }
+    public required string? ImageUrl { get; init; }
+    public required ActivityKind Kind { get; init; }
+    public required DateOnly Date { get; init; }
+    public required string? Note { get; init; }
+    public required int? Rating { get; init; }
+    public required ConsumptionContext? Context { get; init; }
+    public required double? EffortDelta { get; init; }
+    public required double? EffortAtTime { get; init; }
+    public required int? Length { get; init; }
+    public required bool IsReread { get; init; }
+    public required int? Minutes { get; init; }
+
     public bool IsMilestone => Kind is not (ActivityKind.Progress or ActivityKind.Sat);
     public bool IsSilent => !IsMilestone && string.IsNullOrWhiteSpace(Note);
 }
@@ -138,55 +139,9 @@ public class ActivityQueries(IDbContextFactory<AppDbContext> dbContextFactory)
             .ToHashSet();
 
         return entries
-            .SelectMany(e => BuildEvents(e, rereads.Contains(e.Id)))
+            .SelectMany(e => new PassEvents(e, rereads.Contains(e.Id)).All())
             .ToList();
     }
-
-    private static IEnumerable<ActivityEvent> BuildEvents(ConsumptionEntry entry, bool isReread)
-    {
-        var media = entry.UserMediaItem!.MediaItem!;
-        var image = media.DisplayImageUrl;
-        var sessions = entry.Sessions.Where(s => s.EndedAt != null).ToList();
-
-        ActivityEvent At(ActivityKind kind, DateOnly date, string? note,
-            double? delta = null, double? effort = null, int? minutes = null) =>
-            new(entry.UserMediaItemId, media.Title, media.MediaType, image, kind, date, note,
-                kind == ActivityKind.Finished ? entry.RatingAtTime : null,
-                entry.Context, delta, effort, media.Length, isReread, minutes);
-
-        int? MinutesFor(EntryNote? note) =>
-            note is null ? null : sessions.FirstOrDefault(s => s.EntryNoteId == note.Id)?.Minutes;
-
-        // From the pass's dates, not its notes — only finish notes are guaranteed to exist.
-        if (entry.StartDate is { } start)
-            yield return At(
-                entry.ResumesEntryId is null ? ActivityKind.Started : ActivityKind.Resumed,
-                start, NoteOf(entry, NoteKind.Start)?.Text);
-
-        foreach (var step in EffortMath.Walk(entry))
-        {
-            if (step.Note.Kind != NoteKind.Progress) continue;
-            yield return At(ActivityKind.Progress, DateOnly.FromDateTime(step.When),
-                step.Note.Text, step.Delta, step.Cumulative, MinutesFor(step.Note));
-        }
-
-        if (entry.EndDate is { } end)
-        {
-            var finish = NoteOf(entry, NoteKind.Finish);
-            yield return At(
-                entry.Outcome == PassOutcome.Dropped ? ActivityKind.Dropped : ActivityKind.Finished,
-                end, finish?.Text, effort: entry.Effort, minutes: MinutesFor(finish));
-        }
-
-        foreach (var session in sessions.Where(s => s.EntryNoteId is null))
-            yield return At(ActivityKind.Sat, EffortMath.LocalDay(session.StartedAt), null,
-                minutes: session.Minutes);
-    }
-
-    private static EntryNote? NoteOf(ConsumptionEntry entry, NoteKind kind) => entry.Notes
-        .Where(n => n.Kind == kind)
-        .OrderBy(n => n.CreatedAt)
-        .FirstOrDefault();
 
     private static int KindRank(ActivityKind kind) => kind switch
     {
@@ -200,4 +155,68 @@ public class ActivityQueries(IDbContextFactory<AppDbContext> dbContextFactory)
 
     private static string MonthName(int month) =>
         CultureInfo.InvariantCulture.DateTimeFormat.GetMonthName(month);
+
+    private sealed class PassEvents(ConsumptionEntry entry, bool isReread)
+    {
+        private readonly MediaItem _media = entry.UserMediaItem!.MediaItem!;
+        private readonly List<Session> _sessions = entry.Sessions.Where(s => s.EndedAt != null).ToList();
+
+        // From the pass's dates, not its notes — only finish notes are guaranteed to exist.
+        public IEnumerable<ActivityEvent> All() =>
+            Opening().Concat(Progress()).Concat(Closing()).Concat(Sittings());
+
+        private IEnumerable<ActivityEvent> Opening()
+        {
+            if (entry.StartDate is not { } start) yield break;
+            var kind = entry.ResumesEntryId is null ? ActivityKind.Started : ActivityKind.Resumed;
+            yield return At(kind, start, NoteOf(NoteKind.Start)?.Text);
+        }
+
+        private IEnumerable<ActivityEvent> Progress() => EffortMath.Walk(entry)
+            .Where(step => step.Note.Kind == NoteKind.Progress)
+            .Select(step => At(ActivityKind.Progress, DateOnly.FromDateTime(step.When), step.Note.Text) with
+            {
+                EffortDelta = step.Delta,
+                EffortAtTime = step.Cumulative,
+                Minutes = MinutesFor(step.Note)
+            });
+
+        private IEnumerable<ActivityEvent> Closing()
+        {
+            if (entry.EndDate is not { } end) yield break;
+            var finish = NoteOf(NoteKind.Finish);
+            var kind = entry.Outcome == PassOutcome.Dropped ? ActivityKind.Dropped : ActivityKind.Finished;
+            yield return At(kind, end, finish?.Text) with { EffortAtTime = entry.Effort, Minutes = MinutesFor(finish) };
+        }
+
+        private IEnumerable<ActivityEvent> Sittings() => _sessions
+            .Where(s => s.EntryNoteId is null)
+            .Select(s => At(ActivityKind.Sat, EffortMath.LocalDay(s.StartedAt), null) with { Minutes = s.Minutes });
+
+        private ActivityEvent At(ActivityKind kind, DateOnly date, string? note) => new()
+        {
+            UserMediaItemId = entry.UserMediaItemId,
+            Title = _media.Title,
+            MediaType = _media.MediaType,
+            ImageUrl = _media.DisplayImageUrl,
+            Kind = kind,
+            Date = date,
+            Note = note,
+            Rating = kind == ActivityKind.Finished ? entry.RatingAtTime : null,
+            Context = entry.Context,
+            EffortDelta = null,
+            EffortAtTime = null,
+            Length = _media.Length,
+            IsReread = isReread,
+            Minutes = null
+        };
+
+        private int? MinutesFor(EntryNote? note) =>
+            note is null ? null : _sessions.FirstOrDefault(s => s.EntryNoteId == note.Id)?.Minutes;
+
+        private EntryNote? NoteOf(NoteKind kind) => entry.Notes
+            .Where(n => n.Kind == kind)
+            .OrderBy(n => n.CreatedAt)
+            .FirstOrDefault();
+    }
 }
