@@ -43,6 +43,7 @@ dotnet ef migrations add <Name>   # after changing Models/ or DbContext
 dotnet build                      # compile check of the library
 scripts/sync-contracts.sh         # regenerate the Swift contracts (./ma does this)
 scripts/sync-colors.sh            # push colors.json into the two Swift palettes
+scripts/code-health.sh            # every C#/Swift file must score 10 in CodeScene
 ```
 
 ---
@@ -144,7 +145,8 @@ Group. Built and embedded by `./ma`.
 | `colors.json` | The palette, defined once; `scripts/sync-colors.sh` generates both Swift copies |
 | `UiHelpers.cs` | The UI vocabulary — labels, units, glyphs, which contexts fit which type — served to Swift as the `lexicon` route |
 | `tools/SwiftGen/` | The contract generator |
-| `scripts/` | `new-branch.sh`, `sync-contracts.sh`, `sync-colors.sh` |
+| `scripts/` | `new-branch.sh`, `sync-contracts.sh`, `sync-colors.sh`, `code-health.sh` |
+| `.githooks/` | `pre-commit` — refuses a commit whose staged C#/Swift scores below 10 |
 | `mediaarchive.db` | **Design-time only** — gives `dotnet ef migrations` a schema to diff. The live DB is on the phone. |
 
 ---
@@ -173,3 +175,11 @@ scripts/new-branch.sh "build the profile page"   # feat/build-the-profile-page, 
 The note's `kind:` picks the prefix (`feature → feat/`, `bug → fix/`,
 `refactor → refactor/`). Commit in small steps, merge into `main` when the slice is
 done, and close the note.
+
+Every commit passes a Code Health gate: `.githooks/pre-commit` runs
+`scripts/code-health.sh --staged` and refuses the commit when a staged `.cs` or
+`.swift` file scores below 10 in CodeScene. Turn it on once per clone:
+
+```bash
+git config core.hooksPath .githooks
+```

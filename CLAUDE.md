@@ -165,8 +165,16 @@ context lifetime, tracking, nullability, error and empty states.
   why this and not the obvious alternative, a workaround, or a sharp edge the code
   can't show — and then it is **one line**. No type or file headers, no history, no
   section banners, no XML doc blocks.
-- Match the surrounding style; `Tests/` covers providers and caching — extend it
-  when you touch that logic.
+- **Code Health 10 is required before committing.** Every hand-written `.cs` and
+  `.swift` file scores 10 in CodeScene (`Migrations/` and the generated contracts are
+  exempt; a file with nothing to score passes). Check what you changed with
+  `scripts/code-health.sh <files>` — or the CodeScene MCP `code_health_review` for the
+  findings — and fix the code until it passes. The pre-commit hook runs the same check
+  on the staged files and refuses the commit otherwise. Never get past it with
+  `--no-verify`, `.codescene/` rule changes or by moving code somewhere unscored; if a
+  finding seems wrong for this codebase, raise it with me.
+- Match the surrounding style; `Tests/` covers providers, caching and the effort
+  math — extend it when you touch that logic.
 
 ## Build & run
 
@@ -178,10 +186,12 @@ context lifetime, tracking, nullability, error and empty states.
 dotnet ef migrations add <Name>     # after changing Models/ or DbContext
 dotnet build                        # compile check of the library
 scripts/sync-contracts.sh           # regenerate native/Sources/Generated/Contracts.swift
+scripts/code-health.sh [files]      # CodeScene Code Health 10 check (the pre-commit hook runs it --staged)
 ```
 
-`./ma --help` lists everything. Migrations are applied on app launch
-(`MauiProgram.cs`); there is no seeding step any more. Plain `dotnet build` of the
+`./ma --help` lists everything. The pre-commit hook lives in `.githooks/`; a fresh
+clone turns it on with `git config core.hooksPath .githooks`. Migrations are applied
+on app launch (`MauiProgram.cs`); there is no seeding step any more. Plain `dotnet build` of the
 head compiles but the app needs the framework `./ma` builds, so test through `./ma`.
 
 **Signing:** a free Apple ID only gets **7-day** provisioning profiles, so device
